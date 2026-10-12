@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
@@ -51,6 +52,8 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -197,6 +200,10 @@ public class MainActivity extends Activity {
         askingRuntime = false;
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         root.post(new Runnable() { public void run() { setupNext(); } });
+    }
+    @Override protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req == 91) push("nativeDelResult", res == RESULT_OK ? "1" : "0");
     }
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) immersive(); }
     @Override protected void onResume() {
@@ -397,6 +404,72 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return "{}"; }
         }
 
+
+
+        /* ---- Ảnh: chia sẻ, lưu bản sao, xóa ---- */
+        private File cacheImg(String dataUrl) throws Exception {
+            byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
+            File dir = new File(getCacheDir(), "shared"); dir.mkdirs();
+            File[] old = dir.listFiles(); if (old != null) for (File o : old) o.delete();
+            File f = new File(dir, "anh_" + System.currentTimeMillis() + ".jpg");
+            FileOutputStream os = new FileOutputStream(f); os.write(by); os.close();
+            return f;
+        }
+        /** pkg rỗng = mở bảng chọn ứng dụng của Android. dataUrl rỗng = chia sẻ ảnh gốc theo id. */
+        @JavascriptInterface public boolean shareImage(String pkg, long id, String dataUrl) {
+            try {
+                Uri u;
+                if (dataUrl != null && dataUrl.length() > 0) u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", cacheImg(dataUrl));
+                else u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+                Intent i = new Intent(Intent.ACTION_SEND).setType("image/*").putExtra(Intent.EXTRA_STREAM, u)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                i.setClipData(android.content.ClipData.newRawUri("", u));
+                if (pkg != null && pkg.length() > 0) {
+                    i.setPackage(pkg);
+                    try { startActivity(i); return true; } catch (Exception e) { i.setPackage(null); }
+                }
+                go(Intent.createChooser(i, "Chia sẻ ảnh").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                return true;
+            } catch (Exception e) { return false; }
+        }
+        @JavascriptInterface public boolean saveImage(String dataUrl) {
+            try {
+                byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Images.Media.DISPLAY_NAME, "DesktopMini_" + System.currentTimeMillis() + ".jpg");
+                v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                if (Build.VERSION.SDK_INT >= 29) v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/DesktopMini");
+                Uri u = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                if (u == null) return false;
+                OutputStream os = getContentResolver().openOutputStream(u); os.write(by); os.close();
+                return true;
+            } catch (Exception e) { return false; }
+        }
+        /** 1 = đã xóa, 2 = đang chờ người dùng xác nhận trong hộp thoại hệ thống, 0 = thất bại. */
+        @JavascriptInterface public int deletePhoto(long id) {
+            final Uri u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+            try { return getContentResolver().delete(u, null, null) > 0 ? 1 : 0; }
+            catch (final SecurityException se) {
+                if (Build.VERSION.SDK_INT >= 30) {
+                    runOnUiThread(new Runnable() { public void run() {
+                        try {
+                            android.app.PendingIntent pi = MediaStore.createDeleteRequest(getContentResolver(), Collections.singletonList(u));
+                            startIntentSenderForResult(pi.getIntentSender(), 91, null, 0, 0, 0);
+                        } catch (Exception e) { push("nativeDelResult", "0"); }
+                    }});
+                    return 2;
+                }
+                if (Build.VERSION.SDK_INT >= 29 && se instanceof android.app.RecoverableSecurityException) {
+                    final android.app.RecoverableSecurityException rse = (android.app.RecoverableSecurityException) se;
+                    runOnUiThread(new Runnable() { public void run() {
+                        try { startIntentSenderForResult(rse.getUserAction().getActionIntent().getIntentSender(), 91, null, 0, 0, 0); }
+                        catch (Exception e) { push("nativeDelResult", "0"); }
+                    }});
+                    return 2;
+                }
+                return 0;
+            } catch (Exception e) { return 0; }
+        }
 
         /* ---- Tự xoay màn hình (cài đặt thật của máy) ---- */
         @JavascriptInterface public boolean isAutoRotate() {
