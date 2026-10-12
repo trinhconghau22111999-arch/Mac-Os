@@ -1050,6 +1050,37 @@ public class MainActivity extends Activity {
                 return ok;
             } catch (Exception e) { return false; }
         }
+        /** Chuyển tệp/thư mục vào thư mục khác. Trả "" nếu xong, ngược lại là lý do lỗi. */
+        @JavascriptInterface public String moveFile(String src, String destDir) {
+            try {
+                File f = new File(src), d = new File(destDir);
+                if (!f.exists()) return "Không tìm thấy tệp nguồn";
+                if (!d.isDirectory()) return "Thư mục đích không hợp lệ";
+                File t = new File(d, f.getName());
+                if (t.exists()) return "Thư mục đích đã có tệp cùng tên";
+                if (f.isDirectory()) {
+                    String a1 = f.getCanonicalPath() + "/", b1 = d.getCanonicalPath() + "/";
+                    if (b1.startsWith(a1)) return "Không thể chuyển thư mục vào chính nó";
+                }
+                boolean ok = f.renameTo(t);
+                if (!ok && f.isFile()) {
+                    java.io.FileInputStream in = new java.io.FileInputStream(f);
+                    FileOutputStream out = new FileOutputStream(t);
+                    byte[] buf = new byte[65536]; int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    out.close(); in.close();
+                    t.setLastModified(f.lastModified());
+                    ok = f.delete();
+                    if (!ok) t.delete();
+                }
+                if (!ok) return "Không chuyển được (khác bộ nhớ hoặc thiếu quyền)";
+                try {
+                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f)));
+                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t)));
+                } catch (Exception e) { }
+                return "";
+            } catch (Exception e) { return "Lỗi khi chuyển tệp"; }
+        }
         @JavascriptInterface public boolean deleteFile(String path) {
             try {
                 File f = new File(path);

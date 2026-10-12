@@ -34,6 +34,15 @@
 .rc .rcmenu{position:absolute;z-index:5;width:190px;padding:4px;border:1px solid #7a35c9;border-radius:12px;background:#14101e;box-shadow:0 0 22px rgba(180,76,255,.35)}
 .rc .rcmenu button{display:block;width:100%;padding:11px 14px;text-align:left;font-size:14px;color:#efe9fb;border-radius:8px}
 .rc .rcmenu button.dg{color:#ff4d6d}
+
+/* Kéo thả tệp */
+.rf .rup{width:34px;height:52px;font-size:22px;line-height:1}
+.rf .rup:disabled{opacity:.3}
+.rfi.dgs{opacity:.4}
+.dzh{background:var(--sel)!important;box-shadow:inset 0 0 0 2px var(--accent)}
+.dgh{position:fixed;z-index:99999;pointer-events:none;display:flex;align-items:center;gap:8px;max-width:220px;padding:6px 12px 6px 8px;border-radius:12px;background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.32);color:var(--fg);font-size:13px;transform:translate(-50%,-130%)}
+.dgh .gi{flex:none;width:28px;height:28px;display:grid;place-items:center}.dgh .gi .fic{transform:scale(.7)}
+.dgh b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 <title>Desktop Mini</title>
 <style>
@@ -2281,15 +2290,15 @@ function buildRealFiles(b,w,arg,mode){
   };
   const home=files?'@home':R.down;
   let path=(arg&&arg.path)||home, hist=[path], pos=0, M={}, io=null;
-  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><strong class="t rpt"></strong><span class="grow"></span></div><div class="rfl"></div><div class="rft"></div></div></div>';
-  const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b);
+  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><button class="ib rup" aria-label="Lên thư mục cha">↑</button><strong class="t rpt"></strong><span class="grow"></span></div><div class="rfl"></div><div class="rft"></div></div></div>';
+  const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b), up=$('.rup',b);
   if(!files)side.style.display='none';
   const secPath=k=>k==='img'||k==='vid'||k==='aud'?'@'+k:(k==='root'?R.root:R.down);
   const where=p=>p==='@img'?'img':p==='@vid'?'vid':p==='@aud'?'aud':p==='@home'?'':(R.down&&(p===R.down||p.indexOf(R.down+'/')===0))?'down':'root';
   if(files)SEC.forEach(x=>{
     const sb=document.createElement('button'); sb.className='si'; sb.dataset.k=x[0];
     sb.innerHTML='<i class="sq" style="--c:'+x[2]+'"></i><span>'+x[1]+'</span>';
-    sb.addEventListener('click',()=>go(secPath(x[0]))); side.appendChild(sb);
+    sb.addEventListener('click',()=>go(secPath(x[0]))); if((x[0]==='root'||x[0]==='down')&&secPath(x[0]))sb.__dz=secPath(x[0]); side.appendChild(sb);
   });
   const name=p=>p==='@home'?'Tệp':p==='@img'?'Ảnh':p==='@vid'?'Video':p==='@aud'?'Nhạc':p===R.root?'Tệp':p===R.down?'Tải xuống':p.split('/').pop();
   function go(p,keep){
@@ -2302,6 +2311,7 @@ function buildRealFiles(b,w,arg,mode){
     reset(); pt.textContent=name(path);
     $$('.si',side).forEach(x=>x.setAttribute('aria-current',String(where(path)===x.dataset.k)));
     $('.rbk',b).disabled=pos<=0;
+    const par=parentOf(path); up.disabled=!par; up.__dz=par; list.__dz=path[0]==='@'?null:path;
     list.className='rfl';
     if(path==='@home')renderHome(); else if(path[0]==='@')renderMedia(path.slice(1)); else renderDir();
   }
@@ -2396,6 +2406,7 @@ function buildRealFiles(b,w,arg,mode){
       const f=r.list[+x.dataset.i];
       x.addEventListener('click',()=>opn(f));
       x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,f.p,()=>opn(f),()=>render())});
+      if(f.p)dragRow(x,f.p,f.n,!!f.d,e=>fileMenu(e,f.n,f.p,()=>opn(f),()=>render(),!!f.d));
     });
   }
   function renderDir(){
@@ -2413,8 +2424,90 @@ function buildRealFiles(b,w,arg,mode){
       const opn=()=>{if(f.d)go(full); else if(!A.openFile(full))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
       x.addEventListener('click',opn);
       x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,full,opn,()=>render(),f.d)});
+      if(f.d)x.__dz=full;
+      dragRow(x,full,f.n,f.d,e=>fileMenu(e,f.n,full,opn,()=>render(),f.d));
     });
   }
+  /* ---------- Kéo thả tệp: nhấn giữ rồi kéo (chuột: kéo ngay) vào thư mục, thanh bên, nút ↑ hoặc cửa sổ Tệp khác ---------- */
+  const stripS=p=>p.replace(/\/+$/,'');
+  const dirOf=p=>{const q=stripS(p);return q.slice(0,q.lastIndexOf('/'))||'/'};
+  function parentOf(p){
+    if(!p||p[0]==='@'||!R.root)return null;
+    const q=stripS(p); if(q===stripS(R.root)||q.indexOf(stripS(R.root)+'/')!==0)return null;
+    return dirOf(q);
+  }
+  let D=null, noClick=0;
+  function dzAt(x,y){let el=document.elementFromPoint(x,y);while(el){if(el.__dz&&!el.disabled)return el;el=el.parentElement}return null}
+  function okDest(d,dest){
+    if(!dest)return false;
+    const t=stripS(dest), s=stripS(d.full);
+    if(t===dirOf(s)||t===s)return false;
+    if(d.isDir&&(t+'/').indexOf(s+'/')===0)return false;
+    return true;
+  }
+  function setHot(el){if(!D||D.hot===el)return;if(D.hot)D.hot.classList.remove('dzh');D.hot=el;if(el)el.classList.add('dzh')}
+  function ghostMove(){if(D&&D.g){D.g.style.left=D.cx+'px';D.g.style.top=D.cy+'px'}}
+  function dEnd(){
+    if(!D)return;
+    clearTimeout(D.t); clearInterval(D.sc);
+    window.removeEventListener('pointermove',dMove); window.removeEventListener('pointerup',dUp); window.removeEventListener('pointercancel',dEnd);
+    if(D.g)D.g.remove();
+    if(D.hot)D.hot.classList.remove('dzh');
+    D.x.classList.remove('dgs');
+    D=null;
+  }
+  function dBegin(){
+    if(!D||D.active)return;
+    D.active=true; D.t=null;
+    try{if(navigator.vibrate)navigator.vibrate(15)}catch(e){}
+    const ext=D.isDir?'folder':(D.nm.indexOf('.')>0?D.nm.split('.').pop().toLowerCase().slice(0,4):'tệp');
+    const g=document.createElement('div'); g.className='dgh'; g.innerHTML='<span class="gi">'+fileIcon(ext)+'</span><b>'+esc(D.nm)+'</b>';
+    document.body.appendChild(g); D.g=g; ghostMove();
+    D.x.classList.add('dgs');
+    D.sc=setInterval(()=>{
+      if(!D)return; const r=list.getBoundingClientRect();
+      if(D.cx>=r.left&&D.cx<=r.right){if(D.cy<r.top+44)list.scrollTop-=12;else if(D.cy>r.bottom-44)list.scrollTop+=12}
+    },40);
+  }
+  function dMove(e){
+    if(!D)return;
+    D.cx=e.clientX; D.cy=e.clientY;
+    if(!D.active){
+      if(Math.hypot(D.cx-D.sx,D.cy-D.sy)>8){if(D.touch)dEnd();else dBegin()}
+      return;
+    }
+    ghostMove();
+    const z=dzAt(D.cx,D.cy);
+    setHot(z&&okDest(D,z.__dz)?z:null);
+  }
+  function dUp(e){
+    if(!D)return;
+    D.cx=e.clientX; D.cy=e.clientY;
+    const d=D, was=d.active, z=was?dzAt(d.cx,d.cy):null;
+    dEnd();
+    if(!was)return;
+    noClick=Date.now()+500;
+    if(Math.hypot(d.cx-d.sx,d.cy-d.sy)<10){if(d.menu)d.menu({clientX:d.cx,clientY:d.cy});return}
+    if(z&&okDest(d,z.__dz)){
+      const r=A.moveFile(d.full,z.__dz);
+      if(r)notify({app:'Tệp',title:'Không chuyển được',body:d.nm+': '+r,icon:'files'});
+      else bus.emit('files');
+    }
+  }
+  function dragRow(x,full,nm,isDir,menu){
+    x.addEventListener('pointerdown',e=>{
+      if(e.button!==0||D||!A.moveFile)return;
+      const touch=e.pointerType!=='mouse';
+      D={x:x,full:full,nm:nm,isDir:!!isDir,menu:menu,sx:e.clientX,sy:e.clientY,cx:e.clientX,cy:e.clientY,active:false,touch:touch,hot:null,g:null,t:null,sc:null};
+      if(touch)D.t=setTimeout(dBegin,350);
+      window.addEventListener('pointermove',dMove); window.addEventListener('pointerup',dUp); window.addEventListener('pointercancel',dEnd);
+    });
+  }
+  list.addEventListener('touchmove',e=>{if(D&&D.active&&e.cancelable)e.preventDefault()},{passive:false});
+  list.addEventListener('contextmenu',e=>{if(D&&D.active){e.preventDefault();e.stopPropagation()}},true);
+  list.addEventListener('click',e=>{if(Date.now()<noClick){e.preventDefault();e.stopPropagation()}},true);
+  up.addEventListener('click',()=>{const p=parentOf(path);if(p)go(p)});
+  live(w,'files',()=>{M={};render()});
   list.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x)A.openSetup(x.dataset.setup)});
   $('.rbk',b).addEventListener('click',()=>{if(pos>0){pos--;path=hist[pos];render()}});
   live(w,'ui',()=>{});
