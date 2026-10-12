@@ -544,6 +544,22 @@ public class MainActivity extends Activity {
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }
+        /** Chế độ tiết kiệm pin có đang bật không. */
+        @JavascriptInterface public boolean isPowerSave() {
+            try { return ((android.os.PowerManager) getSystemService(Context.POWER_SERVICE)).isPowerSaveMode(); } catch (Exception e) { return false; }
+        }
+        /**
+         * Bật/tắt tiết kiệm pin. Android chỉ cho ghi cài đặt này khi ứng dụng có quyền WRITE_SECURE_SETTINGS
+         * (cấp một lần bằng adb); chưa có thì mở trang Tiết kiệm pin của hệ thống và trả về false.
+         */
+        @JavascriptInterface public boolean setPowerSave(boolean on) {
+            try {
+                Settings.Global.putInt(getContentResolver(), "low_power", on ? 1 : 0);
+                return true;
+            } catch (Exception e) { }
+            try { go(new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)); } catch (Exception e) { go(new Intent(Intent.ACTION_POWER_USAGE_SUMMARY)); }
+            return false;
+        }
         @JavascriptInterface public String getBattery() {
             try {
                 Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
