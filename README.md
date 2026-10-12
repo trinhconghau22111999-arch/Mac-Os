@@ -9,7 +9,7 @@ Giao diện kiểu macOS làm màn hình chính Android, dùng dữ liệu và c
 4. Bấm nút Home → chọn "Desktop Mini" → "Luôn luôn" để đặt làm màn hình chính.
 
 ## Quyền (xin ngay lần mở đầu tiên)
-Lần lượt: nhạc, ảnh, thông báo, Bluetooth, lịch → sửa cài đặt hệ thống (độ sáng) → đọc thông báo → Trợ năng (khóa màn hình, menu nguồn) → truy cập mọi tệp.
+Lần lượt: nhạc, ảnh, thông báo, Bluetooth, micro (Ghi âm), lịch → sửa cài đặt hệ thống (độ sáng) → đọc thông báo → Trợ năng (khóa màn hình, menu nguồn) → truy cập mọi tệp.
 Mỗi quyền đặc biệt chỉ hỏi một lần; xem lại và cấp sau trong Cài đặt hệ thống → Quyền truy cập.
 
 ## Ghi chú
