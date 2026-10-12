@@ -254,6 +254,26 @@ public class MainActivity extends Activity {
                 WindowManager.LayoutParams lp = getWindow().getAttributes(); lp.screenBrightness = Math.max(0.004f, v / 255f); getWindow().setAttributes(lp);
             }});
         }
+        @JavascriptInterface public void openWallpaper() {
+            go(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Hình nền"));
+        }
+        @JavascriptInterface public void openSystemSettings() {
+            go(new Intent(Settings.ACTION_SETTINGS));
+        }
+        @JavascriptInterface public String getWallpaper() {
+            try {
+                Drawable d = android.app.WallpaperManager.getInstance(MainActivity.this).getDrawable();
+                if (d == null) return "";
+                int w = Math.max(1, d.getIntrinsicWidth()), h = Math.max(1, d.getIntrinsicHeight());
+                float k = Math.min(1f, 1080f / Math.max(w, h));
+                int tw = Math.max(1, Math.round(w * k)), th = Math.max(1, Math.round(h * k));
+                Bitmap bm = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(bm); d.setBounds(0, 0, tw, th); d.draw(c);
+                ByteArrayOutputStream os = new ByteArrayOutputStream();
+                bm.compress(Bitmap.CompressFormat.JPEG, 80, os);
+                return "data:image/jpeg;base64," + Base64.encodeToString(os.toByteArray(), Base64.NO_WRAP);
+            } catch (Throwable e) { return ""; }
+        }
         @JavascriptInterface public boolean isWifiOn() {
             try { return ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE)).isWifiEnabled(); } catch (Exception e) { return true; }
         }

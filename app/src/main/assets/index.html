@@ -660,12 +660,37 @@ body.native .stage{border-radius:0;min-height:0}
   .tls{gap:14px;top:14px;left:16px}
   .tl{width:20px;height:20px;font-size:12px}
 }
+
+/* Đa nhiệm kiểu iPhone (thẻ ngang) */
+.msw{position:absolute;inset:0;z-index:8;display:flex;align-items:center;background:rgba(10,12,24,.5);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);animation:mswin .22s ease-out}
+.msw[hidden],.dsh[hidden]{display:none}
+@keyframes mswin{from{opacity:0}to{opacity:1}}
+.mst{display:flex;align-items:center;gap:26px;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-block:40px 24px}
+.mst::-webkit-scrollbar{display:none}
+.msp{flex:none;height:1px}
+.msc{flex:none;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;touch-action:pan-x;transition:transform .22s ease,opacity .22s ease;cursor:pointer}
+.msh{display:flex;align-items:center;gap:8px;color:#fff;font-size:14px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.msh .ic{width:26px;height:26px;border-radius:7px}
+.msx{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.22);color:#fff;font-size:12px;line-height:1;display:grid;place-items:center}
+.msv{position:relative;overflow:hidden;border-radius:18px;background:var(--win);box-shadow:0 14px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.18);pointer-events:none}
+.mshint{position:absolute;left:0;right:0;bottom:calc(var(--base) + 20px);text-align:center;color:rgba(255,255,255,.75);font-size:12px;pointer-events:none}
+/* Chạm giữ màn hình nền */
+.dsh{position:absolute;left:50%;bottom:calc(var(--base) + 44px);transform:translateX(-50%);z-index:9;display:flex;gap:4px;padding:14px 10px 12px;border-radius:28px;background:rgba(40,44,60,.38);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.16);max-width:calc(100% - 12px);animation:dshin .2s ease-out}
+@keyframes dshin{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
+.dsi{display:flex;flex-direction:column;align-items:center;gap:7px;width:78px;color:#fff;font-size:12.5px;line-height:1.15;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.dsi i{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.24);display:grid;place-items:center}
+.dsi svg{width:25px;height:25px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.dsi:active i{background:rgba(255,255,255,.42)}
+.stage[data-ics="circle"] .ic{border-radius:50%}
+.stage[data-ics="square"] .ic{border-radius:10%}
 </style>
 </head><body>
 <div class="stage" id="stage" data-wall="1">
   <div class="desk" id="desk" data-drop="root:desk"></div>
   <div class="mcbg" id="mcbg"></div>
   <div class="wins" id="wins"></div>
+  <div class="msw" id="msw" hidden><div class="mst" id="mst"></div><div class="mshint">Chạm để mở · Vuốt lên để đóng ứng dụng</div></div>
+  <div class="dsh" id="dsh" hidden></div>
 
   <div class="menubar" id="menubar">
     <button class="mb logo" data-m="apple" aria-label="Menu hệ thống" aria-haspopup="true"><svg viewBox="0 0 16 16"><path d="M8 .8l1.7 4.6 4.6 1.7-4.6 1.7L8 13.4 6.3 8.8 1.7 7.1l4.6-1.7z"/><circle cx="13" cy="12.6" r="1.6"/></svg></button>
@@ -1114,7 +1139,7 @@ function setTheme(mode){
   lsSet('dm-theme',mode); bus.emit('ui');
 }
 const themeMode=()=>lsGet('dm-theme')||'auto';
-function setWall(n){stage.dataset.wall=n;lsSet('dm-wall',n);bus.emit('ui')}
+function setWall(n){stage.style.backgroundImage='';stage.style.backgroundSize='';stage.style.backgroundPosition='';lsSet('dm-syswall','');stage.dataset.wall=n;lsSet('dm-wall',n);bus.emit('ui')}
 function applyPrefs(){
   $('#wifi').classList.toggle('off',!pref('wifi',true));
   $('#dim').style.opacity=((100-pref('bright',100))/100*.75).toFixed(2);
@@ -2137,7 +2162,7 @@ function buildClock(b,w){
    Lớp shell: thông báo, menu, trung tâm điều khiển, Spotlight,
    Launchpad, Mission Control, khóa màn hình, desktop, phím tắt
    ========================================================= */
-const pops={dd:$('#dd'),ctx:$('#ctx'),cc:$('#cc'),nc:$('#nc'),spot:$('#spot')};
+const pops={dd:$('#dd'),ctx:$('#ctx'),cc:$('#cc'),nc:$('#nc'),spot:$('#spot'),dsh:$('#dsh')};
 let openKey=null, lpOn=false, mcOn=false;
 function closeAllPopups(){
   Object.keys(pops).forEach(k=>{pops[k].hidden=true});
@@ -2316,7 +2341,7 @@ $$('[data-x]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();clo
 $('#mcx').addEventListener('click',e=>{e.stopPropagation();exitMC()});
 $('#lpx').addEventListener('click',e=>{e.stopPropagation();closeLP()});
 function openLP(){
-  closeAllPopups(); if(mcOn)exitMC();
+  closeAllPopups(); if(mcOn)exitMC(); closeMS();
   lpOn=true; lp.hidden=false; lp.classList.remove('out'); $('#lpq').value=''; renderLP(); $('#lpd').innerHTML='<i class="on"></i>';
   setTimeout(()=>$('#lpq').focus(),50);
 }
@@ -2468,7 +2493,7 @@ desk.addEventListener('contextmenu',e=>{
     const it=FS.desk[i];
     showCtx(e.clientX,e.clientY,[{t:'Mở',fn:()=>openAny(it,{root:'desk',path:[],idx:i})},{t:'Xem nhanh',fn:()=>quickLook(it),dis:it.x==='folder'},'-',{t:'Đổi tên',fn:()=>{dren=i;renderDesk()}},{t:'Chuyển vào Thùng rác',fn:()=>moveToTrash('desk',[],i)}]);
   }else{
-    showCtx(e.clientX,e.clientY,[{t:'Đổi hình nền…',fn:()=>openApp('settings',{pane:'wp'})}]);
+    openDsh();
   }
 });
 desk.addEventListener('keydown',e=>{
@@ -2476,6 +2501,123 @@ desk.addEventListener('keydown',e=>{
   if((e.key==='Delete'||e.key==='Backspace')&&dsel>=0&&FS.desk[dsel]){moveToTrash('desk',[],dsel);dsel=-2}
   else if(e.key==='Enter'&&dsel>=0&&FS.desk[dsel])openAny(FS.desk[dsel],{root:'desk',path:[],idx:dsel});
 });
+
+/* ---------- Đa nhiệm kiểu iPhone (thẻ ngang) ---------- */
+let msOn=false, lastSheet=0, popAtDown=false, lpFired=false;
+const msw=$('#msw'), mst=$('#mst'), dsh=$('#dsh');
+function openMS(){
+  closeAllPopups(); if(lpOn)closeLP(); if(mcOn)exitMC();
+  const ids=Object.keys(wins).filter(id=>wins[id]&&!wins[id]._leaving).sort((a,b)=>(+wins[b].style.zIndex||0)-(+wins[a].style.zIndex||0));
+  if(!ids.length)return;
+  msOn=true; msw.hidden=false; mst.innerHTML='';
+  const sr=stage.getBoundingClientRect(), base=parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||54;
+  const H=Math.max(150,sr.height-28-base-150), maxW=sr.width*.66;
+  const lead=document.createElement('div'); lead.className='msp'; mst.appendChild(lead);
+  let firstW=0,lastW=0;
+  ids.forEach((id,k)=>{
+    const w=wins[id];
+    const ow=parseFloat(w.style.width)||w.offsetWidth||APPS[id].w, oh=parseFloat(w.style.height)||w.offsetHeight||APPS[id].h;
+    const sc=Math.min(H/oh,maxW/ow), cw=Math.round(ow*sc), ch=Math.round(oh*sc);
+    if(k===0)firstW=cw; lastW=cw;
+    const card=document.createElement('div'); card.className='msc';
+    card.innerHTML='<div class="msh">'+iconHTML(ICONS[id]?id:'about')+'<span>'+esc(APPS[id].name)+'</span><button class="msx" type="button" aria-label="Đóng">✕</button></div><div class="msv" style="width:'+cw+'px;height:'+ch+'px"></div>';
+    try{
+      const c=w.cloneNode(true);
+      c.removeAttribute('id'); c.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
+      c.querySelectorAll('iframe,video,audio').forEach(n=>n.remove());
+      const a=w.querySelectorAll('textarea,input,select'), b=c.querySelectorAll('textarea,input,select');
+      a.forEach((n,i)=>{if(b[i])b[i].value=n.value});
+      c.classList.remove('min','focus','max');
+      c.style.cssText='position:absolute;left:0;top:0;display:flex;margin:0;opacity:1;width:'+ow+'px;height:'+oh+'px;transform:scale('+sc+');transform-origin:0 0;pointer-events:none';
+      $('.msv',card).appendChild(c);
+    }catch(err){}
+    let sx=0,sy=0,dy=0,mv=false,drag=false;
+    card.addEventListener('pointerdown',e=>{if(e.target.closest('.msx'))return;sx=e.clientX;sy=e.clientY;dy=0;mv=false;drag=true});
+    card.addEventListener('pointermove',e=>{
+      if(!drag)return; const ddx=e.clientX-sx, ddy=e.clientY-sy;
+      if(Math.abs(ddy)>10&&Math.abs(ddy)>Math.abs(ddx)){mv=true;dy=Math.min(0,ddy);card.style.transition='none';card.style.transform='translateY('+dy+'px)';card.style.opacity=String(Math.max(.2,1+dy/420))}
+      else if(Math.abs(ddx)>10)mv=true;
+    });
+    const end=()=>{if(!drag)return;drag=false;card.style.transition='';if(dy<-100)msClose(id,card);else{card.style.transform='';card.style.opacity=''}};
+    card.addEventListener('pointerup',end); card.addEventListener('pointercancel',end);
+    card.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(mv){mv=false;return}
+      if(e.target.closest('.msx')){msClose(id,card);return}
+      closeMS(); openApp(id);
+    });
+    mst.appendChild(card);
+  });
+  const tail=document.createElement('div'); tail.className='msp'; mst.appendChild(tail);
+  lead.style.width=Math.max(0,(sr.width-firstW)/2-26)+'px'; tail.style.width=Math.max(0,(sr.width-lastW)/2-26)+'px';
+}
+function msClose(id,card){
+  const w=wins[id];
+  if(w){if(id==='music')musHalt();closeWin(w);setTimeout(()=>{try{w.remove()}catch(e){}},300)}
+  card.style.transition='transform .2s ease,opacity .2s ease'; card.style.transform='translateY(-130%)'; card.style.opacity='0';
+  setTimeout(()=>{card.remove();if(!$('.msc',mst))closeMS()},210);
+}
+function closeMS(){if(!msOn)return;msOn=false;msw.hidden=true;mst.innerHTML=''}
+msw.addEventListener('click',e=>{if(e.target===msw||e.target===mst||e.target.classList.contains('msp'))closeMS()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&msOn)closeMS()});
+desk.addEventListener('pointerdown',()=>{
+  popAtDown=msOn||mcOn||lpOn||Object.keys(pops).some(k=>!pops[k].hidden); lpFired=false;
+},true);
+desk.addEventListener('click',e=>{
+  if(popAtDown||lpFired||Date.now()-lastSheet<900||e.target.closest('.di,.rn'))return;
+  if(Object.keys(wins).length<2)return;
+  if($$('.win',layer).some(w=>!w.classList.contains('min')&&!w._leaving))return;
+  openMS();
+});
+
+/* ---------- Chạm giữ màn hình nền: Hình nền / Tiện ích / Kiểu biểu tượng / Cài đặt ---------- */
+const DSI={
+  wp:['Hình nền','<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 3.5 3.5 2.5-2.5L20 18"/>'],
+  wg:['Tiện ích','<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><rect x="7" y="7" width="5.5" height="4" rx="1.2"/><path d="M7 15.5h10"/>'],
+  is:['Kiểu biểu tượng','<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="3.75"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="3.75"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="3.75"/><rect x="13" y="13" width="7.5" height="7.5" rx="3.75"/>'],
+  st:['Cài đặt','<circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>']
+};
+const NA=()=>window.AndroidLauncher;
+function setIcs(v){lsSet('dm-ics',v);stage.dataset.ics=v}
+stage.dataset.ics=lsGet('dm-ics')||'round';
+function applySysWall(){
+  const n=NA(); if(!n||!n.getWallpaper)return;
+  setTimeout(()=>{
+    let u=''; try{u=n.getWallpaper()}catch(e){}
+    if(u){stage.style.backgroundImage='url("'+u+'")';stage.style.backgroundSize='cover';stage.style.backgroundPosition='center'}
+  },350);
+}
+if(lsGet('dm-syswall')==='1')applySysWall();
+const sysBack=()=>{if(!document.hidden&&lsGet('dm-syswall')==='1')applySysWall()};
+document.addEventListener('visibilitychange',sysBack); window.addEventListener('focus',sysBack);
+const DSA={
+  wp(){const n=NA(); if(n&&n.openWallpaper){lsSet('dm-syswall','1');try{n.openWallpaper()}catch(e){}}else openApp('settings',{pane:'wp'})},
+  wg(){$('#clk').click()},
+  st(){const n=NA(); if(n&&n.openSystemSettings){try{n.openSystemSettings()}catch(e){}}else openApp('settings')}
+};
+function openDsh(){
+  if(!dsh.hidden&&Date.now()-lastSheet<800)return;
+  closeAllPopups(); lastSheet=Date.now(); lpFired=true;
+  dsh.innerHTML=Object.keys(DSI).map(k=>'<button class="dsi" type="button" data-k="'+k+'"><i><svg viewBox="0 0 24 24">'+DSI[k][1]+'</svg></i><span>'+DSI[k][0]+'</span></button>').join('');
+  dsh.hidden=false;
+}
+dsh.addEventListener('click',e=>{
+  const b=e.target.closest('.dsi'); if(!b)return; e.stopPropagation();
+  const k=b.dataset.k, r=b.getBoundingClientRect();
+  if(k==='is'){
+    const cur=lsGet('dm-ics')||'round';
+    showCtx(r.left+r.width/2,r.top-6,[['round','Bo góc mềm'],['circle','Hình tròn'],['square','Vuông bo nhẹ']].map(a=>({t:(cur===a[0]?'✓  ':'      ')+a[1],fn:()=>setIcs(a[0])})));
+    return;
+  }
+  dsh.hidden=true; DSA[k]();
+});
+let lpT=0,lpX=0,lpY=0;
+desk.addEventListener('pointerdown',e=>{
+  clearTimeout(lpT); if(e.pointerType==='mouse'||e.target.closest('.di'))return;
+  lpX=e.clientX; lpY=e.clientY; lpT=setTimeout(openDsh,550);
+});
+desk.addEventListener('pointermove',e=>{if(Math.abs(e.clientX-lpX)>12||Math.abs(e.clientY-lpY)>12)clearTimeout(lpT)});
+['pointerup','pointercancel'].forEach(t=>desk.addEventListener(t,()=>clearTimeout(lpT)));
 
 /* ---------- Phím tắt ---------- */
 document.addEventListener('keydown',e=>{
@@ -2492,7 +2634,7 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='F4'){e.preventDefault();toggleLP()}
 });
 document.addEventListener('pointerdown',e=>{
-  if(!e.target.closest('#dd,#ctx,#cc,#nc,#spot,.mb,.sb'))closeAllPopups();
+  if(!e.target.closest('#dd,#ctx,#cc,#nc,#spot,#dsh,.mb,.sb'))closeAllPopups();
 });
 
 /* ---------- Đồng hồ, pin ---------- */
@@ -2543,7 +2685,7 @@ if(window.AndroidLauncher){(function(){
   /* Nút Home / Back kiểu macOS: đóng lớp phủ trước, rồi mới tới cửa sổ */
   function overlaysOpen(){
     const open=(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||!ql.hidden||['#spot','#nc','#cc','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
-    if(open){ql.hidden=true;closeAllPopups();if(mcOn)exitMC();closeLP();['#spot','#nc','#cc','#sw'].forEach(q=>{const e=$(q);if(e)e.hidden=true})}
+    if(open){ql.hidden=true;closeAllPopups();if(mcOn)exitMC();closeMS();closeLP();['#spot','#nc','#cc','#sw'].forEach(q=>{const e=$(q);if(e)e.hidden=true})}
     return open;
   }
   window.nativeHome=function(){
