@@ -146,6 +146,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(media, f, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(media, f);
         IntentFilter sf = new IntentFilter(Intent.ACTION_SCREEN_OFF);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(scr, sf, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(scr, sf);
+        trackIme();
         immersive();
         askPermissions();
     }
@@ -158,7 +159,29 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    /** Bàn phím đang mở? Khi mở thì không ép ẩn thanh hệ thống, vì làm vậy sẽ đóng bàn phím (ô nhập bị văng). */
+    private boolean imeUp = false;
+    private void trackIme() {
+        final View d = getWindow().getDecorView();
+        d.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override public void onGlobalLayout() {
+                boolean up;
+                if (Build.VERSION.SDK_INT >= 30) {
+                    WindowInsets wi = d.getRootWindowInsets();
+                    up = wi != null && wi.isVisible(WindowInsets.Type.ime());
+                } else {
+                    android.graphics.Rect r = new android.graphics.Rect();
+                    d.getWindowVisibleDisplayFrame(r);
+                    int h = d.getRootView().getHeight();
+                    up = h > 0 && (h - r.bottom) > h * 0.15f;
+                }
+                if (up != imeUp) { imeUp = up; if (!up) immersive(); }
+            }
+        });
+    }
+
     private void immersive() {
+        if (imeUp) return;
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
