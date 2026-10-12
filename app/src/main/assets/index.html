@@ -45,9 +45,9 @@
 .dgh b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Webcam */
-.cm{position:relative;display:flex;flex-direction:column;height:100%;padding:38px 18px 16px;background:#131218;color:#efe9fb;-webkit-user-select:none;user-select:none}
+.cm{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;padding:38px 18px 16px;background:#131218;color:#efe9fb;-webkit-user-select:none;user-select:none}
 .cm h2{flex:none;margin:0 0 12px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
-.cm .cmv{position:relative;flex:1;min-height:180px;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
+.cm .cmv{position:relative;flex:1 1 0;min-height:0;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
 .cm .cmvid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;transform:none!important}
 .cm .cmmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:13px;line-height:1.5;color:#c9bfe0;cursor:pointer}
 .cm .cmblink{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .08s}
@@ -62,6 +62,7 @@
 .cm .cmsh:active i{transform:scale(.88)}
 .cm .cmsw{width:48px;height:48px;border-radius:50%;border:2px solid #b44cff;color:#b44cff;display:flex;align-items:center;justify-content:center}
 .cm .cmsw svg{width:24px;height:24px}
+@media (max-height:560px){.cm{padding:34px 14px 10px}.cm h2{margin:0 0 6px;font-size:15px}.cm .cmst{margin-top:6px}.cm .cmbt{margin-top:8px}}
 </style>
 <title>Desktop Mini</title>
 <style>
