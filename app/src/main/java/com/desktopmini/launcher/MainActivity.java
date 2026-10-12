@@ -695,9 +695,18 @@ public class MainActivity extends Activity {
         }
 
         /* ---- Khóa màn hình, nguồn (qua dịch vụ trợ năng) ---- */
+        /** Tắt màn hình ngay. Dùng quyền quản trị thiết bị (chỉ "khóa màn hình"); Android 9+ có thể dùng Trợ năng thay thế. */
         @JavascriptInterface public boolean lockScreen() {
-            if (LockService.inst != null && Build.VERSION.SDK_INT >= 28) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
-            go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return false;
+            try {
+                android.app.admin.DevicePolicyManager dpm = (android.app.admin.DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+                android.content.ComponentName cn = new android.content.ComponentName(MainActivity.this, AdminReceiver.class);
+                if (dpm.isAdminActive(cn)) { dpm.lockNow(); return true; }
+                if (LockService.inst != null && Build.VERSION.SDK_INT >= 28) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
+                go(new Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                    .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, cn)
+                    .putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Cho phép Desktop Mini tắt màn hình khi bạn bấm Tắt máy. Quyền này chỉ dùng để khóa màn hình."));
+            } catch (Exception e) { }
+            return false;
         }
         @JavascriptInterface public boolean powerMenu() {
             if (LockService.inst != null) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);

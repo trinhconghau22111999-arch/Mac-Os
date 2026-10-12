@@ -913,8 +913,6 @@ body.native .stage{border-radius:0;min-height:0}
       <div class="lh">Màn hình mô phỏng: nhập bất kỳ mật khẩu nào hoặc để trống rồi nhấn Enter</div>
     </div>
     <div class="lpw">
-      <button class="pb" data-pw="sleep"><span class="pbi"><svg viewBox="0 0 16 16"><path d="M13.5 9.6A5.7 5.7 0 0 1 6.4 2.5a6 6 0 1 0 7.1 7.1z"/></svg></span>Ngủ</button>
-      <button class="pb" data-pw="restart"><span class="pbi"><svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Khởi động lại</button>
       <button class="pb" data-pw="off"><span class="pbi"><svg viewBox="0 0 16 16"><path d="M8 1.5v6M4.3 3.8a5.5 5.5 0 1 0 7.4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>Tắt máy</button>
     </div>
   </div>
@@ -3569,10 +3567,12 @@ if(window.AndroidLauncher){(function(){
   window.nativeAlarm=function(o){notify({app:'Đồng hồ',title:'Báo thức '+pad(o.h)+':'+pad(o.m),body:'Bấm để tắt báo thức',icon:'clock',fn:()=>safe(()=>A.stopAlarmRinging())})};
   window.nativeNotif=function(o){notify({app:o.app,title:o.title||o.app,body:o.body,img:o.icon,fn:()=>safe(()=>A.launchApp(o.pkg))})};
   /* Khóa màn hình / nguồn thật của Android */
-  const needA11y=()=>notify({app:'Hệ thống',title:'Cần bật Trợ năng',body:'Bật Desktop Mini trong Cài đặt → Trợ năng rồi thử lại.',icon:'settings'});
+  const needA11y=()=>notify({app:'Hệ thống',title:'Cần cho phép tắt màn hình',body:'Bấm "Kích hoạt" ở màn hình vừa mở, rồi bấm Tắt máy lần nữa.',icon:'settings'});
   const doLock=()=>{closeAllPopups();if(hasLock()){lockUI();safe(()=>A.lockScreen(),false);return}if(!safe(()=>A.lockScreen(),false))needA11y()};
   const doPower=()=>{closeAllPopups();if(!safe(()=>A.powerMenu(),false))needA11y()};
-  lockNow=doLock; sleepNow=doLock; restartNow=doPower; shutNow=doPower;
+  /* Tắt máy = tắt màn hình ngay (không tắt nguồn thật) */
+  const doOff=()=>{closeAllPopups();if(!safe(()=>A.lockScreen(),false))needA11y()};
+  lockNow=doLock; sleepNow=doLock; restartNow=doPower; shutNow=doOff;
   setInterval(sync,3000); sync();
   /* thanh trượt -> cài đặt thật */
   document.addEventListener('input',e=>{
