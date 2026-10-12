@@ -236,7 +236,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .ib{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none}
 .ib:hover:not(:disabled){background:var(--field)}
 .ib:disabled{opacity:.35}
-.rf .rup{width:44px;height:44px;font-size:30px;line-height:1;font-weight:500}
+.rf .rbk{width:52px;height:52px;font-size:40px;line-height:1;font-weight:500}
 .ib svg,.nv svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .ib[aria-pressed="true"] svg{fill:#ff3b5c;stroke:#ff3b5c}
 .nv{display:flex;border-radius:999px;background:var(--field);overflow:hidden;flex:none}
@@ -1979,7 +1979,7 @@ function buildRealFiles(b,w,arg,mode){
   };
   const home=files?'@home':R.down;
   let path=(arg&&arg.path)||home, hist=[path], pos=0, M={}, io=null;
-  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><button class="ib rup" aria-label="Lên một cấp">←</button><strong class="t rpt"></strong><span class="grow"></span><button class="ib rrf" aria-label="Tải lại">⟳</button></div><div class="rfl"></div><div class="rft"></div></div></div>';
+  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><strong class="t rpt"></strong><span class="grow"></span></div><div class="rfl"></div><div class="rft"></div></div></div>';
   const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b);
   if(!files)side.style.display='none';
   const secPath=k=>k==='img'||k==='vid'||k==='aud'?'@'+k:(k==='root'?R.root:R.down);
@@ -1999,7 +1999,7 @@ function buildRealFiles(b,w,arg,mode){
   function render(){
     reset(); pt.textContent=name(path);
     $$('.si',side).forEach(x=>x.setAttribute('aria-current',String(where(path)===x.dataset.k)));
-    $('.rbk',b).disabled=pos<=0; $('.rup',b).disabled=path===home||path.length<=1;
+    $('.rbk',b).disabled=pos<=0;
     list.className='rfl';
     if(path==='@home')renderHome(); else if(path[0]==='@')renderMedia(path.slice(1)); else renderDir();
   }
@@ -2115,12 +2115,6 @@ function buildRealFiles(b,w,arg,mode){
   }
   list.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x)A.openSetup(x.dataset.setup)});
   $('.rbk',b).addEventListener('click',()=>{if(pos>0){pos--;path=hist[pos];render()}});
-  $('.rup',b).addEventListener('click',()=>{
-    if(path[0]==='@')go('@home');
-    else if(files&&(path===R.root||path===R.down))go('@home');
-    else{const k=path.lastIndexOf('/');if(k>0)go(path.slice(0,k))}
-  });
-  $('.rrf',b).addEventListener('click',()=>{M={};render()});
   live(w,'ui',()=>{});
   render();
   return {open(a){if(a&&a.path)go(a.path)}};
