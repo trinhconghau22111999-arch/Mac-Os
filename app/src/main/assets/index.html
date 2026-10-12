@@ -1120,7 +1120,9 @@ window.addEventListener('resize',()=>{fitDock();$$('.win.max',layer).forEach(fit
 let centers=[];
 const calcCenters=()=>{centers=$$('.dk',dock).map(d=>{const r=d.getBoundingClientRect();return r.left+r.width/2})};
 const magnify=e=>{
-  if(!centers.length||!pref('magnify',true))return;
+  if(!pref('magnify',true))return;
+  if(!centers.length)calcCenters(); /* không phụ thuộc sự kiện pointerenter (WebView Android đôi khi không gửi) */
+  if(!centers.length)return;
   $$('.dk',dock).forEach((d,i)=>{
     const dist=Math.abs(e.clientX-centers[i]);
     d.style.setProperty('--s',(1+.62*Math.exp(-(dist*dist)/(2*58*58))).toFixed(3));
@@ -1129,6 +1131,7 @@ const magnify=e=>{
 const unmagnify=()=>{centers=[];$$('.dk',dock).forEach(d=>d.style.removeProperty('--s'))};
 /* Chuột: rê qua dock. Màn cảm ứng: chạm giữ rồi trượt ngón tay dọc dock, nhả ra thì thu lại */
 dock.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')calcCenters()});
+dock.addEventListener('pointerover',e=>{if(e.pointerType!=='touch'&&!centers.length)calcCenters()});
 dock.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){calcCenters();magnify(e)}});
 dock.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&!(e.buttons&1))return;magnify(e)});
 ['pointerup','pointercancel'].forEach(t=>dock.addEventListener(t,e=>{if(e.pointerType==='touch')unmagnify()}));
