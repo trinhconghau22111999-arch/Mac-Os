@@ -378,11 +378,13 @@ ul,ol{margin:0;padding:0;list-style:none}
 .ra input{width:100%;border:0;border-radius:10px;padding:8px 12px;background:var(--field);outline:0}
 
 /* Máy tính */
-.calc{display:flex;flex-direction:column;height:100%;background:rgba(28,28,31,.97);padding:0 10px 10px;gap:8px}
-.calc .bar{height:44px;padding-inline:0}
-.expr{min-height:20px;padding:0 10px;text-align:right;font-size:15px;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;margin-top:auto}
-.disp{flex:0 0 auto;min-height:56px;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 8px 2px;font-size:46px;font-weight:300;font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;color:#fff}
-.disp.sm{font-size:30px}
+.calc{--bh:44px;position:relative;container-type:size;display:flex;flex-direction:column;height:100%;background:rgba(28,28,31,.97);padding:0 10px 10px;gap:8px}
+.calc .bar{height:var(--bh);padding-inline:0;display:flex;align-items:center;justify-content:flex-end;flex:none}
+.hbtn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center}
+.hbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.expr{min-height:1.3em;padding:0 10px;text-align:right;font-size:clamp(15px,3.6cqh,28px);color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;margin-top:auto}
+.disp{flex:0 0 auto;min-height:56px;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 8px 2px;font-size:46px;line-height:1.1;font-weight:300;font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;color:#fff}
+.disp span{display:block}
 .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
 .k{height:46px;border-radius:23px;background:#505055;color:#fff;font-size:19px;display:grid;place-items:center}
 .k:active{filter:brightness(1.4)}
@@ -390,6 +392,81 @@ ul,ol{margin:0;padding:0;list-style:none}
 .k.op{background:#ff9f0a}
 .k.op.on{background:#fff;color:#ff9f0a}
 .k.wide{grid-column:span 2;justify-content:start;padding-left:19px}
+.chist{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;padding:var(--bh) 12px 12px;background:rgba(28,28,31,.99);color:#fff}
+.chist[hidden]{display:none}
+.chh{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px;border-bottom:1px solid rgba(255,255,255,.14)}
+.chh b{font-size:16px}
+.chh span{display:flex;gap:8px}
+.chh button{padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:13px}
+.chl{flex:1;min-height:0;overflow:auto;margin:0;padding:0;list-style:none}
+.chl li{padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;cursor:pointer}
+.chl li:active{background:rgba(255,255,255,.08)}
+.chl small{display:block;color:rgba(255,255,255,.5);font-size:12px;font-variant-numeric:tabular-nums}
+.chl em{display:block;font-style:normal;font-size:24px;font-weight:300;font-variant-numeric:tabular-nums;word-break:break-all}
+.chl .non{text-align:center;color:rgba(255,255,255,.5);padding:30px 0;border:0;cursor:default}
+/* Cửa sổ thấp (màn hình ngang): thu gọn để không bị Dock che */
+@container (max-height:340px){
+  .calc{--bh:36px;gap:4px;padding:0 8px 8px}
+  .keys{flex:1;min-height:0;grid-template-rows:repeat(5,minmax(0,1fr));gap:4px}
+  .k{height:auto;min-height:0;font-size:15px;border-radius:999px}
+  .k.wide{padding-left:16px}
+  .disp{min-height:0}
+  .hbtn{width:28px;height:28px}
+}
+/* Vừa thấp vừa rộng: màn hình trái, phím phải */
+@container (max-height:340px) and (min-width:440px){
+  .calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-rows:auto minmax(0,1fr) auto;column-gap:12px;row-gap:2px}
+  .calc .bar{grid-column:1;grid-row:1}
+  .expr{grid-column:1;grid-row:2;align-self:end;margin-top:0}
+  .disp{grid-column:1;grid-row:3}
+  .keys{grid-column:2;grid-row:1/4}
+}
+
+
+/* Báo thức */
+.alm{display:flex;flex-direction:column;gap:12px;max-width:420px;margin:0 auto}
+.whl{position:relative;isolation:isolate;display:flex;justify-content:center;align-items:center;gap:6px;height:120px}
+.wcol{width:84px;height:120px;overflow-y:auto;scroll-snap-type:y mandatory;padding:40px 0;box-sizing:border-box;scrollbar-width:none;-webkit-overflow-scrolling:touch;text-align:center}
+.wcol::-webkit-scrollbar{display:none}
+.wi{height:40px;line-height:40px;font-size:28px;font-weight:300;font-variant-numeric:tabular-nums;scroll-snap-align:center;color:var(--muted);cursor:pointer}
+.wi.on{color:var(--fg);font-weight:400}
+.wsep{font-size:28px;font-weight:300}
+.wband{position:absolute;left:50%;top:40px;width:230px;height:40px;transform:translateX(-50%);border-radius:12px;background:rgba(127,127,127,.18);pointer-events:none;z-index:-1}
+.alr{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:12px;background:var(--field)}
+.als b{display:block;margin:0 4px 6px}
+.als ul{list-style:none;margin:0;padding:0;border-radius:12px;background:var(--field);overflow:hidden}
+.als li{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}
+.als li:first-child{border-top:0}
+.als li.non{justify-content:center;color:var(--muted);cursor:default}
+.snl{max-height:150px;overflow:auto}
+.snl .sn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snl .rd{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--muted);flex:none}
+.snl li[aria-selected="true"] .rd{box-shadow:inset 0 0 0 5px var(--accent)}
+.snl .pv{width:30px;height:30px;border-radius:50%;background:var(--win);font-size:12px}
+.aset{align-self:center;padding:9px 28px;font-size:15px}
+.all li{cursor:default}
+.all .at{flex:1;font-size:26px;font-weight:300;font-variant-numeric:tabular-nums;min-width:0}
+.all .at small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.all .adl{width:28px;height:28px;border-radius:50%;background:var(--win);color:var(--muted)}
+
+
+/* Mật khẩu màn hình */
+.lock{overflow:auto}
+.amsg{min-height:18px;font-size:13px;opacity:.9;margin-bottom:6px;text-align:center}
+.amsg.shake{animation:shk .35s}
+@keyframes shk{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.apw{display:flex;align-items:center;gap:6px;width:min(240px,80vw);height:36px;padding:0 4px 0 14px;border-radius:999px;background:rgba(127,127,127,.28);margin:0 auto;text-shadow:none}
+.apw input{flex:1;min-width:0;background:none;border:0;outline:0;color:inherit;font:inherit}
+.adots{display:flex;gap:12px;justify-content:center;height:16px;margin:4px 0 12px}
+.adots i{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 1.5px currentColor;opacity:.85}
+.adots i.f{background:currentColor}
+.apad{display:grid;grid-template-columns:repeat(3,56px);gap:10px 16px;justify-content:center}
+.apad button{width:56px;height:56px;border-radius:50%;background:rgba(127,127,127,.3);color:inherit;font-size:22px;display:grid;place-items:center;text-shadow:none}
+.apad button:active{background:rgba(127,127,127,.55)}
+.apad .nb{background:none;font-size:18px}
+.apat{width:min(210px,42vh,70vw);margin:0 auto;touch-action:none}
+.apat svg{width:100%;height:auto;display:block;touch-action:none}
+@media (max-height:430px){.apad{grid-template-columns:repeat(3,42px);gap:6px 12px}.apad button{width:42px;height:42px;font-size:18px}}
 
 /* Cài đặt */
 .sset{display:grid;grid-template-columns:210px minmax(0,1fr);height:100%}
@@ -750,6 +827,7 @@ body.native .stage{border-radius:0;min-height:0}
     <button class="tile" id="t-bt" aria-pressed="true"><span class="ci"><svg viewBox="0 0 16 16"><path d="M4 4.5l8 7-4 3.5V1l4 3.5-8 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span><span><b>Bluetooth</b><small id="t-bt-s">Đang bật</small></span></button>
     <button class="tile" id="t-dnd" aria-pressed="false"><span class="ci"><svg viewBox="0 0 16 16"><path d="M13.5 9.6A5.7 5.7 0 0 1 6.4 2.5a6 6 0 1 0 7.1 7.1z"/></svg></span><span><b>Không làm phiền</b><small id="t-dnd-s">Đã tắt</small></span></button>
     <button class="tile" id="t-dark" aria-pressed="false"><span class="ci"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z"/></svg></span><span><b>Chế độ tối</b><small id="t-dark-s">Đã tắt</small></span></button>
+    <button class="tile" id="t-rot" aria-pressed="false"><span class="ci"><svg viewBox="0 0 16 16"><path d="M13.5 8A5.5 5.5 0 0 1 3.2 10.7M2.5 8A5.5 5.5 0 0 1 12.8 5.3M12.8 2v3.5H9.3M3.2 14v-3.5h3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>Tự xoay</b><small id="t-rot-s">Đã tắt</small></span></button>
     <div class="slide"><b>Độ sáng</b><input type="range" id="bright" min="1" max="100" value="100" aria-label="Độ sáng màn hình"></div>
     <div class="slide"><b>Âm thanh</b><input type="range" id="vol" min="0" max="100" value="60" aria-label="Âm lượng"></div>
     <div class="slide np"><b>Đang phát</b><div class="npr"><span id="np-t">Chưa phát bài nào</span><button id="np-b" class="npb" aria-label="Phát hoặc tạm dừng"><svg viewBox="0 0 16 16"><path id="np-i" d="M4 2.5v11l9-5.5z"/></svg></button></div></div>
@@ -788,6 +866,7 @@ body.native .stage{border-radius:0;min-height:0}
     <div class="lu">
       <div class="lav" id="lav"></div>
       <div class="ln" id="lname"></div>
+      <div id="lauth" hidden></div>
       <form id="lform" autocomplete="off"><input id="lpw" type="password" placeholder="Nhập mật khẩu" aria-label="Mật khẩu" autocomplete="off"><button class="go" aria-label="Mở khóa" type="submit"><svg viewBox="0 0 16 16"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form>
       <div class="lh">Màn hình mô phỏng: nhập bất kỳ mật khẩu nào hoặc để trống rồi nhấn Enter</div>
     </div>
@@ -919,7 +998,7 @@ const APPS={
   music:{name:'Nhạc',w:620,h:470,minW:340,minH:300,build:buildMusic},
   notes:{name:'Ghi chú',w:560,h:380,minW:340,minH:240,build:buildNotes},
   reminders:{name:'Nhắc nhở',w:380,h:440,minW:300,minH:280,build:buildReminders},
-  calc:{name:'Máy tính',w:256,h:392,minW:256,minH:392,build:buildCalc,dark:true},
+  calc:{name:'Máy tính',w:256,h:392,minW:240,minH:200,build:buildCalc,dark:true},
   terminal:{name:'Terminal',w:560,h:340,minW:320,minH:200,build:buildTerminal,dark:true},
   clock:{name:'Đồng hồ',w:520,h:400,minW:320,minH:300,build:buildClock},
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
@@ -967,7 +1046,14 @@ function fitDock(){
   base=Math.max(36,Math.min(pref('dockSize',54),base));
   stage.style.setProperty('--base',base+'px');
 }
-window.addEventListener('resize',()=>{fitDock();$$('.win.max',layer).forEach(fitMax)});
+function fitCalc(w){
+  const sr=stage.getBoundingClientRect(), wide=sr.width>sr.height*1.25, a=APPS.calc;
+  const bw=Math.min(wide?Math.max(a.w,460):a.w,sr.width-24), bh=Math.min(a.h,sr.height-28-110);
+  w.style.width=bw+'px'; w.style.height=bh+'px';
+  w.style.left=Math.max(12,Math.min(w.offsetLeft,sr.width-bw-12))+'px';
+  w.style.top=Math.max(40,Math.min(w.offsetTop,sr.height-bh-110))+'px';
+}
+window.addEventListener('resize',()=>{fitDock();$$('.win.max',layer).forEach(fitMax);$$('.win[data-app="calc"]:not(.max)',layer).forEach(fitCalc)});
 let centers=[];
 dock.addEventListener('pointerenter',e=>{
   if(e.pointerType==='touch')return;
@@ -1064,7 +1150,7 @@ function createWin(id,arg){
   const w=document.createElement('section');
   w.className='win'+(a.dark?' dark-win':''); w.dataset.app=id; w.setAttribute('aria-label',a.name);
   w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl z" aria-label="Phóng to">+</button><button class="tl m" aria-label="Thu nhỏ">−</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
-  const bw=Math.min(a.w,sr.width-24), bh=Math.min(a.h,sr.height-28-110), n=count++%5;
+  const wideC=id==='calc'&&sr.width>sr.height*1.25, bw=Math.min(wideC?Math.max(a.w,460):a.w,sr.width-24), bh=Math.min(a.h,sr.height-28-110), n=count++%5;
   w.style.width=bw+'px'; w.style.height=bh+'px';
   w.style.left=Math.max(12,Math.min(30+n*32,sr.width-bw-12))+'px';
   w.style.top=Math.max(40,Math.min(46+n*28,sr.height-bh-110))+'px';
@@ -1569,10 +1655,13 @@ function buildReminders(b,w){
 
 /* ---------- Máy tính ---------- */
 function buildCalc(b,w){
-  b.innerHTML='<div class="calc"><div class="bar"></div><div class="expr" aria-live="polite"></div><div class="disp">0</div><div class="keys"></div></div>';
-  const disp=$('.disp',b), keys=$('.keys',b), exprEl=$('.expr',b);
+  b.innerHTML='<div class="calc"><div class="bar"><button class="hbtn" type="button" aria-label="Lịch sử phép tính"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4v4.5H8M12 7.5V12l3 2"/></svg></button></div><div class="expr" aria-live="polite"></div><div class="disp"><span>0</span></div><div class="keys"></div><div class="chist" hidden><div class="chh"><b>Lịch sử</b><span><button type="button" class="hclr">Xóa</button><button type="button" class="hx" aria-label="Đóng">✕</button></span></div><ol class="chl"></ol></div></div>';
+  const calcEl=$('.calc',b), disp=$('.disp',b), ds=$('span',disp), keys=$('.keys',b), exprEl=$('.expr',b);
+  const hist=$('.chist',b), hl=$('.chl',b), HK='dm-calchist';
   let done='';
   let cur='0', prev=null, op=null, fresh=false, opBtn=null;
+  let HIST=[]; try{const v=JSON.parse(lsGet(HK)||'[]');if(Array.isArray(v))HIST=v}catch(e){}
+  const saveHist=()=>{try{lsSet(HK,JSON.stringify(HIST))}catch(e){}};
   function fmt(s){
     if(s==='Lỗi')return s;
     let neg=s[0]==='-'; if(neg)s=s.slice(1);
@@ -1581,12 +1670,38 @@ function buildCalc(b,w){
     if(p.length>1)out+=','+p[1];
     return (neg?'-':'')+out;
   }
+  /* Chữ kết quả to hết cỡ theo chiều cao cửa sổ, tự thu nhỏ khi số dài */
+  function fit(){
+    const H=calcEl.clientHeight, W=disp.clientWidth-16; if(!H||W<=0)return;
+    let sz=Math.max(30,Math.min(96,H*0.12)), n=0;
+    disp.style.fontSize=sz+'px';
+    while(ds.offsetWidth>W&&sz>16&&n++<40){sz*=0.93;disp.style.fontSize=sz+'px'}
+  }
   const render=()=>{
-    const t=fmt(cur);disp.textContent=t;disp.classList.toggle('sm',t.length>9);
+    const t=fmt(cur);ds.textContent=t;
     let e=done;
     if(!e&&op!==null&&prev!==null)e=fmt(prev)+' '+op+(fresh?'':' '+t);
     exprEl.textContent=e||'\u00a0';
+    fit();
   };
+  const ro=window.ResizeObserver?new ResizeObserver(()=>fit()):null; if(ro)ro.observe(calcEl);
+  /* Lịch sử: ghi lại sau mỗi lần bấm "=" */
+  const hfmt=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())+' · '+pad(d.getDate())+'/'+pad(d.getMonth()+1)};
+  function drawHist(){
+    hl.innerHTML=HIST.length?HIST.map((h,i)=>'<li data-i="'+i+'"><small>'+esc(h.e)+'</small><em>'+esc(h.r)+'</em><small>'+hfmt(h.t)+'</small></li>').join(''):'<li class="non">Chưa có phép tính nào</li>';
+  }
+  function addHist(e,raw){
+    if(raw==='Lỗi')return;
+    HIST.unshift({e:e,r:fmt(raw),raw:raw,t:Date.now()}); if(HIST.length>500)HIST.length=500; saveHist();
+  }
+  $('.hbtn',b).addEventListener('click',()=>{drawHist();hist.hidden=false});
+  $('.hx',b).addEventListener('click',()=>{hist.hidden=true});
+  $('.hclr',b).addEventListener('click',()=>{HIST=[];saveHist();drawHist()});
+  hl.addEventListener('click',e=>{
+    const li=e.target.closest('li[data-i]'); if(!li)return;
+    const h=HIST[+li.dataset.i]; if(!h)return;
+    cur=h.raw; prev=null; op=null; fresh=true; done=''; clearOp(); hist.hidden=true; render();
+  });
   const clearOp=()=>{if(opBtn){opBtn.classList.remove('on');opBtn=null}};
   function compute(){
     const a=parseFloat(prev), c=parseFloat(cur); let r;
@@ -1605,7 +1720,7 @@ function buildCalc(b,w){
     }else if(l==='AC'){cur='0';prev=null;op=null;fresh=false;done='';clearOp()}
     else if(l==='D'){if(cur==='Lỗi'||fresh)cur='0';else{cur=cur.slice(0,-1);if(cur===''||cur==='-')cur='0'}}
     else if(l==='%'){if(cur!=='Lỗi')cur=String(+(parseFloat(cur)/100).toPrecision(12))}
-    else if(l==='='){if(op!==null&&prev!==null){const a=prev,o=op,c=cur;cur=compute();done=fmt(a)+' '+o+' '+fmt(c)+' =';prev=null;op=null;fresh=true}clearOp()}
+    else if(l==='='){if(op!==null&&prev!==null){const a=prev,o=op,c=cur;cur=compute();done=fmt(a)+' '+o+' '+fmt(c)+' =';addHist(done,cur);prev=null;op=null;fresh=true}clearOp()}
     else{
       if(op!==null&&prev!==null&&!fresh){cur=compute()}
       prev=cur; op=l; fresh=true; clearOp(); opBtn=btn; btn.classList.add('on');
@@ -1626,7 +1741,7 @@ function buildCalc(b,w){
   };
   document.addEventListener('keydown',kd);
   render();
-  return {destroy(){document.removeEventListener('keydown',kd)}};
+  return {destroy(){document.removeEventListener('keydown',kd);if(ro)ro.disconnect()}};
 }
 
 /* ---------- Cài đặt hệ thống ---------- */
@@ -1652,7 +1767,7 @@ function nativeRows(){
   return R;
 }
 function buildSettings(b,w,arg){
-  const NAV=[['wifi','Wi-Fi','#2f8bff'],['bt','Bluetooth','#2f8bff'],['ap','Giao diện','#5b5fe0'],['wp','Hình nền','#2fb3d6'],['dk','Màn hình nền và Dock','#4a4d57'],['dp','Màn hình','#2f8bff'],['sd','Âm thanh','#ff3b5c'],['bt2','Pin','#34c759'],['us','Người dùng','#8e8e93'],['pm','Quyền truy cập','#34c759'],['ab','Giới thiệu','#8e8e93']];
+  const NAV=[['wifi','Wi-Fi','#2f8bff'],['bt','Bluetooth','#2f8bff'],['ap','Giao diện','#5b5fe0'],['wp','Hình nền','#2fb3d6'],['dk','Màn hình nền và Dock','#4a4d57'],['dp','Màn hình','#2f8bff'],['sd','Âm thanh','#ff3b5c'],['bt2','Pin','#34c759'],['lk','Mật khẩu màn hình','#8e8e93'],['us','Người dùng','#8e8e93'],['pm','Quyền truy cập','#34c759'],['ab','Giới thiệu','#8e8e93']];
   const rw=(l,c,s)=>'<div class="rw"><span><b>'+l+'</b>'+(s?'<small>'+s+'</small>':'')+'</span><span class="rc2">'+c+'</span></div>';
   const sld=(id,v,lo,hi)=>'<input type="range" class="rg" data-s="'+id+'" min="'+lo+'" max="'+hi+'" value="'+v+'" aria-label="'+id+'">';
   b.innerHTML='<div class="sset"><nav class="side"></nav><div class="main"><div class="bar"><strong class="t pt"></strong></div><div class="pane"></div></div></div>';
@@ -1682,21 +1797,29 @@ function buildSettings(b,w,arg){
       case 'ap':return ['Giao diện','<div class="tiles"><button class="ap" data-m="auto" aria-pressed="'+(dm==='auto')+'"><span class="th a"></span><span>Tự động</span></button><button class="ap" data-m="light" aria-pressed="'+(dm==='light')+'"><span class="th l"></span><span>Sáng</span></button><button class="ap" data-m="dark" aria-pressed="'+(dm==='dark')+'"><span class="th d"></span><span>Tối</span></button></div>'];
       case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button>'+(NA()&&NA().getPhotos?'<button class="ap" data-pick="1" aria-pressed="'+(!!lsGet('dm-photowall'))+'"><span class="wl" style="background:linear-gradient(135deg,#5b6577,#2b303b);display:grid;place-items:center;font-size:30px;color:#fff">▣</span><span>Ảnh trên máy</span></button>':'')+'</div>'];
       case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+'</div>'];
-      case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+'</div>'];
+      case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+rw('Tự xoay màn hình',tgl(rotOn(),'rot','Tự xoay màn hình'),rotOn()?'Đang bật':'Đã tắt')+'</div>'];
       case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+svRows()+'</div>'+(svRows()?'<small class="svn" hidden style="display:block;margin:8px 4px;opacity:.7">Không đổi được âm lượng này. Hãy tắt chế độ Không làm phiền của máy rồi thử lại.</small>':'')];
       case 'bt2':return ['Pin','<div class="grp">'+rw('Mức pin',Math.round(BAT.level*100)+'%',BAT.charging?'Đang sạc':(BAT.real?'Đang dùng pin':'Giá trị mẫu, trình duyệt không cung cấp thông tin pin'))+'</div>'];
+      case 'lk':{
+        const o=lk(), pm=pref('lockPm','pin');
+        const st=k=>o[k]?'<span style="color:#34c759;margin-right:8px">Đã đặt</span>':'<span style="opacity:.6;margin-right:8px">Chưa đặt</span>';
+        const bt=k=>'<button class="btn" data-lk="set:'+k+'">'+(o[k]?'Đổi':'Đặt')+'</button>'+(o[k]?'<button class="btn" data-lk="del:'+k+'" style="margin-left:6px">Xóa</button>':'');
+        const seg='<span class="nv seg3"><button type="button" data-lk="pm:pin" aria-pressed="'+(pm==='pin')+'">Mã PIN</button><button type="button" data-lk="pm:pat" aria-pressed="'+(pm==='pat')+'">Hình vẽ</button></span>';
+        return ['Mật khẩu màn hình','<div class="grp">'+rw('Mật khẩu ký tự',st('pw')+bt('pw'),'Dùng khi màn hình nằm ngang')+rw('Kiểu mở khóa khi màn hình dọc',seg,'Chọn 1 trong 2')+rw(pm==='pin'?'Mã PIN':'Hình vẽ',st(pm)+bt(pm),'Dùng khi màn hình để dọc')+rw('Khóa khi tắt màn hình',tgl(pref('lockOnOff',true),'lockOnOff','Khóa khi tắt màn hình'),'Bật lại màn hình phải nhập mới vào được')+'</div><small style="display:block;margin:10px 4px;opacity:.7">Mật khẩu chỉ khóa giao diện Desktop Mini, không thay thế khóa màn hình của Android. Nên đặt cả mật khẩu ký tự và mã PIN/hình vẽ; nếu kiểu cần dùng chưa đặt thì hệ thống dùng kiểu đã đặt. Quên mật khẩu: xóa dữ liệu ứng dụng trong Cài đặt Android.</small>'];
+      }
       case 'us':return ['Người dùng','<div class="grp">'+rw('Tên hiển thị','<input class="txt" id="un" value="'+esc(userName())+'" aria-label="Tên hiển thị" maxlength="24">')+rw('Hiện màn hình khóa khi mở',tgl(pref('lockOnStart',false),'lockOnStart','Hiện màn hình khóa khi mở'))+'</div>'];
       default:return ['Giới thiệu','<div class="grp">'+info().map(r=>rw(r[0],esc(String(r[1])))).join('')+'</div>'];
     }
   }
-  pane.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x&&window.AndroidLauncher)AndroidLauncher.openSetup(x.dataset.setup)});
+  pane.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x&&window.AndroidLauncher)AndroidLauncher.openSetup(x.dataset.setup);
+    const l=e.target.closest('[data-lk]');if(l){const [act,k]=l.dataset.lk.split(':');if(act==='pm'){setPref('lockPm',k);render()}else if(act==='set')lkSetFlow(k,render);else if(act==='del')lkDelFlow(k,render)}});
   function render(){
     const p=panel(); pt.textContent=p[0]; pane.innerHTML='<h2>'+p[0]+'</h2>'+p[1];
     $$('.si',nav).forEach(s=>s.setAttribute('aria-current',s.dataset.p===key?'true':'false'));
     $$('[data-m]',pane).forEach(x=>x.addEventListener('click',()=>setTheme(x.dataset.m)));
     $$('[data-n]',pane).forEach(x=>x.addEventListener('click',()=>setWall(x.dataset.n)));
     $$('[data-pick]',pane).forEach(x=>x.addEventListener('click',()=>pickPhotoWall()));
-    $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'))}));
+    $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;if(k==='rot'){toggleRot();render();return}setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'||k==='lockOnOff'))}));
     $$('.sv',pane).forEach(x=>{
       const A=window.AndroidLauncher, sm=x.closest('.rw').querySelector('small'), nt=$('.svn',pane); let t=null;
       x.addEventListener('input',()=>{
@@ -2356,18 +2479,63 @@ function buildClock(b,w){
       });
       timers.push(setInterval(upd,47));
     }else{
-      let left=0, run=false, last=0;
-      body.innerHTML='<div class="swb"><div class="big td2">05:00</div><div class="pre"><button class="btn" data-m="1">1 phút</button><button class="btn" data-m="5">5 phút</button><button class="btn" data-m="10">10 phút</button></div><div class="swc"><button class="btn rs2">Đặt lại</button><button class="btn pri sg">Bắt đầu</button></div></div>';
-      left=300; const td=$('.td2',body), sg=$('.sg',body);
-      const upd2=()=>{const s=Math.ceil(left);td.textContent=pad(Math.floor(s/60))+':'+pad(s%60)};
-      $$('[data-m]',body).forEach(x=>x.addEventListener('click',()=>{left=+x.dataset.m*60;run=false;sg.textContent='Bắt đầu';upd2()}));
-      sg.addEventListener('click',()=>{if(left<=0)return;run=!run;last=performance.now();sg.textContent=run?'Tạm dừng':'Tiếp tục'});
-      $('.rs2',body).addEventListener('click',()=>{left=300;run=false;sg.textContent='Bắt đầu';upd2()});
+      const NA2=()=>window.AndroidLauncher||null;
+      let AL=jget('dm-alarms',[]), SND=[{name:'Mặc định',uri:''}], sel=0, rep=false;
+      try{const n=NA2();if(n&&n.getAlarmSounds){const l=JSON.parse(n.getAlarmSounds());if(l.length)SND=l}}catch(x){}
+      const now0=new Date(); let hh=now0.getHours(), mm=(now0.getMinutes()+1)%60; if(mm===0)hh=(hh+1)%24;
+      const saveAL=()=>jset('dm-alarms',AL);
+      body.innerHTML='<div class="alm"><div class="whl"><div class="wcol" data-w="h" role="listbox" aria-label="Chọn giờ"></div><b class="wsep">:</b><div class="wcol" data-w="m" role="listbox" aria-label="Chọn phút"></div><i class="wband"></i></div>'+
+        '<div class="alr"><span>Lặp lại hằng ngày</span>'+tgl(false,'','Lặp lại hằng ngày')+'</div>'+
+        '<div class="als"><b>Âm thanh báo thức</b><ul class="snl"></ul></div>'+
+        '<button class="btn pri aset" type="button">Đặt báo thức</button>'+
+        '<div class="als"><b>Báo thức đã đặt</b><ul class="all"></ul></div></div>';
+      const cols={h:$('[data-w="h"]',body), m:$('[data-w="m"]',body)};
+      const IH=40;
+      const fillCol=(c,max)=>{c.innerHTML=[...Array(max)].map((_,i)=>'<div class="wi" data-v="'+i+'">'+pad(i)+'</div>').join('')};
+      fillCol(cols.h,24); fillCol(cols.m,60);
+      const setCol=(c,v)=>{c.scrollTop=v*IH};
+      const getCol=c=>Math.max(0,Math.round(c.scrollTop/IH));
+      requestAnimationFrame(()=>{setCol(cols.h,hh);setCol(cols.m,mm)});
+      ['h','m'].forEach(k=>{
+        const c=cols[k]; let t=null;
+        c.addEventListener('scroll',()=>{clearTimeout(t);t=setTimeout(()=>{const v=getCol(c);if(k==='h')hh=Math.min(23,v);else mm=Math.min(59,v);$$('.wi',c).forEach(x=>x.classList.toggle('on',+x.dataset.v===v))},80)});
+        c.addEventListener('click',e=>{const x=e.target.closest('.wi');if(x)c.scrollTo({top:+x.dataset.v*IH,behavior:'smooth'})});
+      });
+      setTimeout(()=>{$$('.wi',cols.h)[hh]&&$$('.wi',cols.h)[hh].classList.add('on');$$('.wi',cols.m)[mm]&&$$('.wi',cols.m)[mm].classList.add('on')},60);
+      const rtg=$('.alr .tg',body);
+      rtg.addEventListener('click',()=>{rep=!rep;rtg.setAttribute('aria-checked',String(rep))});
+      const snl=$('.snl',body);
+      const drawSnd=()=>{snl.innerHTML=SND.map((x,i)=>'<li data-i="'+i+'" aria-selected="'+(i===sel)+'"><span class="rd"></span><span class="sn">'+esc(x.name)+'</span><button type="button" class="pv" data-p="'+i+'" aria-label="Nghe thử">▶</button></li>').join('')};
+      drawSnd();
+      snl.addEventListener('click',e=>{
+        const pv=e.target.closest('.pv');
+        if(pv){const n=NA2();const u=SND[+pv.dataset.p].uri;if(n&&n.previewSound)n.previewSound(u);else beep();return}
+        const li=e.target.closest('li[data-i]'); if(li){sel=+li.dataset.i;drawSnd()}
+      });
+      const all=$('.all',body);
+      const drawAL=()=>{
+        all.innerHTML=AL.length?AL.slice().sort((p,q)=>p.h*60+p.m-(q.h*60+q.m)).map(x=>'<li data-id="'+x.id+'"><span class="at">'+pad(x.h)+':'+pad(x.m)+'<small>'+(x.rep?'Hằng ngày':'Một lần')+' · '+esc(x.name)+'</small></span>'+tgl(x.on,'','Bật tắt báo thức')+'<button type="button" class="adl" aria-label="Xóa báo thức">✕</button></li>').join(''):'<li class="non">Chưa có báo thức nào</li>';
+      };
+      drawAL();
+      const arm=x=>{const n=NA2();if(n&&n.setAlarm){const ok=n.setAlarm(x.id,x.h,x.m,x.uri||'',!!x.rep,'');if(!ok)notify({app:'Đồng hồ',title:'Không đặt được báo thức',body:'Hãy cấp quyền thông báo cho ứng dụng rồi thử lại.',icon:'clock'})}};
+      const disarm=x=>{const n=NA2();if(n&&n.cancelAlarm)n.cancelAlarm(x.id)};
+      $('.aset',body).addEventListener('click',()=>{
+        const x={id:(Date.now()%2000000000)|0,h:hh,m:mm,uri:SND[sel].uri,name:SND[sel].name,rep:rep,on:true};
+        AL.push(x); saveAL(); arm(x); drawAL();
+        notify({app:'Đồng hồ',title:'Đã đặt báo thức '+pad(hh)+':'+pad(mm),body:SND[sel].name,icon:'clock'});
+      });
+      all.addEventListener('click',e=>{
+        const li=e.target.closest('li[data-id]'); if(!li)return;
+        const x=AL.find(q=>String(q.id)===li.dataset.id); if(!x)return;
+        if(e.target.closest('.adl')){disarm(x);AL=AL.filter(q=>q!==x);saveAL();drawAL();return}
+        if(e.target.closest('.tg')){x.on=!x.on;saveAL();if(x.on)arm(x);else disarm(x);drawAL()}
+      });
+      /* Bản chạy trên trình duyệt (không có app Android): báo bằng âm bíp khi đúng giờ */
       timers.push(setInterval(()=>{
-        if(!run)return; const n=performance.now(); left=Math.max(0,left-(n-last)/1000); last=n; upd2();
-        if(left<=0){run=false;sg.textContent='Bắt đầu';beep();notify({app:'Đồng hồ',title:'Hết giờ',body:'Bộ hẹn giờ đã kết thúc.',icon:'clock'})}
-      },200));
-      upd2();
+        if(NA2()&&NA2().setAlarm)return;
+        const d=new Date(); if(d.getSeconds()!==0)return;
+        AL.forEach(x=>{if(x.on&&x.h===d.getHours()&&x.m===d.getMinutes()){beep();notify({app:'Đồng hồ',title:'Báo thức '+pad(x.h)+':'+pad(x.m),body:x.name,icon:'clock'});if(!x.rep){x.on=false;saveAL()}}});
+      },1000));
     }
   }
   $$('.seg3 button',b).forEach(x=>x.addEventListener('click',()=>{tab=x.dataset.k;show()}));
@@ -2477,12 +2645,22 @@ $$('#menubar [data-m]').forEach(btn=>{
   btn.addEventListener('pointerenter',()=>{if(openKey&&!pops.dd.hidden&&openKey!==btn.dataset.m)showMenu(btn)});
 });
 
+/* ---------- Tự xoay màn hình (thật, qua cài đặt Android) ---------- */
+const rotOn=()=>{const A=window.AndroidLauncher;if(A&&A.isAutoRotate){try{return !!A.isAutoRotate()}catch(e){}}return pref('rot',false)};
+function toggleRot(){
+  const A=window.AndroidLauncher, want=!rotOn();
+  if(A&&A.setAutoRotate){
+    let ok=false; try{ok=A.setAutoRotate(want)}catch(e){}
+    if(!ok)notify({app:'Hệ thống',title:'Cần quyền sửa cài đặt hệ thống',body:'Cấp quyền "Sửa cài đặt hệ thống" cho Desktop Mini rồi bấm lại Tự xoay.',icon:'settings'});
+  }else setPref('rot',want);
+  bus.emit('ui');
+}
 /* ---------- Trung tâm điều khiển ---------- */
 const ccb=$('#ccb');
 function syncCC(){
   const w=pref('wifi',true), bt=pref('bt',true), dn=pref('dnd',false), dk=isDark();
   const set=(id,on,txt)=>{const t=$('#'+id);t.setAttribute('aria-pressed',String(on));const s=$('#'+id+'-s');if(s)s.textContent=txt};
-  set('t-wifi',w,w?'Đang bật':'Đã tắt'); set('t-bt',bt,bt?'Đang bật':'Đã tắt'); set('t-dnd',dn,dn?'Đang bật':'Đã tắt'); set('t-dark',dk,dk?'Đang bật':'Đã tắt');
+  set('t-wifi',w,w?'Đang bật':'Đã tắt'); set('t-bt',bt,bt?'Đang bật':'Đã tắt'); set('t-dnd',dn,dn?'Đang bật':'Đã tắt'); set('t-dark',dk,dk?'Đang bật':'Đã tắt'); {const r=rotOn();set('t-rot',r,r?'Đang bật':'Đã tắt')}
   if(document.activeElement!==$('#bright'))$('#bright').value=pref('bright',100);
   if(document.activeElement!==$('#vol'))$('#vol').value=pref('vol',60);
   const t=MUS.idx>=0?TRK[MUS.idx].t:'Chưa phát bài nào';
@@ -2498,6 +2676,7 @@ $('#t-wifi').addEventListener('click',()=>setPref('wifi',!pref('wifi',true)));
 $('#t-bt').addEventListener('click',()=>setPref('bt',!pref('bt',true)));
 $('#t-dnd').addEventListener('click',()=>setPref('dnd',!pref('dnd',false)));
 $('#t-dark').addEventListener('click',()=>setTheme(isDark()?'light':'dark'));
+$('#t-rot').addEventListener('click',()=>{toggleRot();syncCC()});
 $('#bright').addEventListener('input',e=>setPref('bright',+e.target.value));
 $('#vol').addEventListener('input',e=>setPref('vol',+e.target.value));
 $('#np-b').addEventListener('click',musToggle);
@@ -2631,17 +2810,140 @@ document.addEventListener('keyup',e=>{
 });
 
 /* ---------- Khóa màn hình & nguồn ---------- */
+/* --- Mật khẩu màn hình thật: ký tự (ngang), PIN hoặc hình vẽ (dọc) --- */
+const sha256=(()=>{
+  const K=[],H0=[]; let n=2,c=0; const isP=x=>{for(let i=2;i*i<=x;i++)if(x%i===0)return false;return true};
+  while(c<64){if(isP(n)){if(c<8)H0.push((Math.pow(n,.5)%1)*4294967296|0);K.push((Math.pow(n,1/3)%1)*4294967296|0);c++}n++}
+  const rr=(x,k)=>(x>>>k)|(x<<(32-k));
+  return str=>{
+    const b=unescape(encodeURIComponent(str)), l=b.length, w=[];
+    for(let i=0;i<l;i++)w[i>>2]|=b.charCodeAt(i)<<(24-(i%4)*8);
+    w[l>>2]|=0x80<<(24-(l%4)*8);
+    const len=(((l+8)>>6)+1)*16; for(let i=0;i<len;i++)if(w[i]===undefined)w[i]=0; w[len-1]=l*8;
+    let h=H0.slice();
+    for(let o=0;o<len;o+=16){
+      const m=w.slice(o,o+16);
+      for(let i=16;i<64;i++){const x=m[i-15],y=m[i-2];m[i]=(m[i-16]+(rr(x,7)^rr(x,18)^(x>>>3))+m[i-7]+(rr(y,17)^rr(y,19)^(y>>>10)))|0}
+      let [a,b2,c2,d,e,f,g,hh]=h;
+      for(let i=0;i<64;i++){
+        const t1=(hh+(rr(e,6)^rr(e,11)^rr(e,25))+((e&f)^(~e&g))+K[i]+m[i])|0, t2=((rr(a,2)^rr(a,13)^rr(a,22))+((a&b2)^(a&c2)^(b2&c2)))|0;
+        hh=g;g=f;f=e;e=(d+t1)|0;d=c2;c2=b2;b2=a;a=(t1+t2)|0;
+      }
+      h=[h[0]+a|0,h[1]+b2|0,h[2]+c2|0,h[3]+d|0,h[4]+e|0,h[5]+f|0,h[6]+g|0,h[7]+hh|0];
+    }
+    return h.map(x=>('00000000'+(x>>>0).toString(16)).slice(-8)).join('');
+  };
+})();
+const LK='dm-lock', lk=()=>jget(LK,{});
+const hasLock=()=>{const o=lk();return !!(o.pw||o.pin||o.pat)};
+const lkHash=(k,v)=>{let o=lk();if(!o.s){o.s=Math.random().toString(36).slice(2)+Date.now().toString(36);jset(LK,o)}return sha256(lk().s+'|'+k+'|'+v)};
+const lkSet=(k,v)=>{const h=lkHash(k,v),o=lk();o[k]=h;if(k==='pin')o.pl=v.length;jset(LK,o)};
+const lkDel=k=>{const o=lk();delete o[k];if(k==='pin')delete o.pl;jset(LK,o)};
+const lkChk=(k,v)=>lk()[k]===lkHash(k,v);
+const isPortrait=()=>window.innerHeight>=window.innerWidth;
+/* Ngang -> mật khẩu ký tự; dọc -> PIN hoặc hình vẽ theo lựa chọn. Nếu kiểu cần chưa đặt thì dùng kiểu đã đặt, không để lọt khóa. */
+function lockKind(){const o=lk(),want=isPortrait()?pref('lockPm','pin'):'pw';return o[want]?want:(['pw','pin','pat'].find(k=>o[k])||'pw')}
+
+function authUI(el,kind,o){
+  el.innerHTML='<div class="amsg"></div><div class="abody"></div>';
+  const msg=$('.amsg',el), bd=$('.abody',el); msg.textContent=o.title||'';
+  const fail=t=>{msg.textContent=t;msg.classList.remove('shake');void msg.offsetWidth;msg.classList.add('shake')};
+  const submit=v=>{const r=o.onSubmit(v); if(r!==true&&r!==undefined)fail(typeof r==='string'?r:'Sai, thử lại'); return r===true};
+  if(kind==='pw'){
+    bd.innerHTML='<form class="apw" autocomplete="off"><input type="password" autocomplete="off" placeholder="Mật khẩu" aria-label="Mật khẩu"><button class="go" type="submit" aria-label="Xác nhận"><svg viewBox="0 0 16 16"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form>';
+    const f=$('form',bd), inp=$('input',bd);
+    f.addEventListener('submit',e=>{e.preventDefault();const v=inp.value;if(!submit(v)){inp.value='';inp.focus()}});
+    setTimeout(()=>inp.focus(),80);
+  }else if(kind==='pin'){
+    let v='';
+    bd.innerHTML='<div class="adots"></div><div class="apad">'+[1,2,3,4,5,6,7,8,9].map(n=>'<button type="button" data-d="'+n+'">'+n+'</button>').join('')+'<button type="button" class="nb" data-a="ok" aria-label="Xác nhận">✓</button><button type="button" data-d="0">0</button><button type="button" class="nb" data-a="del" aria-label="Xóa số">⌫</button></div>';
+    const dots=$('.adots',bd);
+    const draw=()=>{const n=Math.max(o.len||4,v.length);dots.innerHTML=[...Array(n)].map((_,i)=>'<i'+(i<v.length?' class="f"':'')+'></i>').join('')};
+    const send=()=>{const x=v; if(!submit(x)){v='';draw()}};
+    draw();
+    bd.addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b)return;
+      if(b.dataset.d!==undefined){if(v.length<8){v+=b.dataset.d;draw();if(o.len&&v.length===o.len)send()}}
+      else if(b.dataset.a==='del'){v=v.slice(0,-1);draw()}
+      else if(b.dataset.a==='ok'){if(v.length>=4)send();else fail('Tối thiểu 4 số')}
+    });
+  }else{
+    const P=[...Array(9)].map((_,i)=>[20+40*(i%3),20+40*Math.floor(i/3)]);
+    bd.innerHTML='<div class="apat"><svg viewBox="0 0 120 120"><polyline fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>'+P.map((p,i)=>'<circle data-i="'+i+'" cx="'+p[0]+'" cy="'+p[1]+'" r="5" fill="currentColor" opacity=".55"/><circle cx="'+p[0]+'" cy="'+p[1]+'" r="12" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35"/>').join('')+'</svg></div>';
+    const svg=$('svg',bd), pl=$('polyline',bd); let seq=[], drag=false, busy=false;
+    const pt=e=>{const r=svg.getBoundingClientRect();return [(e.clientX-r.left)*120/r.width,(e.clientY-r.top)*120/r.height]};
+    const hit=(x,y)=>{for(let i=0;i<9;i++)if(Math.hypot(P[i][0]-x,P[i][1]-y)<14)return i;return -1};
+    const lit=()=>$$('circle[data-i]',svg).forEach(c=>c.setAttribute('opacity',seq.indexOf(+c.dataset.i)>=0?'1':'.55'));
+    const line=(x,y)=>{pl.setAttribute('points',seq.map(i=>P[i].join(',')).concat(x!=null?[x+','+y]:[]).join(' '))};
+    const reset=()=>{seq=[];line();lit();busy=false};
+    svg.addEventListener('pointerdown',e=>{if(busy)return;e.preventDefault();drag=true;seq=[];try{svg.setPointerCapture(e.pointerId)}catch(x){}const [x,y]=pt(e),i=hit(x,y);if(i>=0)seq.push(i);line(x,y);lit()});
+    svg.addEventListener('pointermove',e=>{if(!drag)return;const [x,y]=pt(e),i=hit(x,y);if(i>=0&&seq.indexOf(i)<0)seq.push(i);line(x,y);lit()});
+    const end=()=>{
+      if(!drag)return; drag=false; line(); busy=true;
+      if(seq.length<4){fail('Nối ít nhất 4 điểm');setTimeout(reset,500);return}
+      const ok=submit(seq.join('')); setTimeout(reset,ok?0:600);
+    };
+    svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
+  }
+}
+function lkModal(title){
+  const o=document.createElement('div'); o.className='bpk';
+  o.innerHTML='<div class="bps" style="align-items:center;text-align:center"><b></b><div class="aui" style="padding:6px 0"></div><div style="display:flex;justify-content:flex-end;align-self:stretch;margin-top:6px"><button type="button" class="btn amc">Hủy</button></div></div>';
+  $('b',o).textContent=title; stage.appendChild(o);
+  const close=()=>o.remove();
+  $('.amc',o).addEventListener('click',close);
+  o.addEventListener('click',e=>{if(!e.target.closest('.bps'))close()});
+  return {el:$('.aui',o),close};
+}
+const LKN={pw:['mật khẩu ký tự','Nhập mật khẩu mới (tối thiểu 4 ký tự)','Nhập lại mật khẩu'],pin:['mã PIN','Nhập mã PIN mới (4-8 số)','Nhập lại mã PIN'],pat:['hình vẽ','Vẽ hình mở khóa mới (nối ít nhất 4 điểm)','Vẽ lại để xác nhận']};
+function lkVerifyThen(kind,title,next){
+  const o=lk(); if(!o[kind]){next();return}
+  const M=lkModal(title);
+  authUI(M.el,kind,{len:kind==='pin'?o.pl:0,title:'Nhập '+LKN[kind][0]+' hiện tại',onSubmit:v=>{if(!lkChk(kind,v))return 'Sai, thử lại';M.close();next();return true}});
+}
+function lkSetFlow(kind,done){
+  lkVerifyThen(kind,'Đổi '+LKN[kind][0],()=>{
+    const M=lkModal('Đặt '+LKN[kind][0]); let first=null;
+    const stepNew=()=>authUI(M.el,kind,{title:LKN[kind][1],onSubmit:v=>{
+      if(kind==='pw'&&v.length<4)return 'Tối thiểu 4 ký tự';
+      if(kind==='pin'&&v.length<4)return 'Tối thiểu 4 số';
+      first=v; stepConf(); return true;
+    }});
+    const stepConf=()=>authUI(M.el,kind,{title:LKN[kind][2],onSubmit:v=>{
+      if(v!==first){first=null;stepNew();return true}
+      lkSet(kind,v); M.close(); done(); return true;
+    }});
+    stepNew();
+  });
+}
+function lkDelFlow(kind,done){lkVerifyThen(kind,'Xóa '+LKN[kind][0],()=>{lkDel(kind);done()})}
+
 const lock=$('#lock'), off=$('#off');
-function lockNow(){
+let lockCur='';
+function unlockDone(){
+  lock.classList.add('out');
+  setTimeout(()=>{lock.hidden=true;lock.classList.remove('out');lockCur='';greet()},reduce?0:420);
+}
+function lockUI(){
   closeAllPopups(); if(lpOn)closeLP(); if(mcOn)exitMC();
   const u=userName(); $('#lname').textContent=u; $('#lav').textContent=(u.trim()[0]||'N').toUpperCase();
-  $('#lpw').value=''; lock.classList.remove('out'); lock.hidden=false; tick();
-  setTimeout(()=>$('#lpw').focus(),60);
+  const au=$('#lauth'), fm=$('#lform'), lh=$('.lh',lock);
+  if(hasLock()){
+    const k=lockKind(), o=lk(); lockCur=k;
+    fm.style.display='none'; lh.style.display='none'; au.hidden=false;
+    authUI(au,k,{len:k==='pin'?o.pl:0,title:{pw:'Nhập mật khẩu',pin:'Nhập mã PIN',pat:'Vẽ hình mở khóa'}[k],onSubmit:v=>{if(!lkChk(k,v))return 'Sai, thử lại';unlockDone();return true}});
+  }else{
+    lockCur=''; fm.style.display=''; lh.style.display=''; au.hidden=true;
+    $('#lpw').value=''; setTimeout(()=>$('#lpw').focus(),60);
+  }
+  lock.classList.remove('out'); lock.hidden=false; tick();
 }
-$('#lform').addEventListener('submit',e=>{
-  e.preventDefault(); lock.classList.add('out');
-  setTimeout(()=>{lock.hidden=true;lock.classList.remove('out');greet()},reduce?0:420);
-});
+function lockNow(){lockUI()}
+$('#lform').addEventListener('submit',e=>{e.preventDefault();unlockDone()});
+/* Xoay máy khi đang khóa -> đổi sang kiểu mở khóa phù hợp */
+window.addEventListener('resize',()=>{if(!lock.hidden&&hasLock()&&lockKind()!==lockCur)lockUI()});
+/* Tắt màn hình thì khóa lại */
+window.nativeScreenOff=()=>{if(hasLock()&&pref('lockOnOff',true)&&lock.hidden&&off.hidden)lockUI()};
 $$('.pb',lock).forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.pw;if(m==='sleep')sleepNow();else if(m==='restart')restartNow();else shutNow()}));
 function killAll(){Object.keys(wins).forEach(id=>{const w=wins[id];if(w._api&&w._api.destroy)w._api.destroy();w.remove();delete wins[id]});syncDock();focusTop()}
 function showOff(mode){
@@ -2918,7 +3220,7 @@ const st0=lsGet('dm-theme'); if(st0==='light'||st0==='dark')root.setAttribute('d
 applyPrefs(); renderDesk(); battUpdate(); tick(); setInterval(tick,15000); syncCC();
 bus.emit('fs');
 setBadge('mail',MAIL.filter(m=>m.box==='in'&&!m.read).length);
-if(pref('lockOnStart',false)){lockNow()}else{greet()}
+if(hasLock()||pref('lockOnStart',false)){lockUI()}else{greet()}
 /* ---------- Cầu nối Android: chỉ chạy khi mở trong app launcher ---------- */
 if(window.AndroidLauncher){(function(){
   const A=window.AndroidLauncher;
@@ -2954,10 +3256,11 @@ if(window.AndroidLauncher){(function(){
     }catch(e){}
   };
   /* Thông báo thật của máy -> Trung tâm thông báo */
+  window.nativeAlarm=function(o){notify({app:'Đồng hồ',title:'Báo thức '+pad(o.h)+':'+pad(o.m),body:'Bấm để tắt báo thức',icon:'clock',fn:()=>safe(()=>A.stopAlarmRinging())})};
   window.nativeNotif=function(o){notify({app:o.app,title:o.title||o.app,body:o.body,img:o.icon,fn:()=>safe(()=>A.launchApp(o.pkg))})};
   /* Khóa màn hình / nguồn thật của Android */
   const needA11y=()=>notify({app:'Hệ thống',title:'Cần bật Trợ năng',body:'Bật Desktop Mini trong Cài đặt → Trợ năng rồi thử lại.',icon:'settings'});
-  const doLock=()=>{closeAllPopups();if(!safe(()=>A.lockScreen(),false))needA11y()};
+  const doLock=()=>{closeAllPopups();if(hasLock()){lockUI();safe(()=>A.lockScreen(),false);return}if(!safe(()=>A.lockScreen(),false))needA11y()};
   const doPower=()=>{closeAllPopups();if(!safe(()=>A.powerMenu(),false))needA11y()};
   lockNow=doLock; sleepNow=doLock; restartNow=doPower; shutNow=doPower;
   setInterval(sync,3000); sync();

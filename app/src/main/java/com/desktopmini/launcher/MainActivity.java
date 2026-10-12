@@ -87,6 +87,13 @@ public class MainActivity extends Activity {
         }
     };
 
+    private final BroadcastReceiver scr = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            if (web != null) web.evaluateJavascript("window.nativeScreenOff&&window.nativeScreenOff()", null);
+        }
+    };
+    private android.media.Ringtone previewTone;
+
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         inst = this;
@@ -111,12 +118,15 @@ public class MainActivity extends Activity {
         }
         IntentFilter f = new IntentFilter("com.desktopmini.launcher.MEDIA");
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(media, f, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(media, f);
+        IntentFilter sf = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(scr, sf, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(scr, sf);
         immersive();
         askPermissions();
     }
 
     @Override protected void onDestroy() {
         try { unregisterReceiver(media); } catch (Exception e) { }
+        try { unregisterReceiver(scr); } catch (Exception e) { }
         if (inst == this) inst = null;
         super.onDestroy();
     }
@@ -385,6 +395,69 @@ public class MainActivity extends Activity {
                 }
                 JSONObject o = new JSONObject(); o.put("top", Math.round(top / d)); o.put("bottom", Math.round(bottom / d)); return o.toString();
             } catch (Exception e) { return "{}"; }
+        }
+
+
+        /* ---- Tự xoay màn hình (cài đặt thật của máy) ---- */
+        @JavascriptInterface public boolean isAutoRotate() {
+            try { return Settings.System.getInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION) == 1; } catch (Exception e) { return false; }
+        }
+        /** Cần quyền "Sửa cài đặt hệ thống"; chưa có thì mở trang cấp quyền và trả về false. */
+        @JavascriptInterface public boolean setAutoRotate(boolean on) {
+            if (!Settings.System.canWrite(MainActivity.this)) {
+                go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName()))); return false;
+            }
+            try {
+                if (!on) {
+                    int r = getWindowManager().getDefaultDisplay().getRotation();
+                    Settings.System.putInt(getContentResolver(), Settings.System.USER_ROTATION, r);
+                }
+                Settings.System.putInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, on ? 1 : 0);
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
+        /* ---- Báo thức thật (chạy cả khi app đóng) ---- */
+        @JavascriptInterface public String getAlarmSounds() {
+            JSONArray arr = new JSONArray();
+            try {
+                JSONObject d = new JSONObject(); d.put("name", "Mặc định");
+                d.put("uri", android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM).toString()); arr.put(d);
+                android.media.RingtoneManager rm = new android.media.RingtoneManager(MainActivity.this);
+                rm.setType(android.media.RingtoneManager.TYPE_ALARM);
+                Cursor c = rm.getCursor();
+                if (c != null) {
+                    while (c.moveToNext()) {
+                        JSONObject o = new JSONObject();
+                        o.put("name", c.getString(android.media.RingtoneManager.TITLE_COLUMN_INDEX));
+                        o.put("uri", rm.getRingtoneUri(c.getPosition()).toString());
+                        arr.put(o);
+                    }
+                }
+            } catch (Exception e) { }
+            return arr.toString();
+        }
+        @JavascriptInterface public void previewSound(final String uri) {
+            runOnUiThread(new Runnable() { public void run() {
+                try {
+                    if (previewTone != null) previewTone.stop();
+                    previewTone = android.media.RingtoneManager.getRingtone(MainActivity.this, Uri.parse(uri));
+                    if (previewTone == null) return;
+                    if (Build.VERSION.SDK_INT >= 21) previewTone.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).build());
+                    previewTone.play();
+                    web.postDelayed(new Runnable() { public void run() { try { if (previewTone != null) previewTone.stop(); } catch (Exception e) { } } }, 4000);
+                } catch (Exception e) { }
+            }});
+        }
+        @JavascriptInterface public void stopPreview() {
+            runOnUiThread(new Runnable() { public void run() { try { if (previewTone != null) previewTone.stop(); } catch (Exception e) { } } });
+        }
+        @JavascriptInterface public boolean setAlarm(int id, int hour, int min, String uri, boolean repeat, String label) {
+            return AlarmReceiver.schedule(MainActivity.this, id, hour, min, uri, repeat, label, true);
+        }
+        @JavascriptInterface public void cancelAlarm(int id) { AlarmReceiver.cancel(MainActivity.this, id); }
+        @JavascriptInterface public void stopAlarmRinging() {
+            try { startService(new Intent(MainActivity.this, AlarmService.class).setAction("stop")); } catch (Exception e) { }
         }
 
         /* ---- Khóa màn hình, nguồn (qua dịch vụ trợ năng) ---- */
