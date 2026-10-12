@@ -2811,15 +2811,16 @@ function buildPhotos(b,w,arg){
   let fav=jget('dm-pfav',[]), tab='all', view=-1;
   b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><span class="cn phc"></span></div><div class="pgd"></div></div><div class="pv" hidden></div></div>';
   const side=$('.side',b), pgd=$('.pgd',b), pv=$('.pv',b), pht=$('.pht',b), phc=$('.phc',b);
-  [['all','Tất cả ảnh'],['fav','Yêu thích']].forEach(x=>{
+  [['all','Tất cả ảnh'],['fav','Yêu thích'],['cam','Ảnh chụp'],['shot','Ảnh chụp màn hình']].forEach(x=>{
     const s=document.createElement('button'); s.className='si'; s.dataset.t=x[0]; s.innerHTML='<span>'+x[1]+'</span>';
     s.addEventListener('click',()=>{tab=x[0];view=-1;render()}); side.appendChild(s);
   });
-  const ids=()=>PH.map((_,i)=>i).filter(i=>tab==='all'||fav.indexOf(i)>=0);
+  const TABN={all:'Tất cả ảnh',fav:'Yêu thích',cam:'Ảnh chụp',shot:'Ảnh chụp màn hình'}, TABE={all:'Chưa có ảnh nào',fav:'Chưa có ảnh yêu thích',cam:'Chưa có ảnh chụp',shot:'Chưa có ảnh chụp màn hình'};
+  const ids=()=>PH.map((_,i)=>i).filter(i=>tab==='all'||(tab==='fav'?fav.indexOf(i)>=0:PH[i].k===tab));
   function renderGrid(){
     $$('.si',side).forEach(s=>s.setAttribute('aria-current',String(s.dataset.t===tab)));
-    const l=ids(); pht.textContent=tab==='all'?'Tất cả ảnh':'Yêu thích'; phc.textContent=l.length+' ảnh';
-    pgd.innerHTML=l.length?l.map(i=>'<button class="pt" data-i="'+i+'" aria-label="'+PH[i][5]+'">'+scene(i)+(fav.indexOf(i)>=0?'<em>♥</em>':'')+'</button>').join(''):'<div class="none">'+(tab==='all'?'Chưa có ảnh nào':'Chưa có ảnh yêu thích')+'</div>';
+    const l=ids(); pht.textContent=TABN[tab]||'Tất cả ảnh'; phc.textContent=l.length+' ảnh';
+    pgd.innerHTML=l.length?l.map(i=>'<button class="pt" data-i="'+i+'" aria-label="'+PH[i][5]+'">'+scene(i)+(fav.indexOf(i)>=0?'<em>♥</em>':'')+'</button>').join(''):'<div class="none">'+(TABE[tab]||TABE.all)+'</div>';
     $$('.pt',pgd).forEach(x=>x.addEventListener('click',()=>{view=+x.dataset.i;renderViewer()}));
   }
   function render(){renderGrid();renderViewer()}
@@ -4110,7 +4111,12 @@ if(window.AndroidLauncher){(function(){
   /* Ảnh thật trong máy */
   function loadPhotos(){
     const l=safe(()=>JSON.parse(A.getPhotos()),[]);
-    PH.length=0; l.forEach(p=>{const e=['','','','','',p.n];e.pid=p.id;PH.push(e)});
+    PH.length=0; l.forEach(p=>{const e=['','','','','',p.n];e.pid=p.id;
+      /* Phân loại theo thư mục/tên tệp: ảnh chụp màn hình (Screenshots) và ảnh chụp bằng camera (DCIM/Camera, Pictures/Desktop Mini) */
+      const lp=((p.p||'')+' '+(p.n||'')).toLowerCase();
+      if(/screenshot|screen_shot|screen-shot|chụp màn hình|chup man hinh/.test(lp))e.k='shot';
+      else if(/dcim\/camera|dcim\/100|desktop mini|desktopmini/.test(lp)||/^(img|pxl)_\d{8}_\d{6}/.test((p.n||'').toLowerCase()))e.k='cam';
+      PH.push(e)});
   }
   loadPhotos();
   const q=[]; let run=false;

@@ -937,10 +937,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String getPhotos() {
             JSONArray arr = new JSONArray();
             try {
+                /* Cột đường dẫn: RELATIVE_PATH (Android 10+) hoặc DATA, để phân loại Ảnh chụp / Ảnh chụp màn hình */
+                String pathCol = Build.VERSION.SDK_INT >= 29 ? MediaStore.Images.Media.RELATIVE_PATH : MediaStore.Images.Media.DATA;
                 Cursor c = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    new String[]{MediaStore.Images.Media._ID, MediaStore.Images.Media.DISPLAY_NAME}, null, null, MediaStore.Images.Media.DATE_ADDED + " DESC");
+                    new String[]{MediaStore.Images.Media._ID, MediaStore.Images.Media.DISPLAY_NAME, pathCol}, null, null, MediaStore.Images.Media.DATE_ADDED + " DESC");
                 if (c != null) { int n = 0;
-                    while (c.moveToNext() && n++ < 500) { JSONObject o = new JSONObject(); o.put("id", c.getLong(0)); o.put("n", c.getString(1)); arr.put(o); }
+                    while (c.moveToNext() && n++ < 500) { JSONObject o = new JSONObject(); o.put("id", c.getLong(0)); o.put("n", c.getString(1)); String pp = c.getString(2); o.put("p", pp == null ? "" : pp); arr.put(o); }
                     c.close(); }
             } catch (Exception e) { }
             return arr.toString();
