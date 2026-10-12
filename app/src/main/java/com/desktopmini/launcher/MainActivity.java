@@ -335,6 +335,26 @@ public class MainActivity extends Activity {
             try {
                 JSONObject o = new JSONObject();
                 o.put("model", Build.MANUFACTURER + " " + Build.MODEL); o.put("android", Build.VERSION.RELEASE); o.put("sdk", Build.VERSION.SDK_INT);
+                o.put("brand", Build.MANUFACTURER); o.put("device", Build.MODEL);
+                if (Build.VERSION.SDK_INT >= 23) o.put("patch", Build.VERSION.SECURITY_PATCH);
+                String soc = Build.HARDWARE;
+                if (Build.VERSION.SDK_INT >= 31 && Build.SOC_MODEL != null && Build.SOC_MODEL.length() > 0 && !"unknown".equalsIgnoreCase(Build.SOC_MODEL)) soc = Build.SOC_MODEL;
+                o.put("soc", soc);
+                o.put("abi", Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "");
+                o.put("cores", Runtime.getRuntime().availableProcessors());
+                android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
+                getWindowManager().getDefaultDisplay().getRealMetrics(dm);
+                o.put("sw", Math.min(dm.widthPixels, dm.heightPixels));
+                o.put("sh", Math.max(dm.widthPixels, dm.heightPixels)); o.put("dpi", dm.densityDpi);
+                try {
+                    android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                    ((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
+                    o.put("ram", mi.totalMem); o.put("ramFree", mi.availMem);
+                } catch (Exception e) { }
+                try {
+                    android.os.StatFs sf = new android.os.StatFs(Environment.getDataDirectory().getAbsolutePath());
+                    o.put("disk", sf.getTotalBytes()); o.put("diskFree", sf.getAvailableBytes());
+                } catch (Exception e) { }
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }

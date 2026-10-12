@@ -1634,6 +1634,21 @@ function svRows(){
   return SVK.map(k=>{let v=-1;try{v=A.getStreamVol(k[0])}catch(e){} if(v<0)return '';
     return '<div class="rw"><span><b>'+k[1]+'</b><small>'+v+'%</small></span><span class="rc2"><input type="range" class="rg sv" data-sv="'+k[0]+'" min="0" max="100" value="'+v+'" aria-label="'+k[1]+'"></span></div>'}).join('');
 }
+function nativeRows(){
+  const A=window.AndroidLauncher; if(!A||!A.getInfo)return null;
+  let o={}; try{o=JSON.parse(A.getInfo())}catch(e){return null}
+  if(!o.model)return null;
+  const gb=n=>{const g=n/1073741824;return (g>=10?Math.round(g):g.toFixed(1).replace('.',','))+' GB'};
+  const R=[['Thiết bị',o.model],['Hệ điều hành','Android '+o.android+' (API '+o.sdk+')']];
+  if(o.patch)R.push(['Bản vá bảo mật',o.patch]);
+  if(o.soc)R.push(['Chip xử lý',o.soc+(o.abi?' · '+o.abi:'')]);
+  R.push(['Số lõi xử lý',o.cores]);
+  if(o.sw)R.push(['Màn hình',o.sw+' × '+o.sh+' px'+(o.dpi?' · '+o.dpi+' dpi':'')]);
+  if(o.ram)R.push(['Bộ nhớ RAM',gb(o.ram)+(o.ramFree?' (trống '+gb(o.ramFree)+')':'')]);
+  if(o.disk)R.push(['Bộ nhớ trong',gb(o.disk)+(o.diskFree?' (trống '+gb(o.diskFree)+')':'')]);
+  R.push(['Ngôn ngữ',navigator.language||'vi']);
+  return R;
+}
 function buildSettings(b,w,arg){
   const NAV=[['wifi','Wi-Fi','#2f8bff'],['bt','Bluetooth','#2f8bff'],['ap','Giao diện','#5b5fe0'],['wp','Hình nền','#2fb3d6'],['dk','Màn hình nền và Dock','#4a4d57'],['dp','Màn hình','#2f8bff'],['sd','Âm thanh','#ff3b5c'],['bt2','Pin','#34c759'],['us','Người dùng','#8e8e93'],['pm','Quyền truy cập','#34c759'],['ab','Giới thiệu','#8e8e93']];
   const rw=(l,c,s)=>'<div class="rw"><span><b>'+l+'</b>'+(s?'<small>'+s+'</small>':'')+'</span><span class="rc2">'+c+'</span></div>';
@@ -1647,6 +1662,7 @@ function buildSettings(b,w,arg){
     nav.appendChild(s);
   });
   function info(){
+    const nr=nativeRows(); if(nr)return [['Hệ thống','Desktop Mini 26']].concat(nr);
     const nv=navigator, sc=window.screen;
     return [['Hệ thống','Desktop Mini 26 (bản mô phỏng)'],['Trình duyệt',(nv.userAgentData&&nv.userAgentData.platform)||nv.platform||'Không rõ'],['Ngôn ngữ',nv.language||'vi'],['Màn hình',sc.width+' × '+sc.height],['Số lõi xử lý',nv.hardwareConcurrency||'Không rõ'],['Bộ nhớ',nv.deviceMemory?nv.deviceMemory+' GB':'Không rõ']];
   }
@@ -1719,8 +1735,8 @@ function buildTrash(b,w){
 
 /* ---------- Giới thiệu & Buộc thoát ---------- */
 function buildAbout(b){
-  const nv=navigator, sc=window.screen;
-  const rows=[['Hệ thống','Desktop Mini 26'],['Bản dựng','Mô phỏng chạy trên trình duyệt'],['Màn hình',sc.width+' × '+sc.height],['Số lõi xử lý',nv.hardwareConcurrency||'Không rõ'],['Bộ nhớ',nv.deviceMemory?nv.deviceMemory+' GB':'Không rõ'],['Người dùng',userName()]];
+  const nv=navigator, sc=window.screen, nr=nativeRows();
+  const rows=nr?[['Hệ thống','Desktop Mini 26'],['Bản dựng','Chạy trên Android']].concat(nr,[['Người dùng',userName()]]):[['Hệ thống','Desktop Mini 26'],['Bản dựng','Mô phỏng chạy trên trình duyệt'],['Màn hình',sc.width+' × '+sc.height],['Số lõi xử lý',nv.hardwareConcurrency||'Không rõ'],['Bộ nhớ',nv.deviceMemory?nv.deviceMemory+' GB':'Không rõ'],['Người dùng',userName()]];
   b.innerHTML='<div class="app abt"><div class="logo-big"><svg viewBox="0 0 16 16"><path d="M8 .8l1.7 4.6 4.6 1.7-4.6 1.7L8 13.4 6.3 8.8 1.7 7.1l4.6-1.7z"/></svg></div><h2>Desktop Mini</h2><p>Phiên bản 26</p><dl>'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+esc(String(r[1]))+'</dd>').join('')+'</dl></div>';
   return {};
 }
