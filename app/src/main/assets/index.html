@@ -2186,6 +2186,13 @@ $('#clk').addEventListener('click',e=>{
   if(!was){pops.nc.hidden=false;$('#clk').classList.add('open');renderNC()}
 });
 ['rem','notes','ev','notif'].forEach(ev=>bus.on(ev,()=>{if(!pops.nc.hidden)renderNC()}));
+/* Thông báo nhắc nhở luôn khớp với danh sách việc thực tế */
+bus.on('rem',()=>{
+  const i=NOTIFS.findIndex(n=>n.live==='rem'); if(i<0)return;
+  const o=REM.filter(r=>!r.done);
+  if(!o.length)NOTIFS.splice(i,1); else{NOTIFS[i].title='Bạn còn '+o.length+' việc chưa xong'; NOTIFS[i].body=o[0].t}
+  bus.emit('notif');
+});
 
 /* ---------- Xem nhanh ---------- */
 const ql=$('#ql');
@@ -2419,7 +2426,7 @@ function greet(){
     lsSet('dm-welcome','1');
     setTimeout(()=>{deliverMail({from:'Nhóm Desktop Mini',addr:'chao@desktopmini.example',subj:'Chào mừng bạn đến Desktop Mini',body:'Chúc bạn có buổi làm việc vui vẻ. Thử bấm F4 để mở Launchpad, F3 để xem Mission Control, hoặc Ctrl + Space để tìm kiếm bằng Spotlight.'});notify({app:'Thư',title:'Chào mừng bạn đến Desktop Mini',body:'Nhóm Desktop Mini',icon:'mail'})},6000);
   }else{
-    setTimeout(()=>{const n=REM.filter(r=>!r.done).length;if(n)notify({app:'Nhắc nhở',title:'Bạn còn '+n+' việc chưa xong',body:REM.filter(r=>!r.done)[0].t,icon:'reminders'})},6000);
+    setTimeout(()=>{const n=REM.filter(r=>!r.done).length;if(n)notify({app:'Nhắc nhở',title:'Bạn còn '+n+' việc chưa xong',body:REM.filter(r=>!r.done)[0].t,icon:'reminders',live:'rem'})},6000);
   }
 }
 
