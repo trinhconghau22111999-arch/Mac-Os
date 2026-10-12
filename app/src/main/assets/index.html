@@ -1,6 +1,40 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:light}html,body{margin:0}</style>
+<style>:root{color-scheme:light}html,body{margin:0}
+/* Ghi âm */
+.rc{position:relative;display:flex;flex-direction:column;height:100%;padding:38px 18px 18px;background:#131218;color:#efe9fb;overflow-y:auto;-webkit-user-select:none;user-select:none}
+.rc h2{margin:0 0 14px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
+.rc .rcw{flex:none;height:120px;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
+.rc .rcv{display:block;width:100%;height:100%}
+.rc .rctime{flex:none;margin:16px 0 14px;text-align:center;font-size:38px;font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#efe9fb;text-shadow:0 0 16px rgba(180,76,255,.55)}
+.rc .rcbt{flex:none;display:flex;justify-content:center;gap:24px}
+.rc .rcb{width:54px;height:54px;border-radius:50%;border:2px solid #b44cff;background:#22103a;color:#b44cff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(180,76,255,.4)}
+.rc .rcb svg{width:22px;height:22px}
+.rc .rcb:disabled{opacity:.35;box-shadow:none}
+.rc .rcb.rcp{border-color:rgba(180,76,255,.35);box-shadow:none}
+.rc .rcb.rcr i{display:block;width:24px;height:24px;border-radius:50%;background:#ff3860;transition:border-radius .15s,width .15s,height .15s}
+.rc .rcb.rcr.on i{width:18px;height:18px;border-radius:5px}
+.rc .rch{flex:none;margin:18px 0 10px;padding-top:14px;border-top:1px solid rgba(180,76,255,.2);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#8d84a3}
+.rc .rce{padding:14px;text-align:center;font-size:13px;letter-spacing:.08em;color:#8d84a3}
+.rc .rci{flex:none;margin-bottom:10px;padding:10px 12px;border:1px solid rgba(180,76,255,.25);border-radius:14px;background:rgba(255,255,255,.02)}
+.rc .rcn,.rc .rcin{display:block;width:100%;font-size:14px;line-height:1.3;margin-bottom:8px;color:#efe9fb}
+.rc .rcn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc .rcin{padding:4px 8px;border:1px solid #b44cff;border-radius:8px;background:#000;font:inherit;font-size:14px;outline:0;-webkit-user-select:text;user-select:text}
+.rc .rcc{display:flex;align-items:center;gap:10px}
+.rc .rcpl{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid #b44cff;color:#b44cff;display:flex;align-items:center;justify-content:center}
+.rc .rcpl svg{width:14px;height:14px}
+.rc .rcpr{flex:1;height:16px;display:flex;align-items:center;cursor:pointer}
+.rc .rcpr::before{content:"";position:absolute}
+.rc .rcpr{position:relative}
+.rc .rcpr b{display:block;width:100%;height:6px;border-radius:3px;background:rgba(180,76,255,.22);overflow:hidden}
+.rc .rcpr i{display:block;height:100%;width:0;background:#b44cff}
+.rc .rctm{flex:none;font-size:12px;color:#a79dbd;font-variant-numeric:tabular-nums}
+.rc .rcsp{flex:none;min-width:38px;padding:4px 7px;border:1px solid #b44cff;border-radius:8px;color:#b44cff;font-size:12px}
+.rc .rcmn{flex:none;width:26px;height:30px;color:#b44cff;font-size:20px;line-height:1}
+.rc .rcmenu{position:absolute;z-index:5;width:190px;padding:4px;border:1px solid #7a35c9;border-radius:12px;background:#14101e;box-shadow:0 0 22px rgba(180,76,255,.35)}
+.rc .rcmenu button{display:block;width:100%;padding:11px 14px;text-align:left;font-size:14px;color:#efe9fb;border-radius:8px}
+.rc .rcmenu button.dg{color:#ff4d6d}
+</style>
 <title>Desktop Mini</title>
 <style>
 /* Layout: một màn hình bo góc. Menu bar trong suốt, dock kính nổi dưới đáy, cửa sổ bo lớn có đèn giao thông, các lớp phủ (Launchpad, Mission Control, khóa) phủ lên trên. */
@@ -959,6 +993,7 @@ const ICONS={
   reminders:{bg:'#fff',g:'<svg viewBox="0 0 24 24"><g stroke="#d3d6dd" stroke-width="1.2"><path d="M10 7.4h10M10 12h10M10 16.6h10"/></g><circle cx="5.6" cy="7.4" r="1.9" fill="#ff9500"/><circle cx="5.6" cy="12" r="1.9" fill="#0a84ff"/><circle cx="5.6" cy="16.6" r="1.9" fill="#34c759"/></svg>'},
   calc:{bg:'linear-gradient(#5d5e64,#232427)',g:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2.4" fill="#a5a5ab"/><rect x="13" y="3" width="8" height="8" rx="2.4" fill="#ff9f0a"/><rect x="3" y="13" width="8" height="8" rx="2.4" fill="#505055"/><rect x="13" y="13" width="8" height="8" rx="2.4" fill="#ff9f0a"/></svg>'},
   terminal:{bg:'linear-gradient(#3b3c41,#111113)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#7CFC9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l5 4-5 4M12.5 17h6.5"/></svg>'},
+  recorder:{bg:'linear-gradient(#b25cff,#4b22c9)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="#fff"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg>'},
   clock:{bg:'linear-gradient(#2a2b30,#0d0d0f)',g:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f6f6f8"/><path d="M12 6.5V12l3.6 2.2" fill="none" stroke="#1d1d1f" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.1" fill="#ff3b30"/></svg>'},
   settings:{bg:'linear-gradient(#c5c8cf,#6f727b)',g:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.4" fill="none" stroke="#fff" stroke-width="3.8" stroke-dasharray="3.3 3.3"/><circle cx="12" cy="12" r="5.8" fill="#fff"/><circle cx="12" cy="12" r="2.4" fill="#7d808a"/></svg>'},
   downloads:{bg:'linear-gradient(#63e6c4,#169bd1)',g:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M3 7.2A2.2 2.2 0 0 1 5.2 5h4c.6 0 1.2.3 1.6.8L12 7.2h6.8A2.2 2.2 0 0 1 21 9.4v7.4A2.2 2.2 0 0 1 18.8 19H5.2A2.2 2.2 0 0 1 3 16.8z" opacity=".95"/><path d="M12 9.6v5.2M9.8 12.7l2.2 2.2 2.2-2.2" fill="none" stroke="#169bd1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
@@ -1041,12 +1076,13 @@ const APPS={
   calc:{name:'Máy tính',w:256,h:392,minW:240,minH:200,build:buildCalc,dark:true},
   terminal:{name:'Terminal',w:560,h:340,minW:320,minH:200,build:buildTerminal,dark:true},
   clock:{name:'Đồng hồ',w:520,h:400,minW:320,minH:300,build:buildClock},
+  recorder:{name:'Ghi âm',w:380,h:600,minW:320,minH:440,build:buildRecorder,dark:true},
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
   trash:{name:'Thùng rác',w:520,h:340,minW:320,minH:240,build:buildTrash},
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
-const LP_APPS=['files','downloads','browser','mail','calendar','photos','music','notes','reminders','calc','clock','settings'];
+const LP_APPS=['files','downloads','browser','mail','calendar','photos','music','notes','reminders','calc','clock','recorder','settings'];
 const DOCK=['launchpad','files','browser','mail','calendar','photos','music','notes','reminders','calc','clock','settings','downloads'];
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
@@ -1964,6 +2000,221 @@ function buildSettings(b,w,arg){
   live(w,'ui',()=>{const f=document.activeElement;/* đang kéo thanh trượt hoặc đang gõ chữ thì không vẽ lại, nếu không ô nhập bị mất focus và bàn phím tắt */if(f&&((f.classList&&f.classList.contains('rg'))||f.tagName==='INPUT'||f.tagName==='TEXTAREA'||f.tagName==='SELECT'))return;render()});
   render();
   return {open(a){if(a&&a.pane){key=a.pane;render()}}};
+}
+
+/* ---------- Ghi âm ---------- */
+const RECDB=(()=>{
+  let db=null, mem=[], useMem=false;
+  const open=()=>new Promise(res=>{
+    if(db||useMem)return res();
+    try{
+      const q=indexedDB.open('dm-rec',1);
+      q.onupgradeneeded=()=>{q.result.createObjectStore('r',{keyPath:'id'})};
+      q.onsuccess=()=>{db=q.result;res()};
+      q.onerror=()=>{useMem=true;res()};
+      q.onblocked=()=>{useMem=true;res()};
+    }catch(e){useMem=true;res()}
+  });
+  const tx=(mode,fn)=>new Promise(res=>{
+    try{const t=db.transaction('r',mode);const r=fn(t.objectStore('r'));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>res(null);t.onabort=()=>res(null)}catch(e){res(null)}
+  });
+  return {
+    memOnly:()=>useMem,
+    async all(){await open();if(useMem)return mem.slice();return (await tx('readonly',s=>s.getAll()))||[]},
+    async put(x){await open();if(useMem){const i=mem.findIndex(y=>y.id===x.id);if(i<0)mem.push(x);else mem[i]=x;return}await tx('readwrite',s=>s.put(x))},
+    async del(id){await open();if(useMem){mem=mem.filter(y=>y.id!==id);return}await tx('readwrite',s=>s.delete(id))}
+  };
+})();
+function buildRecorder(b,w){
+  const PAUSE='<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>', PLAY='<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>', RATES=[1,1.5,2,0.5];
+  const fmt=ms=>{ms=Math.max(0,Math.floor(ms));return pad(Math.floor(ms/60000))+':'+pad(Math.floor(ms/1000)%60)+'.'+(Math.floor(ms/100)%10)};
+  const rl=r=>(r===0.5?'0.5':String(r))+'x';
+  b.innerHTML='<div class="rc"><h2>Máy ghi âm</h2><div class="rcw"><canvas class="rcv"></canvas></div><div class="rctime">00:00.0</div><div class="rcbt"><button type="button" class="rcb rcp" aria-label="Tạm dừng" disabled>'+PAUSE+'</button><button type="button" class="rcb rcr" aria-label="Ghi âm"><i></i></button></div><div class="rch">Bản ghi đã lưu</div><div class="rcl"></div></div>';
+  const root=$('.rc',b), cv=$('.rcv',b), cx=cv.getContext('2d'), tm=$('.rctime',b), bp=$('.rcp',b), br=$('.rcr',b), ls=$('.rcl',b);
+  let st='idle', stream=null, mr=null, ac=null, an=null, buf=null, acc=0, t0=0, tmr=null, raf=0, lastP=0, hist=[], items=[], cur=null, menuIt=null;
+  const menu=document.createElement('div'); menu.className='rcmenu'; menu.hidden=true;
+  menu.innerHTML='<button type="button" data-a="ren">Đổi tên</button><button type="button" data-a="shr">Chia sẻ</button><button type="button" class="dg" data-a="del">Xoá bản ghi</button>';
+  root.appendChild(menu);
+  const warn=(t,m)=>notify({app:'Ghi âm',title:t,body:m,icon:'recorder'});
+  const elapsed=()=>acc+(st==='rec'?Date.now()-t0:0);
+
+  /* sóng âm */
+  function size(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1,W=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}return d}
+  function draw(){
+    raf=0; if(!w.isConnected)return;
+    const d=size(), W=cv.width, H=cv.height, bw=3*d, gap=2*d, step=bw+gap, max=Math.max(1,Math.floor((W-40*d)/step));
+    cx.clearRect(0,0,W,H);
+    if(an&&st==='rec'){
+      if(!buf||buf.length!==an.fftSize)buf=new Uint8Array(an.fftSize);
+      an.getByteTimeDomainData(buf);
+      const t=performance.now();
+      if(t-lastP>55){lastP=t;let m=0;for(let i=0;i<buf.length;i++){const v=Math.abs(buf[i]-128);if(v>m)m=v}hist.push(m/128);while(hist.length>max)hist.shift()}
+    }
+    cx.strokeStyle='rgba(180,76,255,.35)'; cx.lineWidth=d; cx.beginPath(); cx.moveTo(20*d,H/2); cx.lineTo(W-20*d,H/2); cx.stroke();
+    cx.fillStyle='#b44cff'; cx.shadowColor='rgba(180,76,255,.8)'; cx.shadowBlur=8*d;
+    const x0=W-20*d-hist.length*step;
+    hist.forEach((a,i)=>{const h=Math.max(2*d,Math.min(1,a*2.2)*(H-24*d));cx.fillRect(x0+i*step,(H-h)/2,bw,h)});
+    cx.shadowBlur=0;
+    if(st!=='idle')raf=requestAnimationFrame(draw);
+  }
+  function ui(){
+    br.classList.toggle('on',st!=='idle');
+    br.setAttribute('aria-label',st==='idle'?'Ghi âm':'Dừng và lưu');
+    bp.disabled=st==='idle';
+    bp.innerHTML=st==='pause'?PLAY:PAUSE;
+    bp.setAttribute('aria-label',st==='pause'?'Tiếp tục':'Tạm dừng');
+  }
+
+  /* ghi */
+  async function start(){
+    if(st!=='idle')return;
+    if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)){warn('Không ghi âm được','Thiết bị này không hỗ trợ ghi âm trong ứng dụng.');return}
+    let s; try{s=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){warn('Không mở được micro','Hãy cấp quyền Micro cho Desktop Mini rồi thử lại.');return}
+    if(!w.isConnected||st!=='idle'){s.getTracks().forEach(t=>t.stop());return}
+    const types=['audio/webm;codecs=opus','audio/mp4','audio/webm'];
+    const mt=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+    const cs=[]; let rec;
+    try{rec=mt?new MediaRecorder(s,{mimeType:mt}):new MediaRecorder(s)}catch(e){s.getTracks().forEach(t=>t.stop());warn('Không ghi âm được','Không khởi tạo được bộ ghi âm.');return}
+    stream=s; mr=rec; hist=[];
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)cs.push(e.data)};
+    rec.onstop=()=>save(rec,cs,mt);
+    rec.start(250);
+    try{ac=new (window.AudioContext||window.webkitAudioContext)();an=ac.createAnalyser();an.fftSize=512;ac.createMediaStreamSource(s).connect(an)}catch(e){an=null}
+    acc=0; t0=Date.now(); st='rec';
+    tmr=setInterval(()=>{if(w.isConnected)tm.textContent=fmt(elapsed())},100);
+    if(!raf)draw();
+    ui();
+  }
+  function stopRec(){
+    if(st==='idle'||!mr)return;
+    const dur=elapsed(); mr._dur=dur;
+    st='idle'; clearInterval(tmr); tmr=null;
+    try{if(mr.state!=='inactive')mr.stop()}catch(e){}
+    try{stream.getTracks().forEach(t=>t.stop())}catch(e){}
+    try{if(ac)ac.close()}catch(e){}
+    ac=null; an=null; stream=null; mr=null; hist=[];
+    if(w.isConnected){tm.textContent='00:00.0';ui();if(!raf)draw()}
+  }
+  function togglePause(){
+    if(!mr)return;
+    try{
+      if(st==='rec'){mr.pause();acc+=Date.now()-t0;st='pause'}
+      else if(st==='pause'){mr.resume();t0=Date.now();st='rec'}
+    }catch(e){}
+    ui();
+  }
+  async function save(rec,cs,mt){
+    const type=rec.mimeType||mt||'audio/webm', blob=new Blob(cs,{type:type});
+    if(!blob.size)return;
+    const n=(jget('dm-recn',0)||0)+1; jset('dm-recn',n);
+    const d=new Date();
+    const it={id:Date.now(),name:'Bản ghi '+n+' — '+pad(d.getHours())+':'+pad(d.getMinutes()),dur:rec._dur||0,mime:type,blob:blob,t:Date.now()};
+    items.unshift(it);
+    await RECDB.put(it);
+    if(w.isConnected)renderList();
+  }
+
+  /* danh sách và phát */
+  const rowOf=it=>ls.querySelector('[data-id="'+it.id+'"]');
+  function renderList(){
+    if(!items.length){ls.innerHTML='<div class="rce">Chưa có bản ghi nào</div>';return}
+    ls.innerHTML=items.map(it=>'<div class="rci" data-id="'+it.id+'"><div class="rcn">'+esc(it.name)+'</div><div class="rcc"><button type="button" class="rcpl" aria-label="Phát">'+PLAY+'</button><div class="rcpr"><b><i></i></b></div><span class="rctm">'+fmt(it.dur)+'</span><button type="button" class="rcsp" aria-label="Tốc độ phát">'+rl(it.sp||1)+'</button><button type="button" class="rcmn" aria-label="Tuỳ chọn">&#8942;</button></div></div>').join('');
+    if(cur){cur.el=rowOf(cur.it);paint()}
+  }
+  function paint(){
+    if(!cur||!cur.el||!cur.el.isConnected)return;
+    const a=cur.a, d=(cur.it.dur/1000)||1, f=Math.min(1,a.currentTime/d);
+    $('.rcpr i',cur.el).style.width=(f*100)+'%';
+    $('.rctm',cur.el).textContent=fmt((a.paused&&a.currentTime===0)?cur.it.dur:a.currentTime*1000);
+    $('.rcpl',cur.el).innerHTML=a.paused?PLAY:PAUSE;
+  }
+  function stopPlay(){
+    if(!cur)return;
+    const c=cur; cur=null;
+    try{c.a.pause()}catch(e){} URL.revokeObjectURL(c.url);
+    const el=c.el;
+    if(el&&el.isConnected){$('.rcpr i',el).style.width='0';$('.rctm',el).textContent=fmt(c.it.dur);$('.rcpl',el).innerHTML=PLAY}
+  }
+  function ensure(it){
+    if(cur&&cur.it===it)return cur;
+    stopPlay();
+    const url=URL.createObjectURL(it.blob), a=new Audio(url);
+    a.playbackRate=it.sp||1;
+    cur={it:it,a:a,url:url,el:rowOf(it)};
+    a.ontimeupdate=paint; a.onplay=paint; a.onpause=paint;
+    a.onended=()=>{a.currentTime=0;paint()};
+    return cur;
+  }
+  function toggle(it){const c=ensure(it);if(c.a.paused){const p=c.a.play();if(p&&p.catch)p.catch(()=>{})}else c.a.pause()}
+  function seek(it,e){
+    const bar=e.target.closest('.rcpr'), r=bar.getBoundingClientRect(), f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    const c=ensure(it); try{c.a.currentTime=f*(it.dur/1000)}catch(x){} paint();
+  }
+  function speed(it){
+    it.sp=RATES[(RATES.indexOf(it.sp||1)+1)%RATES.length];
+    if(cur&&cur.it===it)cur.a.playbackRate=it.sp;
+    const el=rowOf(it); if(el)$('.rcsp',el).textContent=rl(it.sp);
+  }
+
+  /* menu ⋮ */
+  function openMenu(it,btn){
+    menuIt=it; menu.hidden=false;
+    const rr=root.getBoundingClientRect(), br2=btn.getBoundingClientRect();
+    menu.style.left=Math.max(8,Math.min(rr.width-198,br2.right-rr.left-190))+'px';
+    menu.style.top=(br2.bottom-rr.top+root.scrollTop+4)+'px';
+  }
+  function rename(it){
+    const row=rowOf(it); if(!row)return;
+    const n=$('.rcn',row), inp=document.createElement('input');
+    inp.className='rcin'; inp.value=it.name; inp.maxLength=40; inp.setAttribute('aria-label','Tên bản ghi'); inp.autocomplete='off';
+    n.replaceWith(inp); inp.focus(); inp.select();
+    let done=false;
+    const ok=()=>{if(done)return;done=true;const v=inp.value.trim();if(v&&v!==it.name){it.name=v;RECDB.put(it)}renderList()};
+    inp.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')ok();else if(e.key==='Escape'){done=true;renderList()}});
+    inp.addEventListener('blur',ok);
+    inp.addEventListener('pointerdown',e=>e.stopPropagation());
+  }
+  function share(it){
+    const A=window.AndroidLauncher, ext=/mp4/.test(it.mime)?'m4a':'webm', nm=it.name.replace(/[\\/:*?"<>|]+/g,'_');
+    if(A&&A.shareAudio){
+      const fr=new FileReader();
+      fr.onload=()=>{let ok=false;try{ok=A.shareAudio(fr.result,nm,it.mime)}catch(e){}if(!ok)warn('Không chia sẻ được','Thử lại sau.')};
+      fr.readAsDataURL(it.blob); return;
+    }
+    try{
+      const f=new File([it.blob],nm+'.'+ext,{type:it.mime});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return}
+    }catch(e){}
+    const a=document.createElement('a'); a.href=URL.createObjectURL(it.blob); a.download=nm+'.'+ext; a.click();
+  }
+  function remove(it){
+    if(cur&&cur.it===it)stopPlay();
+    items=items.filter(x=>x!==it); RECDB.del(it.id); renderList();
+  }
+
+  br.addEventListener('click',()=>{st==='idle'?start():stopRec()});
+  bp.addEventListener('click',togglePause);
+  ls.addEventListener('click',e=>{
+    const row=e.target.closest('.rci'); if(!row)return;
+    const it=items.find(x=>String(x.id)===row.dataset.id); if(!it)return;
+    if(e.target.closest('.rcpl'))toggle(it);
+    else if(e.target.closest('.rcsp'))speed(it);
+    else if(e.target.closest('.rcmn'))openMenu(it,e.target.closest('.rcmn'));
+    else if(e.target.closest('.rcpr'))seek(it,e);
+  });
+  menu.addEventListener('click',e=>{
+    const a=e.target.closest('[data-a]'); if(!a||!menuIt)return;
+    const it=menuIt; menu.hidden=true; menuIt=null;
+    if(a.dataset.a==='ren')rename(it); else if(a.dataset.a==='shr')share(it); else remove(it);
+  });
+  b.addEventListener('pointerdown',e=>{if(!menu.hidden&&!e.target.closest('.rcmenu')&&!e.target.closest('.rcmn'))menu.hidden=true},true);
+
+  renderList(); draw();
+  RECDB.all().then(a=>{items=a.sort((x,y)=>y.t-x.t);if(w.isConnected)renderList()});
+  return {destroy(){
+    if(st!=='idle')stopRec();
+    clearInterval(tmr); cancelAnimationFrame(raf); stopPlay();
+  }};
 }
 
 /* ---------- Thùng rác ---------- */

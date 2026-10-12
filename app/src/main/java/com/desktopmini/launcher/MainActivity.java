@@ -135,6 +135,20 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(0xFF000000);
         web.setFocusable(true); web.setFocusableInTouchMode(true); web.requestFocus();
         web.setWebViewClient(new WebViewClient());
+        web.setWebChromeClient(new android.webkit.WebChromeClient() {
+            @Override public void onPermissionRequest(final android.webkit.PermissionRequest q) {
+                runOnUiThread(new Runnable() { public void run() {
+                    boolean mic = false;
+                    for (String rs : q.getResources()) if (android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(rs)) mic = true;
+                    if (!mic) { q.deny(); return; }
+                    if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        if (micReq != null) micReq.deny();
+                        micReq = q; askingRuntime = true;
+                        requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, 77);
+                    } else q.grant(q.getResources());
+                } });
+            }
+        });
         web.addJavascriptInterface(new Bridge(), "AndroidLauncher");
         web.loadUrl("file:///android_asset/index.html");
         if (Build.VERSION.SDK_INT >= 28) {
@@ -161,6 +175,7 @@ public class MainActivity extends Activity {
 
     /** Bàn phím đang mở? Khi mở thì không ép ẩn thanh hệ thống, vì làm vậy sẽ đóng bàn phím (ô nhập bị văng). */
     private boolean imeUp = false;
+    private android.webkit.PermissionRequest micReq = null;
     private void trackIme() {
         final View d = getWindow().getDecorView();
         d.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
@@ -254,6 +269,13 @@ public class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int c, String[] p, int[] r) {
         askingRuntime = false;
+        if (c == 77) {
+            final android.webkit.PermissionRequest q = micReq; micReq = null;
+            if (q != null) {
+                if (r.length > 0 && r[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) q.grant(q.getResources()); else q.deny();
+            }
+            return;
+        }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         root.post(new Runnable() { public void run() { setupNext(); } });
     }
@@ -614,6 +636,24 @@ public class MainActivity extends Activity {
             File f = new File(dir, "anh_" + System.currentTimeMillis() + ".jpg");
             FileOutputStream os = new FileOutputStream(f); os.write(by); os.close();
             return f;
+        }
+        /** Chia sẻ bản ghi âm (dataUrl base64) qua bảng chọn ứng dụng của Android. */
+        @JavascriptInterface public boolean shareAudio(String dataUrl, String name, String mime) {
+            try {
+                byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
+                File dir = new File(getCacheDir(), "shared"); dir.mkdirs();
+                File[] old = dir.listFiles(); if (old != null) for (File o : old) o.delete();
+                String base = (name == null || name.length() == 0) ? "ghi_am" : name.replaceAll("[\\\\/:*?\"<>|\\s]+", "_");
+                String type = (mime == null || mime.length() == 0) ? "audio/*" : mime.split(";")[0];
+                File f = new File(dir, base + (type.contains("mp4") ? ".m4a" : ".webm"));
+                FileOutputStream os = new FileOutputStream(f); os.write(by); os.close();
+                Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
+                Intent i = new Intent(Intent.ACTION_SEND).setType(type).putExtra(Intent.EXTRA_STREAM, u)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                i.setClipData(android.content.ClipData.newRawUri("", u));
+                go(Intent.createChooser(i, "Chia sẻ bản ghi").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                return true;
+            } catch (Exception e) { return false; }
         }
         /** pkg rỗng = mở bảng chọn ứng dụng của Android. dataUrl rỗng = chia sẻ ảnh gốc theo id. */
         @JavascriptInterface public boolean shareImage(String pkg, long id, String dataUrl) {
