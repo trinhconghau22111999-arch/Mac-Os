@@ -64,6 +64,7 @@ import java.util.List;
 public class MainActivity extends Activity {
     private static MainActivity inst;
     private FrameLayout root;
+    private boolean askingRuntime = false;
     private WebView web;
     private final HashMap<String, WebView> ext = new HashMap<String, WebView>();
     private static final String UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
@@ -136,7 +137,7 @@ public class MainActivity extends Activity {
         need.add(Manifest.permission.READ_CALENDAR);
         ArrayList<String> miss = new ArrayList<String>();
         for (String p : need) if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) miss.add(p);
-        if (!miss.isEmpty()) requestPermissions(miss.toArray(new String[0]), 7);
+        if (!miss.isEmpty()) { askingRuntime = true; requestPermissions(miss.toArray(new String[0]), 7); }
     }
 
     private boolean listed(String setting) {
@@ -171,6 +172,10 @@ public class MainActivity extends Activity {
             sp.edit().putBoolean("ax", true).apply();
             go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return;
         }
+        if (Build.VERSION.SDK_INT >= 23 && !((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).isNotificationPolicyAccessGranted() && !sp.getBoolean("dnd", false)) {
+            sp.edit().putBoolean("dnd", true).apply();
+            go(new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)); return;
+        }
         if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager() && !sp.getBoolean("af", false)) {
             sp.edit().putBoolean("af", true).apply();
             go(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + getPackageName()))); return;
@@ -178,13 +183,15 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onRequestPermissionsResult(int c, String[] p, int[] r) {
+        askingRuntime = false;
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
+        root.post(new Runnable() { public void run() { setupNext(); } });
     }
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) immersive(); }
     @Override protected void onResume() {
         super.onResume();
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
-        root.post(new Runnable() { public void run() { setupNext(); } });
+        if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
     }
     @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null); }
     @Override public void onBackPressed() { web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
@@ -393,12 +400,14 @@ public class MainActivity extends Activity {
                 JSONObject o = new JSONObject();
                 o.put("write", Settings.System.canWrite(MainActivity.this)); o.put("notif", notifAccess()); o.put("a11y", a11yOn()); o.put("files", filesOk());
                 o.put("calendar", checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED);
+                o.put("dnd", Build.VERSION.SDK_INT < 23 || ((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).isNotificationPolicyAccessGranted());
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }
         @JavascriptInterface public void openSetup(String kind) {
             if ("notif".equals(kind)) go(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
             else if ("a11y".equals(kind)) go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+            else if ("dnd".equals(kind)) go(new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS));
             else if ("write".equals(kind)) go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName())));
             else if ("files".equals(kind) && Build.VERSION.SDK_INT >= 30) go(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + getPackageName())));
             else go(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())));

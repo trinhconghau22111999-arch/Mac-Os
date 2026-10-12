@@ -1672,7 +1672,7 @@ function buildSettings(b,w,arg){
       case 'pm':{
         const A=window.AndroidLauncher; if(!A)return ['Quyền truy cập','<div class="grp"><div class="rw"><span><b>Chỉ có trong app Android</b><small>Bản web không có quyền hệ thống để cấp.</small></span></div></div>'];
         let st={}; try{st=JSON.parse(A.getStatus())}catch(e){}
-        const R=[['write','Sửa cài đặt hệ thống','Đổi độ sáng màn hình'],['notif','Đọc thông báo','Hiện thông báo của ứng dụng khác'],['a11y','Trợ năng','Khóa màn hình, menu tắt máy/khởi động lại'],['files','Truy cập mọi tệp','Ứng dụng Tệp và Tải xuống'],['calendar','Lịch','Đọc sự kiện trong lịch của máy']];
+        const R=[['write','Sửa cài đặt hệ thống','Đổi độ sáng màn hình'],['notif','Đọc thông báo','Hiện thông báo của ứng dụng khác'],['a11y','Trợ năng','Khóa màn hình, menu tắt máy/khởi động lại'],['files','Truy cập mọi tệp','Ứng dụng Tệp và Tải xuống'],['calendar','Lịch','Đọc sự kiện trong lịch của máy'],['dnd','Không làm phiền','Chỉnh âm lượng chuông và thông báo']];
         return ['Quyền truy cập','<div class="grp">'+R.map(r=>rw(r[1],st[r[0]]?'<span style="color:#34c759">Đã cấp</span>':'<button class="btn" data-setup="'+r[0]+'">Cấp quyền</button>',r[2])).join('')+'</div>'];
       }
       case 'wifi':return ['Wi-Fi','<div class="grp">'+rw('Wi-Fi',tgl(pref('wifi',true),'wifi','Wi-Fi'),navigator.onLine?'Đã kết nối':'Không có kết nối mạng')+'</div>'];
