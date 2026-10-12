@@ -571,6 +571,26 @@ public class MainActivity extends Activity {
                 res.put("list", arr); return res.toString();
             } catch (Exception e) { return "{\"error\":\"Lỗi đọc thư mục\",\"list\":[]}"; }
         }
+        @JavascriptInterface public boolean shareFile(String path) {
+            try {
+                File f = new File(path);
+                String ext = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(f).toString());
+                String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
+                Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
+                Intent i = new Intent(Intent.ACTION_SEND).setType(mime == null ? "*/*" : mime).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                go(Intent.createChooser(i, "Chia sẻ"));
+                return true;
+            } catch (Exception e) { return false; }
+        }
+        @JavascriptInterface public boolean deleteFile(String path) {
+            try {
+                File f = new File(path);
+                if (f.isDirectory()) { File[] k = f.listFiles(); if (k != null && k.length > 0) return false; }
+                boolean ok = f.delete();
+                if (ok) { try { MediaStore.Files.getContentUri("external"); sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); } catch (Exception e) { } }
+                return ok;
+            } catch (Exception e) { return false; }
+        }
         @JavascriptInterface public boolean openFile(String path) {
             try {
                 File f = new File(path);
@@ -606,7 +626,7 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= 29) { sel = MediaStore.MediaColumns.RELATIVE_PATH + " LIKE ?"; args = new String[]{"Download/%"}; }
                 else { sel = MediaStore.MediaColumns.DATA + " LIKE ?"; args = new String[]{"%/Download/%"}; }
                 sel += " AND " + MediaStore.Files.FileColumns.MEDIA_TYPE + " IS NOT NULL";
-                Cursor c = getContentResolver().query(base, new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.MediaColumns.MIME_TYPE},
+                Cursor c = getContentResolver().query(base, new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.MediaColumns.MIME_TYPE, MediaStore.MediaColumns.DATA},
                     sel, args, MediaStore.MediaColumns.DATE_MODIFIED + " DESC");
                 if (c == null) res.put("error", "Không đọc được thư mục Tải xuống");
                 else {
@@ -614,7 +634,7 @@ public class MainActivity extends Activity {
                     while (c.moveToNext() && n++ < 10000) {
                         String nm = c.getString(1); if (nm == null || nm.startsWith(".")) continue;
                         JSONObject o = new JSONObject(); o.put("id", c.getLong(0)); o.put("n", nm); o.put("s", c.getLong(2)); o.put("m", c.getLong(3) * 1000L);
-                        String mt = c.getString(4); o.put("t", mt == null ? "" : mt); arr.put(o);
+                        String mt = c.getString(4); o.put("t", mt == null ? "" : mt); String dp = c.getString(5); o.put("p", dp == null ? "" : dp); arr.put(o);
                     }
                     c.close();
                 }

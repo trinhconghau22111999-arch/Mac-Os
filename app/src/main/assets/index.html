@@ -924,7 +924,7 @@ const APPS={
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
 const LP_APPS=['files','downloads','browser','mail','calendar','photos','music','notes','reminders','calc','clock','settings'];
-const DOCK=['launchpad','files','browser','mail','calendar','photos','music','notes','reminders','calc','clock','settings','|','downloads'];
+const DOCK=['launchpad','files','browser','mail','calendar','photos','music','notes','reminders','calc','clock','settings','downloads'];
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
@@ -1817,6 +1817,12 @@ function buildRealFiles(b,w,arg,mode){
       });
     },20);
   }
+  function fileMenu(e,n,full,opn,refresh,isDir){
+    const it=[{t:'Mở',fn:opn}];
+    if(full&&!isDir)it.push({t:'Chia sẻ…',fn:()=>{if(!A.shareFile(full))notify({app:'Tệp',title:'Không chia sẻ được',body:n,icon:'files'})}});
+    if(full)it.push('-',{t:'Xoá',fn:()=>{if(A.deleteFile(full)){M={};refresh()}else notify({app:'Tệp',title:'Không xoá được',body:n+(isDir?' (thư mục chưa trống)':''),icon:'files'})}});
+    showCtx(e.clientX,e.clientY,it);
+  }
   function renderDownloads(){
     let r={list:[]}; try{r=JSON.parse(A.listDownloads())}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
     if(r.error&&!r.list.length){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
@@ -1825,10 +1831,12 @@ function buildRealFiles(b,w,arg,mode){
       const ext=f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp';
       return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+fmtSize(f.s)+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
     }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
-    $$('.rfi',list).forEach(x=>x.addEventListener('click',()=>{
+    const opn=f=>{if(!((f.p&&A.openFile(f.p))||A.openDownload(f.id,f.t)))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
+    $$('.rfi',list).forEach(x=>{
       const f=r.list[+x.dataset.i];
-      if(!A.openDownload(f.id,f.t))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'});
-    }));
+      x.addEventListener('click',()=>opn(f));
+      x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,f.p,()=>opn(f),()=>render())});
+    });
   }
   function renderDir(){
     /* Thư mục Tải xuống gốc: hiện toàn bộ tệp bên trong ứng dụng (MediaStore), không nhảy sang app Tải xuống của hệ thống */
@@ -1840,10 +1848,12 @@ function buildRealFiles(b,w,arg,mode){
       const ext=f.d?'folder':(f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp');
       return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+(f.d?'Thư mục':fmtSize(f.s))+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
     }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
-    $$('.rfi',list).forEach(x=>x.addEventListener('click',()=>{
+    $$('.rfi',list).forEach(x=>{
       const f=r.list[+x.dataset.i], full=path.replace(/\/$/,'')+'/'+f.n;
-      if(f.d)go(full); else if(!A.openFile(full))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'});
-    }));
+      const opn=()=>{if(f.d)go(full); else if(!A.openFile(full))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
+      x.addEventListener('click',opn);
+      x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,full,opn,()=>render(),f.d)});
+    });
   }
   list.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x)A.openSetup(x.dataset.setup)});
   $('.rbk',b).addEventListener('click',()=>{if(pos>0){pos--;path=hist[pos];render()}});
