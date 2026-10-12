@@ -1061,9 +1061,26 @@ function buildDock(){
     b.className='dk'; b.dataset.id=id; b.dataset.label=appTitle(id); b.setAttribute('aria-label',appTitle(id));
     if(id==='trash')b.dataset.drop='trash';
     b.innerHTML=iconHTML(id)+'<span class="dot"></span><span class="bdg" hidden></span>';
-    b.addEventListener('click',e=>{e.stopPropagation();openApp(id)});
-    b.addEventListener('contextmenu',e=>{
-      e.preventDefault();
+    /* Bấm icon: chưa mở -> mở; đang mở và đang ở trên cùng -> thu xuống nền đa nhiệm; đang ẩn/ở sau -> đưa lên */
+    b.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(b._lp){b._lp=false;return}
+      const w=wins[id], lpUp=typeof lpOn!=='undefined'&&lpOn;
+      if(w&&id!=='launchpad'&&!lpUp&&!w._leaving&&!w.classList.contains('min')&&w.classList.contains('focus')){closeAllPopups();minWin(w);return}
+      openApp(id);
+    });
+    /* Chuột phải (hoặc giữ ngón tay trên màn cảm ứng) -> menu, có "Thoát" để tắt hẳn và xóa khỏi đa nhiệm */
+    let lpT=0;
+    const cancelLp=()=>{clearTimeout(lpT)};
+    b.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse')return;
+      b._lp=false; cancelLp();
+      lpT=setTimeout(()=>{b._lp=true;const r=b.getBoundingClientRect();dockMenu(r.left+r.width/2-40,r.top-4)},450);
+    });
+    ['pointerup','pointercancel','pointerleave','pointermove'].forEach(t=>b.addEventListener(t,t==='pointermove'?(e=>{if(Math.abs(e.movementX)+Math.abs(e.movementY)>6)cancelLp()}):cancelLp));
+    let ctxT=0;
+    const dockMenu=(cx,cy)=>{
+      if(Date.now()-ctxT<700)return; ctxT=Date.now();
       const items=[];
       if(id==='trash'){items.push({t:'Mở',fn:()=>openApp('trash')},{t:'Dọn sạch Thùng rác',fn:emptyTrash,dis:!FS.trash.length})}
       else if(id==='launchpad'||id==='downloads'){items.push({t:'Mở',fn:()=>openApp(id)})}
@@ -1071,10 +1088,11 @@ function buildDock(){
         const w=wins[id];
         items.push({t:w?'Hiện cửa sổ':'Mở',fn:()=>openApp(id)});
         if(id==='browser'&&window.AndroidLauncher&&window.AndroidLauncher.getBrowsers)items.push({t:'Chọn lại trình duyệt…',fn:()=>showBrowserPicker()});
-        if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Thoát',fn:()=>closeWin(w)})}
+        if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Thoát (tắt hẳn)',fn:()=>closeWin(w)})}
       }
-      showCtx(e.clientX,e.clientY,items);
-    });
+      showCtx(cx,cy,items);
+    };
+    b.addEventListener('contextmenu',e=>{e.preventDefault();dockMenu(e.clientX,e.clientY)});
     dock.appendChild(b);
   });
 }
