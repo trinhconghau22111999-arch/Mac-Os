@@ -231,6 +231,35 @@ public class MainActivity extends Activity {
             AudioManager a = am(); int max = a.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
             a.setStreamVolume(AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, Math.round(p * max / 100f))), 0);
         }
+        private int streamOf(String k) {
+            if ("alarm".equals(k)) return AudioManager.STREAM_ALARM;
+            if ("ring".equals(k)) return AudioManager.STREAM_RING;
+            return AudioManager.STREAM_NOTIFICATION;
+        }
+        /** Âm lượng báo thức / chuông cuộc gọi / thông báo (0-100). */
+        @JavascriptInterface public int getStreamVol(String kind) {
+            try { AudioManager a = am(); int st = streamOf(kind); return Math.round(a.getStreamVolume(st) * 100f / Math.max(1, a.getStreamMaxVolume(st))); }
+            catch (Exception e) { return -1; }
+        }
+        /** Trả về false nếu bị chặn (thường do chế độ Không làm phiền). */
+        @JavascriptInterface public boolean setStreamVol(String kind, int p) {
+            try {
+                AudioManager a = am(); int st = streamOf(kind), max = a.getStreamMaxVolume(st);
+                a.setStreamVolume(st, Math.max(0, Math.min(max, Math.round(p * max / 100f))), 0);
+                return true;
+            } catch (Exception e) { return false; }
+        }
+        @JavascriptInterface public void playSound(String kind) {
+            try {
+                int type = "alarm".equals(kind) ? android.media.RingtoneManager.TYPE_ALARM : "ring".equals(kind) ? android.media.RingtoneManager.TYPE_RINGTONE : android.media.RingtoneManager.TYPE_NOTIFICATION;
+                Uri u = android.media.RingtoneManager.getDefaultUri(type);
+                final android.media.Ringtone r = android.media.RingtoneManager.getRingtone(MainActivity.this, u);
+                if (r == null) return;
+                if (Build.VERSION.SDK_INT >= 21) r.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage("alarm".equals(kind) ? android.media.AudioAttributes.USAGE_ALARM : "ring".equals(kind) ? android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE : android.media.AudioAttributes.USAGE_NOTIFICATION).build());
+                r.play();
+                web.postDelayed(new Runnable() { public void run() { try { r.stop(); } catch (Exception e) { } } }, 1500);
+            } catch (Exception e) { }
+        }
         @JavascriptInterface public int getBrightness() {
             try {
                 float w = getWindow().getAttributes().screenBrightness;

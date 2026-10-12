@@ -1628,6 +1628,12 @@ function buildCalc(b,w){
 }
 
 /* ---------- Cài đặt hệ thống ---------- */
+const SVK=[['alarm','Âm báo thức'],['ring','Chuông cuộc gọi'],['notif','Âm thanh thông báo']];
+function svRows(){
+  const A=window.AndroidLauncher; if(!A||!A.getStreamVol)return '';
+  return SVK.map(k=>{let v=-1;try{v=A.getStreamVol(k[0])}catch(e){} if(v<0)return '';
+    return '<div class="rw"><span><b>'+k[1]+'</b><small>'+v+'%</small></span><span class="rc2"><input type="range" class="rg sv" data-sv="'+k[0]+'" min="0" max="100" value="'+v+'" aria-label="'+k[1]+'"></span></div>'}).join('');
+}
 function buildSettings(b,w,arg){
   const NAV=[['wifi','Wi-Fi','#2f8bff'],['bt','Bluetooth','#2f8bff'],['ap','Giao diện','#5b5fe0'],['wp','Hình nền','#2fb3d6'],['dk','Màn hình nền và Dock','#4a4d57'],['dp','Màn hình','#2f8bff'],['sd','Âm thanh','#ff3b5c'],['bt2','Pin','#34c759'],['us','Người dùng','#8e8e93'],['pm','Quyền truy cập','#34c759'],['ab','Giới thiệu','#8e8e93']];
   const rw=(l,c,s)=>'<div class="rw"><span><b>'+l+'</b>'+(s?'<small>'+s+'</small>':'')+'</span><span class="rc2">'+c+'</span></div>';
@@ -1659,7 +1665,7 @@ function buildSettings(b,w,arg){
       case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button>'+(NA()&&NA().getPhotos?'<button class="ap" data-pick="1" aria-pressed="'+(!!lsGet('dm-photowall'))+'"><span class="wl" style="background:linear-gradient(135deg,#5b6577,#2b303b);display:grid;place-items:center;font-size:30px;color:#fff">▣</span><span>Ảnh trên máy</span></button>':'')+'</div>'];
       case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+'</div>'];
       case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+'</div>'];
-      case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+'</div>'];
+      case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+svRows()+'</div>'+(svRows()?'<small class="svn" hidden style="display:block;margin:8px 4px;opacity:.7">Không đổi được âm lượng này. Hãy tắt chế độ Không làm phiền của máy rồi thử lại.</small>':'')];
       case 'bt2':return ['Pin','<div class="grp">'+rw('Mức pin',Math.round(BAT.level*100)+'%',BAT.charging?'Đang sạc':(BAT.real?'Đang dùng pin':'Giá trị mẫu, trình duyệt không cung cấp thông tin pin'))+'</div>'];
       case 'us':return ['Người dùng','<div class="grp">'+rw('Tên hiển thị','<input class="txt" id="un" value="'+esc(userName())+'" aria-label="Tên hiển thị" maxlength="24">')+rw('Hiện màn hình khóa khi mở',tgl(pref('lockOnStart',false),'lockOnStart','Hiện màn hình khóa khi mở'))+'</div>'];
       default:return ['Giới thiệu','<div class="grp">'+info().map(r=>rw(r[0],esc(String(r[1])))).join('')+'</div>'];
@@ -1673,7 +1679,16 @@ function buildSettings(b,w,arg){
     $$('[data-n]',pane).forEach(x=>x.addEventListener('click',()=>setWall(x.dataset.n)));
     $$('[data-pick]',pane).forEach(x=>x.addEventListener('click',()=>pickPhotoWall()));
     $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'))}));
-    $$('.rg',pane).forEach(x=>x.addEventListener('input',()=>{setPrefQuiet(x.dataset.s,+x.value);const sm=x.closest('.rw').querySelector('small');if(sm&&x.dataset.s==='vol')sm.textContent=x.value+'%'}));
+    $$('.sv',pane).forEach(x=>{
+      const A=window.AndroidLauncher, sm=x.closest('.rw').querySelector('small'), nt=$('.svn',pane); let t=null;
+      x.addEventListener('input',()=>{
+        sm.textContent=x.value+'%';
+        let ok=false; try{ok=A.setStreamVol(x.dataset.sv,+x.value)}catch(e){}
+        if(nt)nt.hidden=ok;
+        clearTimeout(t); t=setTimeout(()=>{try{A.playSound(x.dataset.sv)}catch(e){}},350);
+      });
+    });
+    $$('.rg:not(.sv)',pane).forEach(x=>x.addEventListener('input',()=>{setPrefQuiet(x.dataset.s,+x.value);const sm=x.closest('.rw').querySelector('small');if(sm&&x.dataset.s==='vol')sm.textContent=x.value+'%'}));
     const un=$('#un',pane); if(un)un.addEventListener('input',()=>{lsSet('dm-user',un.value.trim()||'Người dùng')});
   }
   function setPrefQuiet(k,v){P[k]=v;jset('dm-prefs',P);applyPrefs();bus.emit('slider')}
