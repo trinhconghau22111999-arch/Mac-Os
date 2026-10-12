@@ -138,14 +138,16 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new android.webkit.WebChromeClient() {
             @Override public void onPermissionRequest(final android.webkit.PermissionRequest q) {
                 runOnUiThread(new Runnable() { public void run() {
-                    boolean mic = false;
-                    for (String rs : q.getResources()) if (android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(rs)) mic = true;
-                    if (!mic) { q.deny(); return; }
-                    if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                        if (micReq != null) micReq.deny();
-                        micReq = q; askingRuntime = true;
-                        requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, 77);
-                    } else q.grant(q.getResources());
+                    ArrayList<String> miss = new ArrayList<String>(); boolean known = false;
+                    for (String rs : q.getResources()) {
+                        if (android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(rs)) { known = true; if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) miss.add(Manifest.permission.RECORD_AUDIO); }
+                        else if (android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(rs)) { known = true; if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) miss.add(Manifest.permission.CAMERA); }
+                    }
+                    if (!known) { q.deny(); return; }
+                    if (miss.isEmpty()) { answerWeb(q); return; }
+                    if (micReq != null) micReq.deny();
+                    micReq = q; askingRuntime = true;
+                    requestPermissions(miss.toArray(new String[0]), 77);
                 } });
             }
         });
@@ -176,6 +178,17 @@ public class MainActivity extends Activity {
     /** Bàn phím đang mở? Khi mở thì không ép ẩn thanh hệ thống, vì làm vậy sẽ đóng bàn phím (ô nhập bị văng). */
     private boolean imeUp = false;
     private android.webkit.PermissionRequest micReq = null;
+    /** Trả lời yêu cầu micro/camera của trang web: chỉ cho phần mà Android đã cấp. */
+    private void answerWeb(android.webkit.PermissionRequest q) {
+        ArrayList<String> ok = new ArrayList<String>();
+        for (String rs : q.getResources()) {
+            boolean g = Build.VERSION.SDK_INT < 23;
+            if (android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(rs)) g = g || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+            else if (android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(rs)) g = g || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+            if (g) ok.add(rs);
+        }
+        if (ok.isEmpty()) q.deny(); else q.grant(ok.toArray(new String[0]));
+    }
     private void trackIme() {
         final View d = getWindow().getDecorView();
         d.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
@@ -220,6 +233,7 @@ public class MainActivity extends Activity {
         } else need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         if (Build.VERSION.SDK_INT >= 31) need.add(Manifest.permission.BLUETOOTH_CONNECT);
         need.add(Manifest.permission.RECORD_AUDIO);
+        need.add(Manifest.permission.CAMERA);
         need.add(Manifest.permission.READ_CALENDAR);
         need.add(Manifest.permission.ACCESS_FINE_LOCATION);
         ArrayList<String> miss = new ArrayList<String>();
@@ -281,9 +295,7 @@ public class MainActivity extends Activity {
         askingRuntime = false;
         if (c == 77) {
             final android.webkit.PermissionRequest q = micReq; micReq = null;
-            if (q != null) {
-                if (r.length > 0 && r[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) q.grant(q.getResources()); else q.deny();
-            }
+            if (q != null) answerWeb(q);
             return;
         }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
@@ -1065,6 +1077,32 @@ public class MainActivity extends Activity {
                 if (ok) { try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t))); } catch (Exception e) { } }
                 return ok;
             } catch (Exception e) { return false; }
+        }
+        /** Lưu ảnh chụp (dataUrl JPEG) vào thư viện ảnh của máy, thư mục Pictures/Desktop Mini. Trả đường dẫn/URI, rỗng nếu lỗi. */
+        @JavascriptInterface public String savePhoto(String dataUrl) {
+            try {
+                byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
+                String nm = "IMG_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".jpg";
+                if (Build.VERSION.SDK_INT >= 29) {
+                    ContentValues v = new ContentValues();
+                    v.put(MediaStore.Images.Media.DISPLAY_NAME, nm);
+                    v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                    v.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Desktop Mini");
+                    v.put(MediaStore.Images.Media.IS_PENDING, 1);
+                    Uri u = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                    if (u == null) return "";
+                    OutputStream os = getContentResolver().openOutputStream(u);
+                    os.write(by); os.close();
+                    v.clear(); v.put(MediaStore.Images.Media.IS_PENDING, 0);
+                    getContentResolver().update(u, v, null, null);
+                    return u.toString();
+                }
+                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Desktop Mini"); dir.mkdirs();
+                File f = new File(dir, nm);
+                FileOutputStream os2 = new FileOutputStream(f); os2.write(by); os2.close();
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f)));
+                return f.getAbsolutePath();
+            } catch (Exception e) { return ""; }
         }
         /** Chuyển tệp/thư mục vào thư mục khác. Trả "" nếu xong, ngược lại là lý do lỗi. */
         @JavascriptInterface public String moveFile(String src, String destDir) {

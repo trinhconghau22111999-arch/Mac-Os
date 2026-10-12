@@ -43,6 +43,25 @@
 .dgh{position:fixed;z-index:99999;pointer-events:none;display:flex;align-items:center;gap:8px;max-width:220px;padding:6px 12px 6px 8px;border-radius:12px;background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.32);color:var(--fg);font-size:13px;transform:translate(-50%,-130%)}
 .dgh .gi{flex:none;width:28px;height:28px;display:grid;place-items:center}.dgh .gi .fic{transform:scale(.7)}
 .dgh b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Máy ảnh */
+.cm{position:relative;display:flex;flex-direction:column;height:100%;padding:38px 18px 16px;background:#131218;color:#efe9fb;-webkit-user-select:none;user-select:none}
+.cm h2{flex:none;margin:0 0 12px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
+.cm .cmv{position:relative;flex:1;min-height:180px;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
+.cm .cmvid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;transform:none!important}
+.cm .cmmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:13px;line-height:1.5;color:#c9bfe0;cursor:pointer}
+.cm .cmblink{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .08s}
+.cm .cmblink.on{opacity:.55}
+.cm .cmst{flex:none;margin:10px 0 0;text-align:center;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#8d84a3}
+.cm .cmbt{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:0 6px}
+.cm .cmth{width:48px;height:48px;border-radius:10px;border:1px solid rgba(180,76,255,.35);background:rgba(255,255,255,.03);overflow:hidden;padding:0}
+.cm .cmth img{display:none;width:100%;height:100%;object-fit:cover}
+.cm .cmth.has img{display:block}
+.cm .cmsh{width:70px;height:70px;border-radius:50%;border:3px solid #b44cff;background:#22103a;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(180,76,255,.45)}
+.cm .cmsh i{display:block;width:52px;height:52px;border-radius:50%;background:#f4efff;transition:transform .08s}
+.cm .cmsh:active i{transform:scale(.88)}
+.cm .cmsw{width:48px;height:48px;border-radius:50%;border:2px solid #b44cff;color:#b44cff;display:flex;align-items:center;justify-content:center}
+.cm .cmsw svg{width:24px;height:24px}
 </style>
 <title>Desktop Mini</title>
 <style>
@@ -1002,6 +1021,7 @@ const ICONS={
   reminders:{bg:'#fff',g:'<svg viewBox="0 0 24 24"><g stroke="#d3d6dd" stroke-width="1.2"><path d="M10 7.4h10M10 12h10M10 16.6h10"/></g><circle cx="5.6" cy="7.4" r="1.9" fill="#ff9500"/><circle cx="5.6" cy="12" r="1.9" fill="#0a84ff"/><circle cx="5.6" cy="16.6" r="1.9" fill="#34c759"/></svg>'},
   calc:{bg:'linear-gradient(#5d5e64,#232427)',g:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2.4" fill="#a5a5ab"/><rect x="13" y="3" width="8" height="8" rx="2.4" fill="#ff9f0a"/><rect x="3" y="13" width="8" height="8" rx="2.4" fill="#505055"/><rect x="13" y="13" width="8" height="8" rx="2.4" fill="#ff9f0a"/></svg>'},
   terminal:{bg:'linear-gradient(#3b3c41,#111113)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#7CFC9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l5 4-5 4M12.5 17h6.5"/></svg>'},
+  camera:{bg:'linear-gradient(#9a9aa3,#3b3b42)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.2-1.8h6.2L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" fill="#fff" fill-opacity=".18"/><circle cx="12" cy="12.6" r="3.6" fill="#fff"/></svg>'},
   recorder:{bg:'linear-gradient(#b25cff,#4b22c9)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="#fff"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg>'},
   clock:{bg:'linear-gradient(#2a2b30,#0d0d0f)',g:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f6f6f8"/><path d="M12 6.5V12l3.6 2.2" fill="none" stroke="#1d1d1f" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.1" fill="#ff3b30"/></svg>'},
   settings:{bg:'linear-gradient(#c5c8cf,#6f727b)',g:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.4" fill="none" stroke="#fff" stroke-width="3.8" stroke-dasharray="3.3 3.3"/><circle cx="12" cy="12" r="5.8" fill="#fff"/><circle cx="12" cy="12" r="2.4" fill="#7d808a"/></svg>'},
@@ -1086,13 +1106,14 @@ const APPS={
   terminal:{name:'Terminal',w:560,h:340,minW:320,minH:200,build:buildTerminal,dark:true},
   clock:{name:'Đồng hồ',w:520,h:400,minW:320,minH:300,build:buildClock},
   recorder:{name:'Ghi âm',w:380,h:600,minW:320,minH:440,build:buildRecorder,dark:true},
+  camera:{name:'Máy ảnh',w:380,h:620,minW:320,minH:460,build:buildCamera,dark:true},
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
   trash:{name:'Thùng rác',w:520,h:340,minW:320,minH:240,build:buildTrash},
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
-const LP_APPS=['files','downloads','browser','mail','calendar','photos','music','notes','reminders','calc','clock','recorder','settings'];
-const DOCK=['launchpad','files','browser','mail','calendar','photos','music','notes','reminders','calc','clock','recorder','settings','downloads'];
+const LP_APPS=['files','downloads','browser','mail','calendar','photos','camera','music','notes','reminders','calc','clock','recorder','settings'];
+const DOCK=['launchpad','files','browser','mail','calendar','photos','camera','music','notes','reminders','calc','clock','recorder','settings','downloads'];
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
@@ -2224,6 +2245,78 @@ function buildRecorder(b,w){
     if(st!=='idle')stopRec();
     clearInterval(tmr); cancelAnimationFrame(raf); stopPlay();
   }};
+}
+
+/* ---------- Máy ảnh ---------- */
+function buildCamera(b,w){
+  const SWI='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.5-5.8L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.5 5.8L4 15.5M4 20v-4.5h4.5"/></svg>';
+  b.innerHTML='<div class="cm"><h2>Máy ảnh</h2><div class="cmv"><video class="cmvid" playsinline muted autoplay></video><div class="cmmsg" hidden></div><div class="cmblink"></div></div><div class="cmst"></div><div class="cmbt"><button type="button" class="cmth" aria-label="Ảnh vừa chụp"><img alt=""></button><button type="button" class="cmsh" aria-label="Chụp ảnh"><i></i></button><button type="button" class="cmsw" aria-label="Đổi camera trước/sau">'+SWI+'</button></div></div>';
+  const vid=$('.cmvid',b), msg=$('.cmmsg',b), blk=$('.cmblink',b), st=$('.cmst',b), th=$('.cmth',b), thi=$('img',th), sh=$('.cmsh',b), sw=$('.cmsw',b);
+  let stream=null, face=lsGet('dm-camface')==='user'?'user':'environment', tok=0, pend=0, busy=false, saved=false;
+  const warn=(t,m)=>notify({app:'Máy ảnh',title:t,body:m,icon:'camera'});
+  const say=t=>{msg.textContent=t||'';msg.hidden=!t};
+  function stopStream(){
+    tok++;
+    if(stream){try{stream.getTracks().forEach(t=>t.stop())}catch(e){}stream=null}
+    try{vid.srcObject=null}catch(e){}
+  }
+  /* Không lật ảnh: khung xem trước (video, object-fit: contain) là nguyên khung hình của camera, ảnh lưu vẽ lại đúng khung hình đó, camera trước cũng không lật gương */
+  async function open(){
+    stopStream(); const my=tok; pend=my; say('');
+    st.textContent=face==='user'?'Camera trước':'Camera sau';
+    try{
+      if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){say('Thiết bị này không hỗ trợ camera trong ứng dụng.');return}
+      let s;
+      try{s=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:face},width:{ideal:4000},height:{ideal:3000}}})}
+      catch(e){if(my===tok)say('Chưa mở được Camera. Hãy cấp quyền Camera cho Desktop Mini rồi bấm vào đây để thử lại.');return}
+      if(my!==tok||!w.isConnected){s.getTracks().forEach(t=>t.stop());return}
+      stream=s; vid.srcObject=s;
+      const p=vid.play(); if(p&&p.catch)p.catch(()=>{});
+    }finally{if(pend===my)pend=0}
+  }
+  function blink(){blk.classList.add('on');setTimeout(()=>blk.classList.remove('on'),120)}
+  function shoot(){
+    if(!stream||!vid.videoWidth||busy)return;
+    busy=true;
+    const c=document.createElement('canvas'); c.width=vid.videoWidth; c.height=vid.videoHeight;
+    c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
+    blink();
+    let url='', thumb='';
+    try{
+      url=c.toDataURL('image/jpeg',0.95);
+      const k=96/Math.max(c.width,c.height), t=document.createElement('canvas');
+      t.width=Math.max(1,Math.round(c.width*k)); t.height=Math.max(1,Math.round(c.height*k));
+      t.getContext('2d').drawImage(c,0,0,t.width,t.height); thumb=t.toDataURL('image/jpeg',0.8);
+    }catch(e){}
+    if(!url){busy=false;warn('Không chụp được','Thử lại.');return}
+    const A=window.AndroidLauncher;
+    setTimeout(()=>{
+      if(A&&A.savePhoto){
+        let p=''; try{p=A.savePhoto(url)}catch(e){}
+        if(!p){busy=false;warn('Không lưu được ảnh','Kiểm tra quyền truy cập ảnh/tệp rồi thử lại.');return}
+        saved=true; bus.emit('files');
+      }else{
+        const a=document.createElement('a'); a.href=url; a.download='IMG_'+Date.now()+'.jpg'; a.click();
+      }
+      if(thumb){thi.src=thumb;th.classList.add('has')}
+      busy=false;
+    },30);
+  }
+  sh.addEventListener('click',shoot);
+  sw.addEventListener('click',()=>{face=face==='user'?'environment':'user';lsSet('dm-camface',face);open()});
+  th.addEventListener('click',()=>{if(th.classList.contains('has')&&saved)openApp('photos')});
+  msg.addEventListener('click',open);
+  /* Nhả camera khi app ra nền hoặc cửa sổ bị thu nhỏ để không giữ camera và đèn báo */
+  const onVis=()=>{if(document.hidden)stopStream();else if(w.isConnected&&!w.classList.contains('min'))open()};
+  document.addEventListener('visibilitychange',onVis);
+  const mon=setInterval(()=>{
+    if(!w.isConnected)return;
+    const mn=w.classList.contains('min');
+    if(mn&&stream)stopStream();
+    else if(!mn&&!stream&&!pend&&!document.hidden&&msg.hidden)open();
+  },700);
+  open();
+  return {destroy(){clearInterval(mon);document.removeEventListener('visibilitychange',onVis);stopStream()}};
 }
 
 /* ---------- Thùng rác ---------- */
