@@ -197,6 +197,15 @@ public class MainActivity extends Activity {
 
     private void immersive() {
         if (imeUp) return;
+        if (Build.VERSION.SDK_INT >= 30) {
+            /* Android 11+: cờ SYSTEM_UI_FLAG cũ hay bị bỏ qua, dùng WindowInsetsController để ẩn thanh điều hướng */
+            android.view.WindowInsetsController c = getWindow().getInsetsController();
+            if (c != null) {
+                c.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                c.hide(WindowInsets.Type.navigationBars());
+            }
+            return;
+        }
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
@@ -283,9 +292,15 @@ public class MainActivity extends Activity {
         super.onActivityResult(req, res, data);
         if (req == 91) push("nativeDelResult", res == RESULT_OK ? "1" : "0");
     }
-    @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) immersive(); }
+    /** Ẩn thanh điều hướng ngay và thêm một lần sau 0,4 giây (một số máy tự hiện lại thanh khi app vừa quay về). */
+    private void hideBars() {
+        immersive();
+        getWindow().getDecorView().postDelayed(new Runnable() { public void run() { immersive(); } }, 400);
+    }
+    @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
     @Override protected void onResume() {
         super.onResume();
+        imeUp = false; hideBars();
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
     }
