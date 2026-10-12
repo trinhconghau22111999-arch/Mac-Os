@@ -100,6 +100,7 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(true);
         web.setBackgroundColor(0xFF000000);
+        web.setFocusable(true); web.setFocusableInTouchMode(true); web.requestFocus();
         web.setWebViewClient(new WebViewClient());
         web.addJavascriptInterface(new Bridge(), "AndroidLauncher");
         web.loadUrl("file:///android_asset/index.html");
