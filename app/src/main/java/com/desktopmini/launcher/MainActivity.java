@@ -130,7 +130,7 @@ public class MainActivity extends Activity {
     private void askPermissions() {
         ArrayList<String> need = new ArrayList<String>();
         if (Build.VERSION.SDK_INT >= 33) {
-            need.add(Manifest.permission.READ_MEDIA_AUDIO); need.add(Manifest.permission.READ_MEDIA_IMAGES); need.add(Manifest.permission.POST_NOTIFICATIONS);
+            need.add(Manifest.permission.READ_MEDIA_AUDIO); need.add(Manifest.permission.READ_MEDIA_IMAGES); need.add(Manifest.permission.READ_MEDIA_VIDEO); need.add(Manifest.permission.POST_NOTIFICATIONS);
         } else need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         if (Build.VERSION.SDK_INT >= 31) need.add(Manifest.permission.BLUETOOTH_CONNECT);
         need.add(Manifest.permission.READ_CALENDAR);
@@ -145,6 +145,12 @@ public class MainActivity extends Activity {
     }
     private boolean notifAccess() { return listed("enabled_notification_listeners"); }
     private boolean a11yOn() { return listed(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES); }
+    private Uri mediaUri(String kind) {
+        if ("vid".equals(kind)) return MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+        if ("aud".equals(kind)) return MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        return MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+    }
+
     private boolean filesOk() {
         if (Build.VERSION.SDK_INT >= 30) return Environment.isExternalStorageManager();
         return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
@@ -445,6 +451,72 @@ public class MainActivity extends Activity {
                 ByteArrayOutputStream os = new ByteArrayOutputStream(); bm.compress(Bitmap.CompressFormat.JPEG, 82, os);
                 return "data:image/jpeg;base64," + Base64.encodeToString(os.toByteArray(), Base64.NO_WRAP);
             } catch (Exception e) { return ""; }
+        }
+
+        @JavascriptInterface public String getMediaCounts() {
+            JSONObject o = new JSONObject();
+            String[] ks = {"img", "vid", "aud"};
+            for (String k : ks) {
+                int n = -1;
+                try {
+                    Cursor c = getContentResolver().query(mediaUri(k), new String[]{MediaStore.MediaColumns._ID}, null, null, null);
+                    if (c != null) { n = c.getCount(); c.close(); }
+                } catch (Exception e) { }
+                try { o.put(k, n); } catch (Exception e) { }
+            }
+            return o.toString();
+        }
+        @JavascriptInterface public String listMedia(String kind) {
+            JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
+            try {
+                boolean aud = "aud".equals(kind), vid = "vid".equals(kind);
+                String order = aud ? MediaStore.Audio.Media.TITLE + " COLLATE NOCASE" : MediaStore.MediaColumns.DATE_ADDED + " DESC";
+                String[] proj;
+                if (aud) proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.Audio.Media.DURATION};
+                else if (vid) proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.Video.Media.DURATION};
+                else proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED};
+                Cursor c = getContentResolver().query(mediaUri(kind), proj, null, null, order);
+                if (c == null) { res.put("error", "Không đọc được thư viện"); }
+                else {
+                    int n = 0;
+                    while (c.moveToNext() && n++ < 10000) {
+                        JSONObject o = new JSONObject();
+                        o.put("id", c.getLong(0));
+                        String nm = c.getString(1); o.put("n", nm == null ? "" : nm);
+                        o.put("s", c.getLong(2)); o.put("m", c.getLong(3) * 1000L);
+                        if (c.getColumnCount() > 4) o.put("d", c.getLong(4));
+                        arr.put(o);
+                    }
+                    c.close();
+                }
+            } catch (SecurityException e) {
+                try { res.put("error", "Chưa cấp quyền truy cập ảnh, video và âm thanh"); } catch (Exception x) { }
+            } catch (Exception e) {
+                try { res.put("error", "Không đọc được thư viện"); } catch (Exception x) { }
+            }
+            try { res.put("list", arr); } catch (Exception e) { }
+            return res.toString();
+        }
+        @JavascriptInterface public String getMediaThumb(String kind, long id, int size) {
+            try {
+                Uri u = ContentUris.withAppendedId(mediaUri(kind), id);
+                Bitmap bm;
+                if (Build.VERSION.SDK_INT >= 29) bm = getContentResolver().loadThumbnail(u, new Size(size, size), null);
+                else if ("vid".equals(kind)) bm = MediaStore.Video.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Video.Thumbnails.MINI_KIND, null);
+                else bm = MediaStore.Images.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Images.Thumbnails.MINI_KIND, null);
+                if (bm == null) return "";
+                ByteArrayOutputStream os = new ByteArrayOutputStream(); bm.compress(Bitmap.CompressFormat.JPEG, 80, os);
+                return "data:image/jpeg;base64," + Base64.encodeToString(os.toByteArray(), Base64.NO_WRAP);
+            } catch (Exception e) { return ""; }
+        }
+        @JavascriptInterface public boolean openMedia(String kind, long id) {
+            try {
+                Uri u = ContentUris.withAppendedId(mediaUri(kind), id);
+                String mime = getContentResolver().getType(u);
+                if (mime == null) mime = "vid".equals(kind) ? "video/*" : "aud".equals(kind) ? "audio/*" : "image/*";
+                go(new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                return true;
+            } catch (Exception e) { return false; }
         }
 
         /* ---- Tệp thật ---- */
