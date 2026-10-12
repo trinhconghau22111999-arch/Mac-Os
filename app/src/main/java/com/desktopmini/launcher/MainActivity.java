@@ -373,6 +373,30 @@ public class MainActivity extends Activity {
             }
             return arr.toString();
         }
+        @JavascriptInterface public String getBrowsers() {
+            PackageManager pm = getPackageManager();
+            JSONArray arr = new JSONArray();
+            try {
+                Intent q = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.example.com")).addCategory(Intent.CATEGORY_BROWSABLE);
+                List<ResolveInfo> l = pm.queryIntentActivities(q, PackageManager.MATCH_ALL);
+                Collections.sort(l, new ResolveInfo.DisplayNameComparator(pm));
+                java.util.HashSet<String> seen = new java.util.HashSet<String>();
+                for (ResolveInfo r : l) {
+                    String pkg = r.activityInfo.packageName;
+                    if (pkg.equals(getPackageName()) || !seen.add(pkg)) continue;
+                    if (pm.getLaunchIntentForPackage(pkg) == null) continue;
+                    try {
+                        JSONObject o = new JSONObject();
+                        o.put("label", r.loadLabel(pm).toString()); o.put("pkg", pkg); o.put("icon", icon(r.loadIcon(pm), 96));
+                        arr.put(o);
+                    } catch (Exception e) { }
+                }
+            } catch (Exception e) { }
+            return arr.toString();
+        }
+        @JavascriptInterface public boolean hasPackage(String pkg) {
+            try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
+        }
         @JavascriptInterface public void launchApp(String pkg) {
             Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
             if (i != null) go(i);
