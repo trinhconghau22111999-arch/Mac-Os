@@ -3812,9 +3812,11 @@ if(lsGet('dm-photowall'))applyPhotoWall();
 const sysBack=()=>{if(!document.hidden&&lsGet('dm-syswall')==='1')applySysWall()};
 document.addEventListener('visibilitychange',sysBack); window.addEventListener('focus',sysBack);
 const DSA={
-  wp(){const n=NA(); if(n&&n.openWallpaper){lsSet('dm-syswall','1');try{n.openWallpaper()}catch(e){}}else openApp('settings',{pane:'wp'})},
+  /* Chọn ảnh trong thư viện ảnh của máy (khung chọn ngay trong launcher) rồi đặt làm hình nền riêng cho launcher này, không đổi hình nền hệ thống */
+  wp(){const n=NA(); if(n&&n.getPhotos)pickPhotoWall(); else openApp('settings',{pane:'wp'})},
   wg(){$('#clk').click()},
-  st(){const n=NA(); if(n&&n.openSystemSettings){try{n.openSystemSettings()}catch(e){}}else openApp('settings')}
+  /* Mở ứng dụng con Cài đặt hệ thống của launcher */
+  st(){openApp('settings')}
 };
 function openDsh(){
   if(!dsh.hidden&&Date.now()-lastSheet<800)return;
