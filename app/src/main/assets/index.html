@@ -202,8 +202,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 .win.max{border-radius:0}
 .tb{position:absolute;inset:0 0 auto 0;height:52px;z-index:2;touch-action:none}
 .tls{position:absolute;left:18px;top:19px;z-index:10;display:flex;gap:8px}
-.tl{width:13px;height:13px;border-radius:50%;display:grid;place-items:center;font-size:10px;line-height:1;font-weight:800;color:transparent;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.25)}
-.tl.c{background:#ff5f57}.tl.m{background:#febc2e}.tl.z{background:#28c840}
+.tl{width:13px;height:13px;border-radius:50%;display:grid;place-items:center;font-size:10px;line-height:1;font-weight:800;color:rgba(0,0,0,.6);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.25)}
+.tl.c{background:#ff5f57}.tl.m{background:#febc2e}
 .tls:hover .tl{color:rgba(0,0,0,.55)}
 .win:not(.focus) .tl{background:rgba(150,150,158,.6)}
 .body{flex:1;min-height:0;position:relative;container-type:inline-size;overflow:hidden}
@@ -224,7 +224,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 /* Thành phần chung */
 .app{display:flex;flex-direction:column;height:100%;background:var(--win)}
 .bar{height:52px;flex:none;display:flex;align-items:center;gap:10px;padding-inline:16px;touch-action:none}
-.app>.bar{padding-left:90px;background:var(--hdr)}
+.app>.bar{padding-left:78px;background:var(--hdr)}
 .bar .t{font-weight:700;font-size:14px}
 .cn{font-size:12px;color:var(--muted);font-weight:400}
 .btn{padding:5px 14px;border-radius:999px;background:var(--field);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -334,7 +334,9 @@ ul,ol{margin:0;padding:0;list-style:none}
 /* Ghi chú */
 .nts{display:grid;grid-template-columns:220px minmax(0,1fr);height:100%}
 .nl{background:var(--side);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);display:flex;flex-direction:column;min-height:0}
-.nl .bar{padding-left:90px}
+.nl .bar{padding-left:78px}.nl .bar .t{white-space:nowrap}
+.ned .sv{height:28px;padding:0 12px;border-radius:14px;background:var(--accent);color:#fff;font-weight:600;font-size:13px;flex:none}
+.ned .sv.ok{background:#28c840}
 .nlst{overflow:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:2px}
 .nt{display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:9px;text-align:left}
 .nt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -346,7 +348,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .ned .bar{padding-inline:14px}
 .ned textarea{flex:1;min-height:0;resize:none;border:0;background:transparent;color:inherit;font:15px/1.65 var(--font);padding:4px 22px 18px;user-select:text;-webkit-user-select:text}
 .ned textarea:focus-visible{outline:0}
-@container (max-width:520px){.nts{grid-template-columns:140px minmax(0,1fr)}.nl .bar{padding-left:84px}}
+@container (max-width:520px){.nts{grid-template-columns:150px minmax(0,1fr)}.nl .bar{padding-left:78px}}
 
 /* Nhắc nhở */
 .rem .rh{display:flex;justify-content:space-between;align-items:baseline;padding:4px 20px 8px}
@@ -418,7 +420,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .fqf{padding:12px 16px;text-align:right}
 
 /* Trình duyệt */
-.br .bbar{height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px 0 90px;background:var(--hdr)}
+.br .bbar{height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px 0 78px;background:var(--hdr)}
 .addr{flex:1;max-width:520px;margin-inline:auto;display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:var(--field);min-width:0}
 .addr svg{width:13px;height:13px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;flex:none}
 .addr input{flex:1;min-width:0;background:none;border:0;outline:0;text-align:center}
@@ -477,7 +479,7 @@ a.btn.pri{color:#fff}
 @container (max-width:640px){
   .ml{grid-template-columns:minmax(0,1fr)}
   .msd{display:none}
-  .mmain>.bar{padding-left:90px}
+  .mmain>.bar{padding-left:78px}
   .mbx{display:flex}
   .mbody{grid-template-columns:minmax(0,1fr)}
   .mrd{display:none}
@@ -494,7 +496,7 @@ a.btn.pri{color:#fff}
 .pgd .pt em{position:absolute;right:6px;bottom:4px;color:#fff;font-style:normal;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .pgd .none{grid-column:1/-1}
 .pv{position:absolute;inset:0;z-index:6;background:rgba(10,10,14,.94);color:#fff;display:flex;flex-direction:column}
-.pvh{display:flex;align-items:center;gap:10px;padding:12px 14px 12px 90px}
+.pvh{display:flex;align-items:center;gap:10px;padding:12px 14px 12px 78px}
 .pvh .btn{background:rgba(255,255,255,.18);color:#fff}
 .pvm{flex:1;min-height:0;display:flex;align-items:center;gap:8px;padding:0 10px 14px}
 .pvi{flex:1;min-width:0;height:100%;border-radius:14px;overflow:hidden}
@@ -505,7 +507,7 @@ a.btn.pri{color:#fff}
 
 /* Nhạc */
 .mus{display:flex;flex-direction:column;height:100%;background:var(--win)}
-.mus>.bar{padding-left:90px;background:var(--hdr)}
+.mus>.bar{padding-left:78px;background:var(--hdr)}
 .mbd{flex:1;min-height:0;display:grid;grid-template-columns:250px minmax(0,1fr)}
 .np2{padding:16px;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:6px;border-right:1px solid var(--line);min-width:0}
 .art{width:min(170px,100%);aspect-ratio:1;border-radius:16px;display:grid;place-items:center;box-shadow:0 10px 24px rgba(0,0,0,.25)}
@@ -534,7 +536,7 @@ a.btn.pri{color:#fff}
 
 /* Terminal */
 .term{display:flex;flex-direction:column;height:100%;background:rgba(22,22,26,.95);color:#e6e6e8;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
-.term .bar{height:44px;padding-left:90px}
+.term .bar{height:44px;padding-left:78px}
 .term .bar .t{font-weight:500;color:#c8c8cc}
 .tout{flex:1;overflow:auto;padding:2px 14px 12px;user-select:text;-webkit-user-select:text}
 .tl2{white-space:pre-wrap;word-break:break-word}
@@ -546,7 +548,7 @@ a.btn.pri{color:#fff}
 .tin:focus-visible{outline:0}
 
 /* Đồng hồ */
-.clk2>.bar{justify-content:center;padding-left:90px;padding-right:90px}
+.clk2>.bar{justify-content:center;padding-left:78px;padding-right:78px}
 .seg3 button{padding-inline:14px}
 .cbody{flex:1;min-height:0;overflow:auto;padding:16px}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px}
@@ -624,7 +626,7 @@ a.btn.pri{color:#fff}
 .rnote b{color:var(--fg);font-size:15px}.rnote .ir{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .rf{display:grid;grid-template-columns:150px minmax(0,1fr);height:100%}
 .rf .main{display:flex;flex-direction:column;min-width:0;min-height:0}
-.rf .bar{gap:4px;padding-left:84px}
+.rf .bar{gap:4px;padding-left:78px}
 .rf .bar .t{margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rfl{flex:1;min-height:0;overflow:auto;padding:4px 8px}
 .rfi{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}
@@ -633,7 +635,7 @@ a.btn.pri{color:#fff}
 .rfi .rn{display:flex;flex-direction:column;min-width:0}.rfi .rn b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rfi .rn small{color:var(--muted);font-size:11.5px}
 .rft{padding:6px;text-align:center;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
 @container (max-width:520px){.rf{grid-template-columns:minmax(0,1fr)}.rf .side{display:none}}
-.wa{display:flex;flex-direction:column;height:100%}.wa .bar{padding-left:84px;gap:4px}.wa .wab{flex:1;min-height:0;position:relative}
+.wa{display:flex;flex-direction:column;height:100%}.wa .bar{padding-left:78px;gap:4px}.wa .wab{flex:1;min-height:0;position:relative}
 body.native{padding:var(--st,0px) 0 0;box-sizing:border-box;background:#000}
 body.native .stage{border-radius:0;min-height:0}
 </style>
@@ -981,7 +983,7 @@ function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
   w.className='win'+(a.dark?' dark-win':''); w.dataset.app=id; w.setAttribute('aria-label',a.name);
-  w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl m" aria-label="Thu nhỏ">−</button><button class="tl z" aria-label="Phóng to">+</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
+  w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl m" aria-label="Thu nhỏ">−</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
   const bw=Math.min(a.w,sr.width-24), bh=Math.min(a.h,sr.height-28-110), n=count++%5;
   w.style.width=bw+'px'; w.style.height=bh+'px';
   w.style.left=Math.max(12,Math.min(30+n*32,sr.width-bw-12))+'px';
@@ -1032,7 +1034,6 @@ function wire(w,id,a){
   w.addEventListener('dblclick',e=>{if(!stage.classList.contains('mc')&&topArea(e))toggleMax(w)});
   $('.tl.c',w).addEventListener('click',()=>closeWin(w));
   $('.tl.m',w).addEventListener('click',()=>minWin(w));
-  $('.tl.z',w).addEventListener('click',()=>toggleMax(w));
   $$('.rz',w).forEach(h=>{
     h.addEventListener('pointerdown',e=>{
       if(w.classList.contains('max'))return;
@@ -1415,7 +1416,7 @@ function eventsToday(){
 /* ---------- Ghi chú ---------- */
 function buildNotes(b,w,arg){
   let cur=NOTES.length?NOTES[0].id:null;
-  b.innerHTML='<div class="nts"><aside class="nl"><div class="bar"><strong class="t">Ghi chú</strong></div><div class="nlst"></div></aside><div class="ned"><div class="bar"><span class="cn"></span><span class="grow"></span><button class="ib nn" aria-label="Ghi chú mới"><svg viewBox="0 0 16 16"><path d="M3 13l.6-3L11 2.6a1.4 1.4 0 0 1 2 0l.4.4a1.4 1.4 0 0 1 0 2L6 12.4zM9.6 4l2.4 2.4"/></svg></button><button class="ib nd" aria-label="Xóa ghi chú"><svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.5 8.5h6l.5-8.5M7 7v4M9 7v4"/></svg></button></div><textarea spellcheck="false" aria-label="Nội dung ghi chú"></textarea></div></div>';
+  b.innerHTML='<div class="nts"><aside class="nl"><div class="bar"><strong class="t">Ghi chú</strong></div><div class="nlst"></div></aside><div class="ned"><div class="bar"><span class="cn"></span><span class="grow"></span><button class="sv" aria-label="Lưu ghi chú">Lưu</button><button class="ib nn" aria-label="Ghi chú mới"><svg viewBox="0 0 16 16"><path d="M3 13l.6-3L11 2.6a1.4 1.4 0 0 1 2 0l.4.4a1.4 1.4 0 0 1 0 2L6 12.4zM9.6 4l2.4 2.4"/></svg></button><button class="ib nd" aria-label="Xóa ghi chú"><svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.5 8.5h6l.5-8.5M7 7v4M9 7v4"/></svg></button></div><textarea spellcheck="false" aria-label="Nội dung ghi chú"></textarea></div></div>';
   const lst=$('.nlst',b), ta=$('textarea',b), cn=$('.cn',b);
   const title=n=>(n.t.split('\n')[0]||'Ghi chú mới').slice(0,40);
   const prev=n=>(n.t.split('\n').slice(1).join(' ').trim()||'Không có nội dung thêm').slice(0,60);
@@ -1439,6 +1440,8 @@ function buildNotes(b,w,arg){
     const n=NOTES.find(x=>x.id===cur); if(!n)return;
     n.t=ta.value; n.u=Date.now(); jset('dm-notes',NOTES); cn.textContent=ta.value.length+' ký tự'; renderList(); bus.emit('notes');
   });
+  const sv=$('.sv',b);let svt;
+  sv.addEventListener('click',()=>{const n=NOTES.find(x=>x.id===cur);if(n){n.t=ta.value;n.u=Date.now()}saveNotes();renderList();sv.textContent='Đã lưu ✓';sv.classList.add('ok');clearTimeout(svt);svt=setTimeout(()=>{sv.textContent='Lưu';sv.classList.remove('ok')},1200)});
   $('.nn',b).addEventListener('click',()=>add(''));
   $('.nd',b).addEventListener('click',()=>{
     const i=NOTES.findIndex(x=>x.id===cur); if(i<0)return;
