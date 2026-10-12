@@ -23,10 +23,10 @@ public class MusicService extends Service {
     @Override public int onStartCommand(Intent in, int flags, int id) {
         if (in == null || "stop".equals(in.getAction())) { stopForeground(true); stopSelf(); return START_NOT_STICKY; }
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        nm.createNotificationChannel(new NotificationChannel(CH, "Phát nhạc", NotificationManager.IMPORTANCE_LOW));
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(new NotificationChannel(CH, "Phát nhạc", NotificationManager.IMPORTANCE_LOW));
         boolean playing = in.getBooleanExtra("playing", true);
         Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        Notification.Builder b = new Notification.Builder(this, CH)
+        Notification.Builder b = (Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CH) : new Notification.Builder(this))
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(in.getStringExtra("title")).setContentText(in.getStringExtra("artist"))
             .setContentIntent(PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE))
