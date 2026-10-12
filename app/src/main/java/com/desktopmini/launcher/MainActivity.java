@@ -582,6 +582,18 @@ public class MainActivity extends Activity {
                 return true;
             } catch (Exception e) { return false; }
         }
+        @JavascriptInterface public boolean renameFile(String path, String newName) {
+            try {
+                if (newName == null) return false;
+                newName = newName.trim();
+                if (newName.length() == 0 || newName.contains("/") || newName.startsWith(".")) return false;
+                File f = new File(path), t = new File(f.getParentFile(), newName);
+                if (t.exists()) return false;
+                boolean ok = f.renameTo(t);
+                if (ok) { try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t))); } catch (Exception e) { } }
+                return ok;
+            } catch (Exception e) { return false; }
+        }
         @JavascriptInterface public boolean deleteFile(String path) {
             try {
                 File f = new File(path);

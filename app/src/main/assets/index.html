@@ -1817,9 +1817,24 @@ function buildRealFiles(b,w,arg,mode){
       });
     },20);
   }
+  function renameBox(n,full,refresh){
+    const o=document.createElement('div'); o.className='bpk';
+    o.innerHTML='<div class="bps"><b>Đổi tên</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn rc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
+    stage.appendChild(o);
+    const inp=$('input',o); inp.value=n; inp.focus();
+    const dot=n.lastIndexOf('.'); try{inp.setSelectionRange(0,dot>0?dot:n.length)}catch(e){}
+    $('.rc',o).addEventListener('click',()=>o.remove());
+    o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
+    $('form',o).addEventListener('submit',e=>{
+      e.preventDefault(); const v=inp.value.trim(); if(!v||v===n){o.remove();return}
+      if(A.renameFile(full,v)){o.remove();M={};refresh()}
+      else notify({app:'Tệp',title:'Không đổi tên được',body:'Tên trống, đã tồn tại hoặc không hợp lệ',icon:'files'});
+    });
+  }
   function fileMenu(e,n,full,opn,refresh,isDir){
     const it=[{t:'Mở',fn:opn}];
     if(full&&!isDir)it.push({t:'Chia sẻ…',fn:()=>{if(!A.shareFile(full))notify({app:'Tệp',title:'Không chia sẻ được',body:n,icon:'files'})}});
+    if(full)it.push({t:'Đổi tên…',fn:()=>renameBox(n,full,refresh)});
     if(full)it.push('-',{t:'Xoá',fn:()=>{if(A.deleteFile(full)){M={};refresh()}else notify({app:'Tệp',title:'Không xoá được',body:n+(isDir?' (thư mục chưa trống)':''),icon:'files'})}});
     showCtx(e.clientX,e.clientY,it);
   }
