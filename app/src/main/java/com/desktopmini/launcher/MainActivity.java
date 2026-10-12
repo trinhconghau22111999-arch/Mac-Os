@@ -796,6 +796,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean setAlarm(int id, int hour, int min, String uri, boolean repeat, String label) {
             return AlarmReceiver.schedule(MainActivity.this, id, hour, min, uri, repeat, label, true);
         }
+        @JavascriptInterface public String getAlarmError() { return AlarmReceiver.lastError; }
         @JavascriptInterface public void cancelAlarm(int id) { AlarmReceiver.cancel(MainActivity.this, id); }
         @JavascriptInterface public void stopAlarmRinging() {
             try { startService(new Intent(MainActivity.this, AlarmService.class).setAction("stop")); } catch (Exception e) { }

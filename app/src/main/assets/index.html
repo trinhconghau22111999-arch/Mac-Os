@@ -538,7 +538,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 .all li{cursor:default}
 .all .at{flex:1;font-size:26px;font-weight:300;font-variant-numeric:tabular-nums;min-width:0}
 .all .at small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.all .adl{width:28px;height:28px;border-radius:50%;background:var(--win);color:var(--muted)}
+.all .adl{width:28px;height:28px;flex:none;border-radius:50%;background:var(--win);color:var(--muted);display:grid;place-items:center;padding:0;line-height:0}
+.all .adl svg{display:block;pointer-events:none}
 
 
 /* Mật khẩu màn hình */
@@ -3289,15 +3290,15 @@ function buildClock(b,w){
       });
       const all=$('.all',body);
       const drawAL=()=>{
-        all.innerHTML=AL.length?AL.slice().sort((p,q)=>p.h*60+p.m-(q.h*60+q.m)).map(x=>'<li data-id="'+x.id+'"><span class="at">'+pad(x.h)+':'+pad(x.m)+'<small>'+(x.rep?'Hằng ngày':'Một lần')+' · '+esc(x.name)+'</small></span>'+tgl(x.on,'','Bật tắt báo thức')+'<button type="button" class="adl" aria-label="Xóa báo thức">✕</button></li>').join(''):'<li class="non">Chưa có báo thức nào</li>';
+        all.innerHTML=AL.length?AL.slice().sort((p,q)=>p.h*60+p.m-(q.h*60+q.m)).map(x=>'<li data-id="'+x.id+'"><span class="at">'+pad(x.h)+':'+pad(x.m)+'<small>'+(x.rep?'Hằng ngày':'Một lần')+' · '+esc(x.name)+'</small></span>'+tgl(x.on,'','Bật tắt báo thức')+'<button type="button" class="adl" aria-label="Xóa báo thức"><svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true"><path d="M2 2L12 12M12 2L2 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></li>').join(''):'<li class="non">Chưa có báo thức nào</li>';
       };
       drawAL();
-      const arm=x=>{const n=NA2();if(n&&n.setAlarm){const ok=n.setAlarm(x.id,x.h,x.m,x.uri||'',!!x.rep,'');if(!ok)notify({app:'Đồng hồ',title:'Không đặt được báo thức',body:'Hãy cấp quyền thông báo cho ứng dụng rồi thử lại.',icon:'clock'})}};
+      const arm=x=>{const n=NA2();if(n&&n.setAlarm){const ok=n.setAlarm(x.id,x.h,x.m,x.uri||'',!!x.rep,'');if(!ok){let why='';try{why=(n.getAlarmError&&n.getAlarmError())||''}catch(e){}notify({app:'Đồng hồ',title:'Không đặt được báo thức',body:why?('Lỗi: '+why):'Hãy cấp quyền thông báo cho ứng dụng rồi thử lại.',icon:'clock'})}return !!ok}return true};
       const disarm=x=>{const n=NA2();if(n&&n.cancelAlarm)n.cancelAlarm(x.id)};
       $('.aset',body).addEventListener('click',()=>{
         const x={id:(Date.now()%2000000000)|0,h:hh,m:mm,uri:SND[sel].uri,name:SND[sel].name,rep:rep,on:true};
-        AL.push(x); saveAL(); arm(x); drawAL();
-        notify({app:'Đồng hồ',title:'Đã đặt báo thức '+pad(hh)+':'+pad(mm),body:SND[sel].name,icon:'clock'});
+        if(arm(x)){AL.push(x); saveAL(); drawAL();
+          notify({app:'Đồng hồ',title:'Đã đặt báo thức '+pad(hh)+':'+pad(mm),body:SND[sel].name,icon:'clock'})}
       });
       all.addEventListener('click',e=>{
         const li=e.target.closest('li[data-id]'); if(!li)return;
@@ -3514,7 +3515,8 @@ $('#lpx').addEventListener('click',e=>{e.stopPropagation();closeLP()});
 function openLP(){
   closeAllPopups(); if(mcOn)exitMC(); closeMS();
   lpOn=true; lp.hidden=false; lp.classList.remove('out'); $('#lpq').value=''; renderLP(); $('#lpd').innerHTML='<i class="on"></i>';
-  setTimeout(()=>$('#lpq').focus(),50);
+  /* Không tự đưa con trỏ vào ô tìm kiếm: chỉ khi người dùng chạm vào ô thì bàn phím mới hiện */
+  try{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}catch(x){}
 }
 function closeLP(){
   if(!lpOn)return; lpOn=false; lp.classList.add('out');

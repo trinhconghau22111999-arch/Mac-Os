@@ -24,6 +24,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         return PendingIntent.getBroadcast(c, id, i, fl);
     }
 
+    static volatile String lastError = "";
+
     static boolean schedule(Context c, int id, int h, int m, String uri, boolean rep, String label, boolean save) {
         try {
             Calendar t = Calendar.getInstance();
@@ -36,8 +38,9 @@ public class AlarmReceiver extends BroadcastReceiver {
                 JSONObject o = new JSONObject().put("h", h).put("m", m).put("uri", uri).put("rep", rep).put("label", label == null ? "" : label);
                 c.getSharedPreferences("alarms", 0).edit().putString(String.valueOf(id), o.toString()).apply();
             }
+            lastError = "";
             return true;
-        } catch (Exception e) { return false; }
+        } catch (Exception e) { lastError = e.getClass().getSimpleName() + ": " + e.getMessage(); return false; }
     }
 
     static void cancel(Context c, int id) {
