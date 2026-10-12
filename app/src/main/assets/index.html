@@ -44,7 +44,7 @@
 .dgh .gi{flex:none;width:28px;height:28px;display:grid;place-items:center}.dgh .gi .fic{transform:scale(.7)}
 .dgh b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Máy ảnh */
+/* Webcam */
 .cm{position:relative;display:flex;flex-direction:column;height:100%;padding:38px 18px 16px;background:#131218;color:#efe9fb;-webkit-user-select:none;user-select:none}
 .cm h2{flex:none;margin:0 0 12px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
 .cm .cmv{position:relative;flex:1;min-height:180px;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
@@ -1106,7 +1106,7 @@ const APPS={
   terminal:{name:'Terminal',w:560,h:340,minW:320,minH:200,build:buildTerminal,dark:true},
   clock:{name:'Đồng hồ',w:520,h:400,minW:320,minH:300,build:buildClock},
   recorder:{name:'Ghi âm',w:380,h:600,minW:320,minH:440,build:buildRecorder,dark:true},
-  camera:{name:'Máy ảnh',w:380,h:620,minW:320,minH:460,build:buildCamera,dark:true},
+  camera:{name:'Webcam',w:380,h:620,minW:320,minH:460,build:buildCamera,dark:true},
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
   trash:{name:'Thùng rác',w:520,h:340,minW:320,minH:240,build:buildTrash},
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
@@ -2247,13 +2247,13 @@ function buildRecorder(b,w){
   }};
 }
 
-/* ---------- Máy ảnh ---------- */
+/* ---------- Webcam ---------- */
 function buildCamera(b,w){
   const SWI='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.5-5.8L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.5 5.8L4 15.5M4 20v-4.5h4.5"/></svg>';
-  b.innerHTML='<div class="cm"><h2>Máy ảnh</h2><div class="cmv"><video class="cmvid" playsinline muted autoplay></video><div class="cmmsg" hidden></div><div class="cmblink"></div></div><div class="cmst"></div><div class="cmbt"><button type="button" class="cmth" aria-label="Ảnh vừa chụp"><img alt=""></button><button type="button" class="cmsh" aria-label="Chụp ảnh"><i></i></button><button type="button" class="cmsw" aria-label="Đổi camera trước/sau">'+SWI+'</button></div></div>';
+  b.innerHTML='<div class="cm"><h2>Webcam</h2><div class="cmv"><video class="cmvid" playsinline muted autoplay></video><div class="cmmsg" hidden></div><div class="cmblink"></div></div><div class="cmst"></div><div class="cmbt"><button type="button" class="cmth" aria-label="Ảnh vừa chụp"><img alt=""></button><button type="button" class="cmsh" aria-label="Chụp ảnh"><i></i></button><button type="button" class="cmsw" aria-label="Đổi camera trước/sau">'+SWI+'</button></div></div>';
   const vid=$('.cmvid',b), msg=$('.cmmsg',b), blk=$('.cmblink',b), st=$('.cmst',b), th=$('.cmth',b), thi=$('img',th), sh=$('.cmsh',b), sw=$('.cmsw',b);
   let stream=null, face=lsGet('dm-camface')==='user'?'user':'environment', tok=0, pend=0, busy=false, saved=false;
-  const warn=(t,m)=>notify({app:'Máy ảnh',title:t,body:m,icon:'camera'});
+  const warn=(t,m)=>notify({app:'Webcam',title:t,body:m,icon:'camera'});
   const say=t=>{msg.textContent=t||'';msg.hidden=!t};
   function stopStream(){
     tok++;
