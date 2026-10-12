@@ -3,6 +3,8 @@ package com.desktopmini.launcher;
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -22,6 +24,10 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import android.net.wifi.ScanResult;
+import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Build;
@@ -96,6 +102,23 @@ public class MainActivity extends Activity {
         }
     };
     private android.media.Ringtone previewTone;
+    /* ---- Bluetooth: thiết bị tìm thấy xung quanh + proxy hồ sơ để biết thiết bị nào đang kết nối ---- */
+    private final java.util.LinkedHashMap<String, JSONObject> btFound = new java.util.LinkedHashMap<String, JSONObject>();
+    private final HashMap<Integer, BluetoothProfile> btProx = new HashMap<Integer, BluetoothProfile>();
+    private boolean btRecv = false, btProxReq = false;
+    private final BroadcastReceiver btRx = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            try {
+                if (!BluetoothDevice.ACTION_FOUND.equals(i.getAction())) return;
+                BluetoothDevice d = i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (d == null || d.getBondState() == BluetoothDevice.BOND_BONDED) return;
+                String nm = d.getName(); if (nm == null || nm.length() == 0) return;
+                JSONObject o = new JSONObject(); o.put("name", nm); o.put("addr", d.getAddress());
+                synchronized (btFound) { btFound.put(d.getAddress(), o); }
+            } catch (Exception e) { }
+        }
+    };
+
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -130,6 +153,7 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() {
         try { unregisterReceiver(media); } catch (Exception e) { }
         try { unregisterReceiver(scr); } catch (Exception e) { }
+        if (btRecv) { try { unregisterReceiver(btRx); } catch (Exception e) { } }
         if (inst == this) inst = null;
         super.onDestroy();
     }
@@ -149,6 +173,7 @@ public class MainActivity extends Activity {
         } else need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         if (Build.VERSION.SDK_INT >= 31) need.add(Manifest.permission.BLUETOOTH_CONNECT);
         need.add(Manifest.permission.READ_CALENDAR);
+        need.add(Manifest.permission.ACCESS_FINE_LOCATION);
         ArrayList<String> miss = new ArrayList<String>();
         for (String p : need) if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) miss.add(p);
         if (!miss.isEmpty()) { askingRuntime = true; requestPermissions(miss.toArray(new String[0]), 7); }
@@ -353,6 +378,134 @@ public class MainActivity extends Activity {
             try { ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE); return cm.getActiveNetwork() != null; }
             catch (Exception e) { return true; }
         }
+        /* ---- Wi-Fi / Bluetooth thật: danh sách mạng, thiết bị đã kết nối và chưa kết nối ---- */
+        private boolean locOk() {
+            return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        }
+        private String cleanSsid(String s) {
+            if (s == null) return "";
+            if (s.length() > 1 && s.startsWith("\"") && s.endsWith("\"")) s = s.substring(1, s.length() - 1);
+            return "<unknown ssid>".equals(s) ? "" : s;
+        }
+        private WifiManager wifiMgr() { return (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE); }
+        @JavascriptInterface public void wifiScan() { try { wifiMgr().startScan(); } catch (Exception e) { } }
+        @JavascriptInterface public String getWifiInfo() {
+            JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
+            try {
+                WifiManager wm = wifiMgr();
+                boolean on = wm.isWifiEnabled(); res.put("on", on); res.put("loc", locOk());
+                String cur = ""; boolean conn = false; int curLvl = 0;
+                WifiInfo wi = wm.getConnectionInfo();
+                if (on && wi != null && wi.getNetworkId() != -1 && wi.getSupplicantState() == SupplicantState.COMPLETED) {
+                    conn = true; cur = cleanSsid(wi.getSSID()); curLvl = WifiManager.calculateSignalLevel(wi.getRssi(), 4);
+                }
+                java.util.HashSet<String> saved = new java.util.HashSet<String>();
+                try { List<WifiConfiguration> cf = wm.getConfiguredNetworks(); if (cf != null) for (WifiConfiguration c : cf) saved.add(cleanSsid(c.SSID)); } catch (Exception e) { }
+                java.util.LinkedHashMap<String, JSONObject> best = new java.util.LinkedHashMap<String, JSONObject>();
+                if (on && locOk()) {
+                    List<ScanResult> sr = wm.getScanResults();
+                    if (sr != null) for (ScanResult r : sr) {
+                        String ss = r.SSID; if (ss == null || ss.length() == 0) continue;
+                        int lv = WifiManager.calculateSignalLevel(r.level, 4);
+                        JSONObject o = best.get(ss);
+                        if (o != null && o.getInt("level") >= lv) continue;
+                        o = new JSONObject(); o.put("ssid", ss); o.put("level", lv);
+                        String cp = r.capabilities == null ? "" : r.capabilities;
+                        o.put("secure", cp.contains("WPA") || cp.contains("WEP") || cp.contains("PSK") || cp.contains("EAP"));
+                        best.put(ss, o);
+                    }
+                }
+                if (conn) {
+                    JSONObject o = best.remove(cur);
+                    if (o == null) { o = new JSONObject(); o.put("secure", false); }
+                    o.put("ssid", cur.length() > 0 ? cur : "Mạng đang kết nối"); o.put("level", curLvl); o.put("connected", true); o.put("saved", true);
+                    arr.put(o);
+                }
+                ArrayList<JSONObject> rest = new ArrayList<JSONObject>(best.values());
+                Collections.sort(rest, new Comparator<JSONObject>() { public int compare(JSONObject a, JSONObject b) { return b.optInt("level") - a.optInt("level"); } });
+                for (JSONObject o : rest) { o.put("saved", saved.contains(o.getString("ssid"))); o.put("connected", false); arr.put(o); }
+                res.put("list", arr);
+            } catch (Exception e) { }
+            return res.toString();
+        }
+        /** Kết nối lại mạng đã lưu; mạng chưa lưu thì trả về false để mở trang Wi-Fi của hệ thống. */
+        @JavascriptInterface public boolean connectWifi(String ssid) {
+            try {
+                WifiManager wm = wifiMgr();
+                List<WifiConfiguration> cf = wm.getConfiguredNetworks();
+                if (cf != null) for (WifiConfiguration c : cf) if (cleanSsid(c.SSID).equals(ssid)) {
+                    wm.disconnect(); wm.enableNetwork(c.networkId, true); wm.reconnect(); return true;
+                }
+            } catch (Exception e) { }
+            return false;
+        }
+        /** Android 10+ không cho ứng dụng tự bật/tắt Wi-Fi: trả về false để mở bảng hệ thống. */
+        @JavascriptInterface public boolean setWifi(boolean on) {
+            if (Build.VERSION.SDK_INT >= 29) return false;
+            try { return wifiMgr().setWifiEnabled(on); } catch (Exception e) { return false; }
+        }
+        private BluetoothAdapter btAdapter() {
+            try { return ((BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter(); } catch (Exception e) { return null; }
+        }
+        @JavascriptInterface public boolean setBluetooth(boolean on) {
+            if (Build.VERSION.SDK_INT >= 33) return false;
+            try { BluetoothAdapter a = btAdapter(); if (a == null) return false; return on ? a.enable() : a.disable(); } catch (Exception e) { return false; }
+        }
+        @JavascriptInterface public void btScan() {
+            try {
+                BluetoothAdapter a = btAdapter(); if (a == null || !a.isEnabled()) return;
+                if (!btRecv) {
+                    IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                    if (Build.VERSION.SDK_INT >= 33) registerReceiver(btRx, f, Context.RECEIVER_EXPORTED); else registerReceiver(btRx, f);
+                    btRecv = true;
+                }
+                synchronized (btFound) { btFound.clear(); }
+                if (a.isDiscovering()) a.cancelDiscovery();
+                a.startDiscovery();
+            } catch (Exception e) { }
+        }
+        private void btProxies(BluetoothAdapter a) {
+            if (btProxReq) return; btProxReq = true;
+            BluetoothProfile.ServiceListener l = new BluetoothProfile.ServiceListener() {
+                public void onServiceConnected(int p, BluetoothProfile proxy) { synchronized (btProx) { btProx.put(p, proxy); } }
+                public void onServiceDisconnected(int p) { synchronized (btProx) { btProx.remove(p); } }
+            };
+            try { a.getProfileProxy(MainActivity.this, l, BluetoothProfile.A2DP); } catch (Exception e) { }
+            try { a.getProfileProxy(MainActivity.this, l, BluetoothProfile.HEADSET); } catch (Exception e) { }
+        }
+        @JavascriptInterface public String getBtInfo() {
+            JSONObject res = new JSONObject();
+            try {
+                BluetoothAdapter a = btAdapter();
+                if (a == null) { res.put("none", true); return res.toString(); }
+                boolean on = a.isEnabled(); res.put("on", on); res.put("loc", locOk());
+                JSONArray paired = new JSONArray(), found = new JSONArray();
+                if (on) {
+                    btProxies(a);
+                    java.util.HashSet<String> cs = new java.util.HashSet<String>();
+                    synchronized (btProx) { for (BluetoothProfile p : btProx.values()) { try { for (BluetoothDevice d : p.getConnectedDevices()) cs.add(d.getAddress()); } catch (Exception e) { } } }
+                    java.util.HashSet<String> bonded = new java.util.HashSet<String>();
+                    ArrayList<JSONObject> up = new ArrayList<JSONObject>(), down = new ArrayList<JSONObject>();
+                    try {
+                        for (BluetoothDevice d : a.getBondedDevices()) {
+                            bonded.add(d.getAddress());
+                            boolean c = cs.contains(d.getAddress());
+                            if (!c) { try { c = (Boolean) BluetoothDevice.class.getMethod("isConnected").invoke(d); } catch (Throwable t) { } }
+                            JSONObject o = new JSONObject(); String nm = d.getName();
+                            o.put("name", nm == null || nm.length() == 0 ? d.getAddress() : nm); o.put("addr", d.getAddress()); o.put("connected", c);
+                            (c ? up : down).add(o);
+                        }
+                    } catch (SecurityException se) { res.put("perm", false); }
+                    for (JSONObject o : up) paired.put(o);
+                    for (JSONObject o : down) paired.put(o);
+                    synchronized (btFound) { for (JSONObject o : btFound.values()) if (!bonded.contains(o.optString("addr"))) found.put(o); }
+                }
+                res.put("paired", paired); res.put("found", found);
+            } catch (Exception e) { }
+            return res.toString();
+        }
+
         /** Android 10+ không cho ứng dụng tự bật/tắt Wi-Fi, Bluetooth: mở bảng hệ thống để người dùng gạt. */
         @JavascriptInterface public void openPanel(String kind) {
             Intent i;
