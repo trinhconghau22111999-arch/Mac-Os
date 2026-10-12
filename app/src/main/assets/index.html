@@ -203,7 +203,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .tb{position:absolute;inset:0 0 auto 0;height:52px;z-index:2;touch-action:none}
 .tls{position:absolute;left:18px;top:19px;z-index:10;display:flex;gap:8px}
 .tl{width:13px;height:13px;border-radius:50%;display:grid;place-items:center;font-size:10px;line-height:1;font-weight:800;color:rgba(0,0,0,.6);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.25)}
-.tl.c{background:#ff5f57}.tl.m{background:#febc2e}
+.tl.c{background:#ff5f57}.tl.m{background:#febc2e}.tl.z{background:#28c840}
 .tls:hover .tl{color:rgba(0,0,0,.55)}
 .win:not(.focus) .tl{background:rgba(150,150,158,.6)}
 .body{flex:1;min-height:0;position:relative;container-type:inline-size;overflow:hidden}
@@ -668,6 +668,8 @@ body.native .stage{border-radius:0;min-height:0}
 @media (pointer:coarse){
   .tls{gap:14px;top:14px;left:16px}
   .tl{width:20px;height:20px;font-size:12px}
+  .app>.bar,.nl .bar,.mmain>.bar,.mus>.bar,.term .bar,.rf .bar,.wa .bar{padding-left:112px}
+  .clk2>.bar{padding-left:112px;padding-right:112px}
 }
 
 /* Đa nhiệm kiểu iPhone (thẻ ngang) */
@@ -1059,14 +1061,15 @@ function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
   w.className='win'+(a.dark?' dark-win':''); w.dataset.app=id; w.setAttribute('aria-label',a.name);
-  w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl m" aria-label="Thu nhỏ">−</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
+  w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl z" aria-label="Phóng to">+</button><button class="tl m" aria-label="Thu nhỏ">−</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
   const bw=Math.min(a.w,sr.width-24), bh=Math.min(a.h,sr.height-28-110), n=count++%5;
   w.style.width=bw+'px'; w.style.height=bh+'px';
   w.style.left=Math.max(12,Math.min(30+n*32,sr.width-bw-12))+'px';
   w.style.top=Math.max(40,Math.min(46+n*28,sr.height-bh-110))+'px';
   layer.appendChild(w); wins[id]=w;
   w._api=a.build($('.body',w),w,arg)||{};
-  wire(w,id,a); if(id==='calendar'&&(sr.height-28-110<a.minH||sr.width<a.minW+24))toggleMax(w);
+  wire(w,id,a);
+  if(maxMem()[id])toggleMax(w,true); else if(id==='calendar'&&(sr.height-28-110<a.minH||sr.width<a.minW+24))toggleMax(w,true);
   focusWin(w); syncDock(); flyIn(w,id);
   bus.emit('wins');
 }
@@ -1087,9 +1090,14 @@ function fitMax(w){
   w.style.left='0px'; w.style.top='28px'; w.style.width=sr.width+'px';
   w.style.height=(sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+26))+'px';
 }
-function toggleMax(w){
-  if(w.classList.toggle('max')){w._prev=[w.style.left,w.style.top,w.style.width,w.style.height];fitMax(w)}
+const MAXK='dm-maxwins';
+const maxMem=()=>{try{return JSON.parse(lsGet(MAXK)||'{}')||{}}catch(e){return {}}};
+function toggleMax(w,auto){
+  const on=w.classList.toggle('max');
+  if(on){w._prev=[w.style.left,w.style.top,w.style.width,w.style.height];fitMax(w)}
   else if(w._prev){[w.style.left,w.style.top,w.style.width,w.style.height]=w._prev}
+  /* Ghi nhớ: lần trước dùng toàn màn hình thì lần sau mở lại vẫn toàn màn hình */
+  if(!auto&&w.dataset.app){const m=maxMem(); if(on)m[w.dataset.app]=1; else delete m[w.dataset.app]; lsSet(MAXK,JSON.stringify(m))}
 }
 function wire(w,id,a){
   const topArea=e=>{const r=w.getBoundingClientRect();return e.clientY-r.top<=52&&!e.target.closest('button,input,textarea,select,a,label,.rn,[role="switch"],[role="option"]')};
@@ -1110,6 +1118,7 @@ function wire(w,id,a){
   });
   w.addEventListener('dblclick',e=>{if(!stage.classList.contains('mc')&&topArea(e))toggleMax(w)});
   $('.tl.c',w).addEventListener('click',()=>closeWin(w));
+  $('.tl.z',w).addEventListener('click',()=>toggleMax(w));
   $('.tl.m',w).addEventListener('click',()=>minWin(w));
   $$('.rz',w).forEach(h=>{
     h.addEventListener('pointerdown',e=>{
