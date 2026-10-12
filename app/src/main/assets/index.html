@@ -2420,7 +2420,7 @@ function buildRealFiles(b,w,arg,mode){
     reset(); pt.textContent=name(path);
     $$('.si',side).forEach(x=>x.setAttribute('aria-current',String(where(path)===x.dataset.k)));
     $('.rbk',b).disabled=pos<=0;
-    const par=parentOf(path); up.disabled=!par; up.__dz=par; list.__dz=path[0]==='@'?null:path;
+    const par=parentOf(path); up.disabled=!par; up.style.display=par?'':'none'; up.__dz=par; list.__dz=path[0]==='@'?null:path;
     list.className='rfl';
     if(path==='@home')renderHome(); else if(path[0]==='@')renderMedia(path.slice(1)); else renderDir();
   }
