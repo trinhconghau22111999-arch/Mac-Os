@@ -693,7 +693,7 @@ body.native .stage{border-radius:0;min-height:0}
     <button class="tile" id="t-bt" aria-pressed="true"><span class="ci"><svg viewBox="0 0 16 16"><path d="M4 4.5l8 7-4 3.5V1l4 3.5-8 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span><span><b>Bluetooth</b><small id="t-bt-s">Đang bật</small></span></button>
     <button class="tile" id="t-dnd" aria-pressed="false"><span class="ci"><svg viewBox="0 0 16 16"><path d="M13.5 9.6A5.7 5.7 0 0 1 6.4 2.5a6 6 0 1 0 7.1 7.1z"/></svg></span><span><b>Không làm phiền</b><small id="t-dnd-s">Đã tắt</small></span></button>
     <button class="tile" id="t-dark" aria-pressed="false"><span class="ci"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z"/></svg></span><span><b>Chế độ tối</b><small id="t-dark-s">Đã tắt</small></span></button>
-    <div class="slide"><b>Độ sáng</b><input type="range" id="bright" min="25" max="100" value="100" aria-label="Độ sáng màn hình"></div>
+    <div class="slide"><b>Độ sáng</b><input type="range" id="bright" min="1" max="100" value="100" aria-label="Độ sáng màn hình"></div>
     <div class="slide"><b>Âm thanh</b><input type="range" id="vol" min="0" max="100" value="60" aria-label="Âm lượng"></div>
     <div class="slide np"><b>Đang phát</b><div class="npr"><span id="np-t">Chưa phát bài nào</span><button id="np-b" class="npb" aria-label="Phát hoặc tạm dừng"><svg viewBox="0 0 16 16"><path id="np-i" d="M4 2.5v11l9-5.5z"/></svg></button></div></div>
   </div>
@@ -1572,7 +1572,7 @@ function buildSettings(b,w,arg){
       case 'ap':return ['Giao diện','<div class="tiles"><button class="ap" data-m="auto" aria-pressed="'+(dm==='auto')+'"><span class="th a"></span><span>Tự động</span></button><button class="ap" data-m="light" aria-pressed="'+(dm==='light')+'"><span class="th l"></span><span>Sáng</span></button><button class="ap" data-m="dark" aria-pressed="'+(dm==='dark')+'"><span class="th d"></span><span>Tối</span></button></div>'];
       case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button></div>'];
       case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+'</div>'];
-      case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),25,100))+'</div>'];
+      case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+'</div>'];
       case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+'</div>'];
       case 'bt2':return ['Pin','<div class="grp">'+rw('Mức pin',Math.round(BAT.level*100)+'%',BAT.charging?'Đang sạc':(BAT.real?'Đang dùng pin':'Giá trị mẫu, trình duyệt không cung cấp thông tin pin'))+'</div>'];
       case 'us':return ['Người dùng','<div class="grp">'+rw('Tên hiển thị','<input class="txt" id="un" value="'+esc(userName())+'" aria-label="Tên hiển thị" maxlength="24">')+rw('Hiện màn hình khóa khi mở',tgl(pref('lockOnStart',false),'lockOnStart','Hiện màn hình khóa khi mở'))+'</div>'];
@@ -2535,7 +2535,7 @@ if(window.AndroidLauncher){(function(){
   function sync(){
     if(Date.now()<busy)return;
     P.vol=safe(()=>A.getVolume(),pref('vol',60));
-    P.bright=Math.max(25,safe(()=>A.getBrightness(),pref('bright',100)));
+    P.bright=Math.max(1,safe(()=>A.getBrightness(),pref('bright',100)));
     P.wifi=safe(()=>A.isWifiOn(),true); P.bt=safe(()=>A.isBluetoothOn(),false);
     bus.emit('ui'); bus.emit('slider');
   }

@@ -226,7 +226,13 @@ public class MainActivity extends Activity {
             a.setStreamVolume(AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, Math.round(p * max / 100f))), 0);
         }
         @JavascriptInterface public int getBrightness() {
-            try { return Math.round(Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS) * 100f / 255f); }
+            try {
+                float w = getWindow().getAttributes().screenBrightness;
+                int raw = (w >= 0f && !Settings.System.canWrite(MainActivity.this)) ? Math.round(w * 255f)
+                        : Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS);
+                raw = Math.max(1, Math.min(255, raw));
+                return Math.max(1, Math.round((float) (100.0 * Math.pow(raw / 255.0, 0.5))));
+            }
             catch (Exception e) { return 60; }
         }
         @JavascriptInterface public boolean canWriteSettings() { return Settings.System.canWrite(MainActivity.this); }
@@ -234,15 +240,19 @@ public class MainActivity extends Activity {
             go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName())));
         }
         @JavascriptInterface public void setBrightness(final int p) {
-            final int v = Math.max(1, Math.min(255, Math.round(p * 255f / 100f)));
+            final int pc = Math.max(1, Math.min(100, p));
+            // Độ sáng cảm nhận không tuyến tính: dùng đường cong bình phương để thanh trượt về thấp là thật sự tối
+            final int v = Math.max(1, Math.min(255, (int) Math.round(255.0 * (pc / 100.0) * (pc / 100.0))));
             if (Settings.System.canWrite(MainActivity.this)) {
-                Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
-                Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, v);
-            } else {
-                runOnUiThread(new Runnable() { public void run() {
-                    WindowManager.LayoutParams lp = getWindow().getAttributes(); lp.screenBrightness = v / 255f; getWindow().setAttributes(lp);
-                }});
+                try {
+                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, v);
+                } catch (Exception ignored) { }
             }
+            // Luôn đặt độ sáng theo cửa sổ để có hiệu lực ngay và xuống được mức tối nhất
+            runOnUiThread(new Runnable() { public void run() {
+                WindowManager.LayoutParams lp = getWindow().getAttributes(); lp.screenBrightness = Math.max(0.004f, v / 255f); getWindow().setAttributes(lp);
+            }});
         }
         @JavascriptInterface public boolean isWifiOn() {
             try { return ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE)).isWifiEnabled(); } catch (Exception e) { return true; }
