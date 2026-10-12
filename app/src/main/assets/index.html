@@ -696,6 +696,7 @@ a.btn.pri{color:#fff}
   background:var(--glass);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);transition:transform .25s ease}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
+@media (min-width:561px){.dock{touch-action:none}}
 .dk{position:relative;flex:none;width:calc(var(--base)*var(--s,1));height:calc(var(--base)*var(--s,1));transition:width .09s linear,height .09s linear}
 .dk .ic{display:grid;width:100%;height:100%}
 .dk.bounce .ic{animation:bounce .56s cubic-bezier(.3,.6,.4,1)}
@@ -1119,18 +1120,21 @@ function fitCalc(w){
 }
 window.addEventListener('resize',()=>{fitDock();$$('.win.max',layer).forEach(fitMax);$$('.win[data-app="calc"]:not(.max)',layer).forEach(fitCalc)});
 let centers=[];
-dock.addEventListener('pointerenter',e=>{
-  if(e.pointerType==='touch')return;
-  centers=$$('.dk',dock).map(d=>{const r=d.getBoundingClientRect();return r.left+r.width/2});
-});
-dock.addEventListener('pointermove',e=>{
-  if(e.pointerType==='touch'||!centers.length||!pref('magnify',true))return;
+const calcCenters=()=>{centers=$$('.dk',dock).map(d=>{const r=d.getBoundingClientRect();return r.left+r.width/2})};
+const magnify=e=>{
+  if(!centers.length||!pref('magnify',true))return;
   $$('.dk',dock).forEach((d,i)=>{
     const dist=Math.abs(e.clientX-centers[i]);
     d.style.setProperty('--s',(1+.62*Math.exp(-(dist*dist)/(2*58*58))).toFixed(3));
   });
-});
-dock.addEventListener('pointerleave',()=>{centers=[];$$('.dk',dock).forEach(d=>d.style.removeProperty('--s'));if(pref('hideDock',false))dock.classList.remove('peek')});
+};
+const unmagnify=()=>{centers=[];$$('.dk',dock).forEach(d=>d.style.removeProperty('--s'))};
+/* Chuột: rê qua dock. Màn cảm ứng: chạm giữ rồi trượt ngón tay dọc dock, nhả ra thì thu lại */
+dock.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')calcCenters()});
+dock.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){calcCenters();magnify(e)}});
+dock.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&!(e.buttons&1))return;magnify(e)});
+['pointerup','pointercancel'].forEach(t=>dock.addEventListener(t,e=>{if(e.pointerType==='touch')unmagnify()}));
+dock.addEventListener('pointerleave',()=>{unmagnify();if(pref('hideDock',false))dock.classList.remove('peek')});
 $('#hotz').addEventListener('pointerenter',()=>{if(pref('hideDock',false))dock.classList.add('peek')});
 
 /* ---------- Cửa sổ ---------- */
