@@ -313,7 +313,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 .wk span{padding:4px 8px;text-align:right}
 .cg{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr))}
 /* Lịch: tiêu đề tháng và nút ‹ Hôm nay › luôn hiện đủ, không bị khuất */
-.cal>.bar{min-width:0;gap:6px;padding-right:12px}
+.cal>.bar.cal-bar{min-width:0;gap:6px;padding-right:12px;padding-left:86px}
+@media (pointer:coarse){.cal>.bar.cal-bar{padding-left:116px}}
 .cal-bar .t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:clamp(14px,4.2vw,20px)}
 .cal-bar .grow{display:none}
 .cnav{flex:none}
@@ -326,8 +327,10 @@ ul,ol{margin:0;padding:0;list-style:none}
 .cd:nth-child(-n+7){border-top:0}
 .cd:hover{background:var(--row)}
 .cd.o{color:var(--muted);opacity:.6}
-.cd i{font-style:normal;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding-inline:3px;flex:none}
-.cd .lu{margin:-2px 0 2px!important;display:block;font-size:10px;color:var(--muted);line-height:1;font-variant-numeric:tabular-nums;flex:none}
+.cd.e{pointer-events:none;background:rgba(127,127,127,.06)}
+.cd.e:hover{background:rgba(127,127,127,.06)}
+.cd i{font-style:normal;font-size:var(--fs,13px);min-width:1.6em;height:1.6em;border-radius:.8em;display:grid;place-items:center;padding-inline:.12em;flex:none;line-height:1}
+.cd .lu{margin:-2px 0 2px!important;display:block;font-size:var(--ls,10px);color:var(--muted);line-height:1;font-variant-numeric:tabular-nums;flex:none}
 .cd .lu.l1{color:#ff3b30;font-weight:600}
 .evp .lud{display:block;margin:2px 0 6px;font-size:11px;color:var(--muted)}
 .cd.today i{background:#ff3b30;color:#fff;font-weight:700}
@@ -335,6 +338,18 @@ ul,ol{margin:0;padding:0;list-style:none}
 .chip.more{background:none;color:var(--muted)}
 .dotev{display:none;width:5px;height:5px;border-radius:50%;background:var(--accent)}
 @container (max-width:520px){.chip{display:none}.dotev{display:block}}
+/* Lịch: chỉ hiện ngày của tháng đang xem; cỡ số tự co giãn theo ô (JS đặt --fs, --ls) */
+.cg.wide .cd{flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:6px;padding:2px 8px}
+.cg.wide .cd .lu{margin:0!important}
+.cg.wide .chip{display:none!important}
+.cg.wide .dotev{display:block!important;position:absolute;left:7px;top:50%;margin-top:-2.5px}
+.cg:not(.wide) .cd{padding-top:6px}
+@container (max-width:520px){
+  .cal-bar .t{font-size:13px;white-space:normal;line-height:1.15;overflow:visible}
+  .cal-bar .t b{display:block;font-size:16px}
+  .cal .cnav button{padding-inline:8px;font-size:13px;white-space:nowrap}
+}
+.cal .cnav button{white-space:nowrap}
 .evp{position:absolute;z-index:6;width:240px;padding:12px;border-radius:16px;background:var(--glass);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);box-shadow:0 0 0 1px var(--glass-line) inset,0 12px 30px rgba(0,0,0,.3)}
 .evp ul{margin:8px 0;display:flex;flex-direction:column;gap:4px}
 .evp li{display:flex;justify-content:space-between;gap:8px;padding:3px 8px;border-radius:6px;background:rgba(10,122,255,.14)}
@@ -1174,7 +1189,7 @@ function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
   w.className='win'+(a.dark?' dark-win':''); w.dataset.app=id; w.setAttribute('aria-label',a.name);
-  w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl z" aria-label="Phóng to">+</button><button class="tl m" aria-label="Thu nhỏ">−</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
+  w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl m" aria-label="Thu nhỏ">−</button><button class="tl z" aria-label="Phóng to">+</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
   const wideC=id==='calc'&&sr.width>sr.height*1.25, bw=Math.min(wideC?Math.max(a.w,460):a.w,sr.width-24), bh=Math.min(a.h,sr.height-28-110), n=count++%5;
   w.style.width=bw+'px'; w.style.height=bh+'px';
   w.style.left=Math.max(12,Math.min(30+n*32,sr.width-bw-12))+'px';
@@ -1567,20 +1582,33 @@ function buildCal(b,w){
   const t=$('.t',b), g=$('.cg',b), pp=$('.evp',b);
   function render(){
     t.innerHTML='<b>'+MONTHS[m]+'</b> '+y; g.innerHTML='';
-    const first=new Date(y,m,1), lead=(first.getDay()+6)%7, start=new Date(y,m,1-lead);
-    for(let i=0;i<42;i++){
-      const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), key=k(d.getFullYear(),d.getMonth(),d.getDate());
+    const first=new Date(y,m,1), lead=(first.getDay()+6)%7, dim=new Date(y,m+1,0).getDate(), weeks=Math.ceil((lead+dim)/7);
+    g.style.gridTemplateRows='repeat('+weeks+',minmax(0,1fr))'; g.dataset.weeks=weeks;
+    for(let i=0;i<weeks*7;i++){
+      const dn=i-lead+1;
+      if(dn<1||dn>dim){const e=document.createElement('div');e.className='cd e';e.setAttribute('aria-hidden','true');g.appendChild(e);continue}
+      const d=new Date(y,m,dn), key=k(y,m,dn);
       const c=document.createElement('button');
-      c.className='cd'+(d.getMonth()!==m?' o':'')+(d.toDateString()===now.toDateString()?' today':''); c.dataset.key=key; c.dataset.i=i;
+      c.className='cd'+(d.toDateString()===now.toDateString()?' today':''); c.dataset.key=key; c.dataset.i=i;
       const ev=(EV[key]||[]).concat([]);
       const on=icalOn(d);
-      const lu=LUNAR.conv(d.getDate(),d.getMonth()+1,d.getFullYear());
+      const lu=LUNAR.conv(dn,m+1,y);
       const all=on.map(x=>({t:(x.time?x.time+' ':'')+x.t,on:1})).concat(ev.map(x=>({t:x,on:0})));
-      c.innerHTML='<i>'+(d.getDate()===1?d.getDate()+' thg '+(d.getMonth()+1):d.getDate())+'</i><small class="lu'+(lu.d===1?' l1':'')+'">'+(lu.d===1?lu.d+'/'+lu.m+(lu.leap?' nhuận':''):lu.d)+'</small>'+all.slice(0,2).map(e=>'<span class="chip'+(e.on?' on':'')+'">'+esc(e.t)+'</span>').join('')+(all.length>2?'<span class="chip more">+'+(all.length-2)+' mục</span>':'')+(all.length?'<span class="dotev"></span>':'');
+      c.innerHTML='<i>'+dn+'</i><small class="lu'+(lu.d===1?' l1':'')+'">'+(lu.d===1?lu.d+'/'+lu.m+(lu.leap?' nhuận':''):lu.d)+'</small>'+all.slice(0,2).map(e=>'<span class="chip'+(e.on?' on':'')+'">'+esc(e.t)+'</span>').join('')+(all.length>2?'<span class="chip more">+'+(all.length-2)+' mục</span>':'')+(all.length?'<span class="dotev"></span>':'');
       c.addEventListener('click',()=>{open=key;showPop(c,key,d)});
       g.appendChild(c);
     }
+    fit();
   }
+  /* Số ngày to nhỏ theo ô: dọc -> số bự; ngang (ô thấp) -> số và âm lịch nằm cùng một hàng */
+  function fit(){
+    const wk=+g.dataset.weeks||6, cw=g.clientWidth/7, ch=g.clientHeight/wk; if(!cw||!ch)return;
+    const wide=cw/ch>1.5, cl=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+    const fs=wide?cl(ch*.42,11,24):cl(Math.min(cw*.46,ch*.3),13,30);
+    g.classList.toggle('wide',wide);
+    g.style.setProperty('--fs',fs.toFixed(1)+'px'); g.style.setProperty('--ls',cl(fs*(wide?.62:.5),8,14).toFixed(1)+'px');
+  }
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(g); else window.addEventListener('resize',fit);
   function showPop(cell,key,d){
     const ev=EV[key]||[], onl=icalOn(d);
     const lu=LUNAR.conv(d.getDate(),d.getMonth()+1,d.getFullYear());
