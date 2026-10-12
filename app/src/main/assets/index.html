@@ -1961,7 +1961,7 @@ function buildSettings(b,w,arg){
     const un=$('#un',pane); if(un){un.addEventListener('input',()=>{lsSet('dm-user',un.value.trim()||'Người dùng')});un.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')un.blur()});un.addEventListener('pointerdown',e=>e.stopPropagation())}
   }
   function setPrefQuiet(k,v){P[k]=v;jset('dm-prefs',P);applyPrefs();bus.emit('slider')}
-  live(w,'ui',()=>{const f=document.activeElement;if(f&&f.classList&&f.classList.contains('rg'))return;render()});
+  live(w,'ui',()=>{const f=document.activeElement;/* đang kéo thanh trượt hoặc đang gõ chữ thì không vẽ lại, nếu không ô nhập bị mất focus và bàn phím tắt */if(f&&((f.classList&&f.classList.contains('rg'))||f.tagName==='INPUT'||f.tagName==='TEXTAREA'||f.tagName==='SELECT'))return;render()});
   render();
   return {open(a){if(a&&a.pane){key=a.pane;render()}}};
 }
