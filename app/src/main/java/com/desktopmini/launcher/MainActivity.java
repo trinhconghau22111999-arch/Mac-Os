@@ -2,7 +2,6 @@ package com.desktopmini.launcher;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
@@ -28,8 +27,6 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.provider.CalendarContract;
 import android.provider.MediaStore;
 import android.provider.Settings;
@@ -99,47 +96,6 @@ public class MainActivity extends Activity {
         }
     };
     private android.media.Ringtone previewTone;
-
-    private final Handler ui = new Handler(Looper.getMainLooper());
-
-    /** Launcher đang nằm trong một nửa màn hình chia đôi (Android 7+). */
-    private boolean inSplit() {
-        if (Build.VERSION.SDK_INT < 24) return false;
-        try { return isInMultiWindowMode() || LockService.divider; } catch (Throwable e) { return false; }
-    }
-
-    /**
-     * Mở ứng dụng khác theo kiểu chia đôi: ứng dụng ở nửa trên, Desktop Mini ở nửa dưới.
-     * Trả về 1 = đã/đang chia đôi, 0 = mở toàn màn hình (chưa bật Trợ năng hoặc máy cũ), -1 = không mở được.
-     */
-    private int startSplit(final String pkg) {
-        Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
-        if (i == null) return -1;
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        push("nativeLaunched", JSONObject.quote(pkg));
-        if (Build.VERSION.SDK_INT < 24) { go(i); return 0; }
-        if (inSplit()) {
-            // Desktop Mini đang ở nửa dưới: mở ứng dụng vào nửa còn lại (thay ứng dụng đang ở trên)
-            i.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
-            go(i); return 1;
-        }
-        final LockService s = LockService.inst;
-        if (s == null) { go(i); return 0; }
-        // Đang toàn màn hình: mở ứng dụng, bật chia đôi (ứng dụng lên nửa trên), rồi gọi Home để Desktop Mini hiện ở nửa dưới
-        LockService.busyUntil = System.currentTimeMillis() + 6000;
-        go(i);
-        ui.postDelayed(new Runnable() { public void run() {
-            LockService ls = LockService.inst; if (ls == null) return;
-            ls.toggleSplit();
-            final long t0 = System.currentTimeMillis();
-            ui.postDelayed(new Runnable() { public void run() {
-                LockService l2 = LockService.inst; if (l2 == null) return;
-                if (LockService.divider) { l2.home(); return; }
-                if (System.currentTimeMillis() - t0 < 2200) ui.postDelayed(this, 250);
-            } }, 500);
-        } }, 800);
-        return 1;
-    }
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -261,12 +217,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
-        push("nativeSplit", inSplit() ? "true" : "false");
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
-    }
-    @Override public void onMultiWindowModeChanged(boolean m) {
-        super.onMultiWindowModeChanged(m);
-        push("nativeSplit", m ? "true" : "false");
     }
     @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null); }
     @Override public void onBackPressed() { web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
@@ -661,36 +612,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean hasPackage(String pkg) {
             try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
         }
-        /** Mở ứng dụng khác ở nửa trên màn hình chia đôi; chưa bật Trợ năng thì mở toàn màn hình như cũ. */
-        @JavascriptInterface public void launchApp(final String pkg) {
-            runOnUiThread(new Runnable() { public void run() { startSplit(pkg); } });
-        }
-        /** Trợ năng đã bật và máy hỗ trợ chia đôi (Android 7+). */
-        @JavascriptInterface public boolean splitReady() { return Build.VERSION.SDK_INT >= 24 && LockService.inst != null; }
-        /** Thu ứng dụng ở nửa trên xuống nền đa nhiệm: thoát chia đôi, Desktop Mini lại toàn màn hình. */
-        @JavascriptInterface public boolean minimizeTop() {
-            final LockService s = LockService.inst;
-            if (s == null || !inSplit()) return false;
-            LockService.busyUntil = System.currentTimeMillis() + 3000;
-            ui.post(new Runnable() { public void run() { s.toggleSplit(); } });
-            return true;
-        }
-        /** Trong danh sách gói, giữ lại những ứng dụng còn tiến trình (máy không cho xem tiến trình khác thì giữ nguyên). */
-        @JavascriptInterface public String alive(String json) {
-            try {
-                JSONArray in = new JSONArray(json);
-                java.util.HashSet<String> run = new java.util.HashSet<String>();
-                List<ActivityManager.RunningAppProcessInfo> l = ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getRunningAppProcesses();
-                if (l != null) for (ActivityManager.RunningAppProcessInfo p : l) if (p.pkgList != null) for (String k : p.pkgList) if (!k.equals(getPackageName())) run.add(k);
-                if (run.isEmpty()) return json;
-                JSONArray out = new JSONArray();
-                for (int k = 0; k < in.length(); k++) if (run.contains(in.getString(k))) out.put(in.getString(k));
-                return out.toString();
-            } catch (Exception e) { return json; }
-        }
-        /** Tắt hẳn ứng dụng nền (xóa khỏi đa nhiệm). */
-        @JavascriptInterface public void killApp(String pkg) {
-            try { ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pkg); } catch (Exception e) { }
+        @JavascriptInterface public void launchApp(String pkg) {
+            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i != null) go(i);
         }
 
         /* ---- Nhạc thật trong máy ---- */
@@ -909,16 +833,14 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean openMail() {
             try {
                 PackageManager pm = getPackageManager();
-                String mp = "com.google.android.gm";
-                Intent i = pm.getLaunchIntentForPackage(mp);
+                Intent i = pm.getLaunchIntentForPackage("com.google.android.gm");
                 if (i == null) {
-                    mp = null;
                     Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_EMAIL);
                     List<ResolveInfo> l = pm.queryIntentActivities(q, 0);
-                    for (ResolveInfo r : l) { if (!r.activityInfo.packageName.equals(getPackageName())) { i = pm.getLaunchIntentForPackage(r.activityInfo.packageName); if (i != null) { mp = r.activityInfo.packageName; break; } } }
+                    for (ResolveInfo r : l) { if (!r.activityInfo.packageName.equals(getPackageName())) { i = pm.getLaunchIntentForPackage(r.activityInfo.packageName); if (i != null) break; } }
                 }
-                if (i == null || mp == null) { go(new Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com/"))); return true; }
-                launchApp(mp); return true;
+                if (i == null) i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com/"));
+                go(i); return true;
             } catch (Exception e) { return false; }
         }
 

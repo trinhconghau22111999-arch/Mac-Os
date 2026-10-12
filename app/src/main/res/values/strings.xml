@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Desktop Mini</string>
-    <string name="a11y_desc">Cho phép Desktop Mini khóa màn hình, mở menu nguồn, và (khi bạn mở một ứng dụng khác) tự chia đôi màn hình: ứng dụng ở nửa trên, Desktop Mini ở nửa dưới. Dịch vụ chỉ đọc tên gói của các cửa sổ đang hiện để biết ứng dụng nào đang mở, không đọc nội dung.</string>
+    <string name="a11y_desc">Cho phép Desktop Mini khóa màn hình và mở menu nguồn khi bạn chọn Khóa màn hình, Khởi động lại, Tắt máy trong menu Apple.</string>
 </resources>
