@@ -1075,11 +1075,11 @@ function buildDock(){
     b.addEventListener('pointerdown',e=>{
       if(e.pointerType==='mouse')return;
       b._lp=false; cancelLp();
-      lpT=setTimeout(()=>{b._lp=true;const r=b.getBoundingClientRect();dockMenu(r.left+r.width/2-40,r.top-4)},450);
+      lpT=setTimeout(()=>{b._lp=true;const r=b.getBoundingClientRect();dockMenu(r.left+r.width/2-40,r.top-4,r)},450);
     });
     ['pointerup','pointercancel','pointerleave','pointermove'].forEach(t=>b.addEventListener(t,t==='pointermove'?(e=>{if(Math.abs(e.movementX)+Math.abs(e.movementY)>6)cancelLp()}):cancelLp));
     let ctxT=0;
-    const dockMenu=(cx,cy)=>{
+    const dockMenu=(cx,cy,r)=>{
       if(Date.now()-ctxT<700)return; ctxT=Date.now();
       const items=[];
       if(id==='trash'){items.push({t:'Mở',fn:()=>openApp('trash')},{t:'Dọn sạch Thùng rác',fn:emptyTrash,dis:!FS.trash.length})}
@@ -1091,6 +1091,11 @@ function buildDock(){
         if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Thoát (tắt hẳn)',fn:()=>closeWin(w)})}
       }
       showCtx(cx,cy,items);
+      if(r){ /* cảm ứng: đặt menu phía trên icon, tránh nằm dưới ngón tay, và bỏ qua lần nhả tay đầu */
+        const ctx=$('#ctx'), sr=stage.getBoundingClientRect();
+        ctx.style.top=Math.max(32,r.top-sr.top-ctx.offsetHeight-10)+'px';
+        ctx.style.pointerEvents='none'; setTimeout(()=>{ctx.style.pointerEvents=''},400);
+      }
     };
     b.addEventListener('contextmenu',e=>{e.preventDefault();dockMenu(e.clientX,e.clientY)});
     dock.appendChild(b);
