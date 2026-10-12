@@ -7,8 +7,27 @@ android {
         applicationId 'com.desktopmini.launcher'
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        // Mỗi lần build trên GitHub Actions số phiên bản tự tăng (run_number) để cài đè được bản cũ
+        def run = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+        versionCode run
+        versionName "1.0.${run}"
+    }
+    signingConfigs {
+        release {
+            // Chữ ký cố định lấy từ GitHub Secrets; build máy khác không có thì dùng chữ ký debug
+            def ksPath = System.getenv('KEYSTORE_PATH')
+            if (ksPath && new File(ksPath).exists()) {
+                storeFile file(ksPath)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release.storeFile ? signingConfigs.release : signingConfigs.debug
+        }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
