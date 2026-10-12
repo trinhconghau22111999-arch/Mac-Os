@@ -1196,7 +1196,7 @@ function setTheme(mode){
   lsSet('dm-theme',mode); bus.emit('ui');
 }
 const themeMode=()=>lsGet('dm-theme')||'auto';
-function setWall(n){stage.style.backgroundImage='';stage.style.backgroundSize='';stage.style.backgroundPosition='';lsSet('dm-syswall','');stage.dataset.wall=n;lsSet('dm-wall',n);bus.emit('ui')}
+function setWall(n){lsSet('dm-photowall','');stage.style.backgroundImage='';stage.style.backgroundSize='';stage.style.backgroundPosition='';lsSet('dm-syswall','');stage.dataset.wall=n;lsSet('dm-wall',n);bus.emit('ui')}
 function applyPrefs(){
   $('#wifi').classList.toggle('off',!pref('wifi',true));
   $('#dim').style.opacity=((100-pref('bright',100))/100*.75).toFixed(2);
@@ -1636,7 +1636,7 @@ function buildSettings(b,w,arg){
     return [['Hệ thống','Desktop Mini 26 (bản mô phỏng)'],['Trình duyệt',(nv.userAgentData&&nv.userAgentData.platform)||nv.platform||'Không rõ'],['Ngôn ngữ',nv.language||'vi'],['Màn hình',sc.width+' × '+sc.height],['Số lõi xử lý',nv.hardwareConcurrency||'Không rõ'],['Bộ nhớ',nv.deviceMemory?nv.deviceMemory+' GB':'Không rõ']];
   }
   function panel(){
-    const dm=themeMode(), wl=stage.dataset.wall;
+    const dm=themeMode(), wl=lsGet('dm-photowall')?'':stage.dataset.wall;
     switch(key){
       case 'pm':{
         const A=window.AndroidLauncher; if(!A)return ['Quyền truy cập','<div class="grp"><div class="rw"><span><b>Chỉ có trong app Android</b><small>Bản web không có quyền hệ thống để cấp.</small></span></div></div>'];
@@ -1647,7 +1647,7 @@ function buildSettings(b,w,arg){
       case 'wifi':return ['Wi-Fi','<div class="grp">'+rw('Wi-Fi',tgl(pref('wifi',true),'wifi','Wi-Fi'),navigator.onLine?'Đã kết nối':'Không có kết nối mạng')+'</div>'];
       case 'bt':return ['Bluetooth','<div class="grp">'+rw('Bluetooth',tgl(pref('bt',true),'bt','Bluetooth'),pref('bt',true)?'Đang bật':'Đã tắt')+'</div>'];
       case 'ap':return ['Giao diện','<div class="tiles"><button class="ap" data-m="auto" aria-pressed="'+(dm==='auto')+'"><span class="th a"></span><span>Tự động</span></button><button class="ap" data-m="light" aria-pressed="'+(dm==='light')+'"><span class="th l"></span><span>Sáng</span></button><button class="ap" data-m="dark" aria-pressed="'+(dm==='dark')+'"><span class="th d"></span><span>Tối</span></button></div>'];
-      case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button></div>'];
+      case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button>'+(NA()&&NA().getPhotos?'<button class="ap" data-pick="1" aria-pressed="'+(!!lsGet('dm-photowall'))+'"><span class="wl" style="background:linear-gradient(135deg,#5b6577,#2b303b);display:grid;place-items:center;font-size:30px;color:#fff">▣</span><span>Ảnh trên máy</span></button>':'')+'</div>'];
       case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+'</div>'];
       case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+'</div>'];
       case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+'</div>'];
@@ -1662,6 +1662,7 @@ function buildSettings(b,w,arg){
     $$('.si',nav).forEach(s=>s.setAttribute('aria-current',s.dataset.p===key?'true':'false'));
     $$('[data-m]',pane).forEach(x=>x.addEventListener('click',()=>setTheme(x.dataset.m)));
     $$('[data-n]',pane).forEach(x=>x.addEventListener('click',()=>setWall(x.dataset.n)));
+    $$('[data-pick]',pane).forEach(x=>x.addEventListener('click',()=>pickPhotoWall()));
     $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'))}));
     $$('.rg',pane).forEach(x=>x.addEventListener('input',()=>{setPrefQuiet(x.dataset.s,+x.value);const sm=x.closest('.rw').querySelector('small');if(sm&&x.dataset.s==='vol')sm.textContent=x.value+'%'}));
     const un=$('#un',pane); if(un)un.addEventListener('input',()=>{lsSet('dm-user',un.value.trim()||'Người dùng')});
@@ -2762,6 +2763,44 @@ function applySysWall(){
   },350);
 }
 if(lsGet('dm-syswall')==='1')applySysWall();
+
+/* Hình nền: chọn ảnh thật trong máy */
+function applyPhotoWall(){
+  const n=NA(), id=lsGet('dm-photowall'); if(!n||!n.getPhotoData||!id)return;
+  setTimeout(()=>{
+    let u=''; try{u=n.getPhotoData(+id,1440)}catch(e){}
+    if(u){stage.style.backgroundImage='url("'+u+'")';stage.style.backgroundSize='cover';stage.style.backgroundPosition='center'}
+  },200);
+}
+function setPhotoWall(id){
+  lsSet('dm-syswall',''); lsSet('dm-photowall',String(id)); stage.dataset.wall=lsGet('dm-wall')||'3';
+  applyPhotoWall(); bus.emit('ui');
+}
+function pickPhotoWall(){
+  const n=NA(); if(!n||!n.getPhotos)return;
+  let ph=[]; try{ph=JSON.parse(n.getPhotos())}catch(e){}
+  const o=document.createElement('div'); o.className='bpk';
+  o.innerHTML='<div class="bps" style="width:min(92%,520px);max-height:80%;display:flex;flex-direction:column"><b>Chọn ảnh làm hình nền</b>'+(ph.length?'<div class="pwg" style="margin-top:10px;overflow:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'+ph.map(p=>'<button type="button" data-id="'+p.id+'" aria-label="'+esc(p.n||'Ảnh')+'" style="aspect-ratio:1;border:0;padding:0;border-radius:10px;overflow:hidden;background:rgba(127,127,127,.25)"><img alt="" style="width:100%;height:100%;object-fit:cover;display:block"></button>').join('')+'</div>':'<small style="display:block;margin-top:10px">Chưa có ảnh nào hoặc chưa cấp quyền truy cập ảnh.</small>')+'<div style="display:flex;justify-content:flex-end;margin-top:10px"><button type="button" class="btn pwc">Đóng</button></div></div>';
+  stage.appendChild(o);
+  $('.pwc',o).addEventListener('click',()=>o.remove());
+  o.addEventListener('click',e=>{
+    const x=e.target.closest('[data-id]');
+    if(x){o.remove();setPhotoWall(x.dataset.id);return}
+    if(!e.target.closest('.bps'))o.remove();
+  });
+  const g=$('.pwg',o); if(!g)return;
+  const q=[]; let busy=false;
+  const pump=()=>{
+    if(busy)return; const b=q.shift(); if(!b)return; busy=true;
+    setTimeout(()=>{
+      if(b.isConnected){let d='';try{d=n.getPhotoData(+b.dataset.id,240)}catch(e){} if(d)$('img',b).src=d}
+      busy=false; pump();
+    },0);
+  };
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);q.push(e.target);pump()}}),{root:g,rootMargin:'200px'});
+  $$('button',g).forEach(b=>io.observe(b));
+}
+if(lsGet('dm-photowall'))applyPhotoWall();
 const sysBack=()=>{if(!document.hidden&&lsGet('dm-syswall')==='1')applySysWall()};
 document.addEventListener('visibilitychange',sysBack); window.addEventListener('focus',sysBack);
 const DSA={
