@@ -2,19 +2,23 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{color-scheme:light}html,body{margin:0}
 /* Ghi âm */
-.rc{position:relative;display:flex;flex-direction:column;height:100%;padding:38px 18px 18px;background:#131218;color:#efe9fb;overflow-y:auto;-webkit-user-select:none;user-select:none}
-.rc h2{margin:0 0 14px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
-.rc .rcw{flex:none;height:120px;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
+.rc{position:relative;display:flex;flex-direction:column;height:100%;padding:36px 16px 12px;background:#131218;color:#efe9fb;overflow:hidden;container-type:size;-webkit-user-select:none;user-select:none}
+.rc .rcm{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+.rc .rcx{flex:none;display:flex;flex-direction:column;min-height:0}
+.rc .rcs{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+.rc .rcl{flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin-inline:-4px;padding-inline:4px}
+.rc h2{margin:0 0 clamp(4px,2.4cqh,14px);text-align:center;font-size:clamp(13px,3.4cqh,18px);letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
+.rc .rcw{flex:none;height:clamp(40px,17cqh,120px);border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
 .rc .rcv{display:block;width:100%;height:100%}
-.rc .rctime{flex:none;margin:16px 0 14px;text-align:center;font-size:38px;font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#efe9fb;text-shadow:0 0 16px rgba(180,76,255,.55)}
+.rc .rctime{flex:none;margin:clamp(6px,2.6cqh,16px) 0 clamp(4px,2.2cqh,14px);text-align:center;font-size:clamp(24px,6.8cqh,38px);font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#efe9fb;text-shadow:0 0 16px rgba(180,76,255,.55)}
 .rc .rcbt{flex:none;display:flex;justify-content:center;gap:24px}
-.rc .rcb{width:54px;height:54px;border-radius:50%;border:2px solid #b44cff;background:#22103a;color:#b44cff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(180,76,255,.4)}
+.rc .rcb{width:clamp(40px,9.5cqh,54px);height:clamp(40px,9.5cqh,54px);border-radius:50%;border:2px solid #b44cff;background:#22103a;color:#b44cff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(180,76,255,.4)}
 .rc .rcb svg{width:22px;height:22px}
 .rc .rcb:disabled{opacity:.35;box-shadow:none}
 .rc .rcb.rcp{border-color:rgba(180,76,255,.35);box-shadow:none}
 .rc .rcb.rcr i{display:block;width:24px;height:24px;border-radius:50%;background:#ff3860;transition:border-radius .15s,width .15s,height .15s}
 .rc .rcb.rcr.on i{width:18px;height:18px;border-radius:5px}
-.rc .rch{flex:none;margin:18px 0 10px;padding-top:14px;border-top:1px solid rgba(180,76,255,.2);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#8d84a3}
+.rc .rch{flex:none;margin:clamp(6px,2.4cqh,18px) 0 clamp(4px,1.6cqh,10px);padding-top:clamp(6px,2cqh,14px);border-top:1px solid rgba(180,76,255,.2);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#8d84a3}
 .rc .rce{padding:14px;text-align:center;font-size:13px;letter-spacing:.08em;color:#8d84a3}
 .rc .rci{flex:none;margin-bottom:10px;padding:10px 12px;border:1px solid rgba(180,76,255,.25);border-radius:14px;background:rgba(255,255,255,.02)}
 .rc .rcn,.rc .rcin{display:block;width:100%;font-size:14px;line-height:1.3;margin-bottom:8px;color:#efe9fb}
@@ -34,6 +38,14 @@
 .rc .rcmenu{position:absolute;z-index:5;width:190px;padding:4px;border:1px solid #7a35c9;border-radius:12px;background:#14101e;box-shadow:0 0 22px rgba(180,76,255,.35)}
 .rc .rcmenu button{display:block;width:100%;padding:11px 14px;text-align:left;font-size:14px;color:#efe9fb;border-radius:8px}
 .rc .rcmenu button.dg{color:#ff4d6d}
+/* Cửa sổ rất thấp: bỏ tiêu đề cho gọn. Cửa sổ ngang (rộng hơn cao): điều khiển bên trái, danh sách bên phải */
+@container (max-height:330px){.rc h2{display:none}}
+@container (min-aspect-ratio:7/5){
+  .rc .rcm{flex-direction:row;gap:18px}
+  .rc .rcx{flex:0 0 44%;min-width:0;justify-content:center}
+  .rc .rcs{min-width:0}
+  .rc .rch{margin-top:0;padding-top:0;border-top:0}
+}
 
 /* Kéo thả tệp */
 .rf .rup{width:34px;height:52px;font-size:22px;line-height:1}
@@ -2060,7 +2072,7 @@ function buildRecorder(b,w){
   const PAUSE='<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>', PLAY='<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>', RATES=[1,1.5,2,0.5];
   const fmt=ms=>{ms=Math.max(0,Math.floor(ms));return pad(Math.floor(ms/60000))+':'+pad(Math.floor(ms/1000)%60)+'.'+(Math.floor(ms/100)%10)};
   const rl=r=>(r===0.5?'0.5':String(r))+'x';
-  b.innerHTML='<div class="rc"><h2>Máy ghi âm</h2><div class="rcw"><canvas class="rcv"></canvas></div><div class="rctime">00:00.0</div><div class="rcbt"><button type="button" class="rcb rcp" aria-label="Tạm dừng" disabled>'+PAUSE+'</button><button type="button" class="rcb rcr" aria-label="Ghi âm"><i></i></button></div><div class="rch">Bản ghi đã lưu</div><div class="rcl"></div></div>';
+  b.innerHTML='<div class="rc"><div class="rcm"><div class="rcx"><h2>Máy ghi âm</h2><div class="rcw"><canvas class="rcv"></canvas></div><div class="rctime">00:00.0</div><div class="rcbt"><button type="button" class="rcb rcp" aria-label="Tạm dừng" disabled>'+PAUSE+'</button><button type="button" class="rcb rcr" aria-label="Ghi âm"><i></i></button></div></div><div class="rcs"><div class="rch">Bản ghi đã lưu</div><div class="rcl"></div></div></div></div>';
   const root=$('.rc',b), cv=$('.rcv',b), cx=cv.getContext('2d'), tm=$('.rctime',b), bp=$('.rcp',b), br=$('.rcr',b), ls=$('.rcl',b);
   let st='idle', stream=null, mr=null, ac=null, an=null, buf=null, acc=0, t0=0, tmr=null, raf=0, lastP=0, hist=[], items=[], cur=null, menuIt=null;
   const menu=document.createElement('div'); menu.className='rcmenu'; menu.hidden=true;
@@ -2192,7 +2204,8 @@ function buildRecorder(b,w){
     menuIt=it; menu.hidden=false;
     const rr=root.getBoundingClientRect(), br2=btn.getBoundingClientRect();
     menu.style.left=Math.max(8,Math.min(rr.width-198,br2.right-rr.left-190))+'px';
-    menu.style.top=(br2.bottom-rr.top+root.scrollTop+4)+'px';
+    const mh=menu.offsetHeight||134; let top=br2.bottom-rr.top+4; if(top+mh>rr.height-8)top=Math.max(8,br2.top-rr.top-mh-4);
+    menu.style.top=top+'px';
   }
   function rename(it){
     const row=rowOf(it); if(!row)return;
@@ -2239,6 +2252,7 @@ function buildRecorder(b,w){
     if(a.dataset.a==='ren')rename(it); else if(a.dataset.a==='shr')share(it); else remove(it);
   });
   b.addEventListener('pointerdown',e=>{if(!menu.hidden&&!e.target.closest('.rcmenu')&&!e.target.closest('.rcmn'))menu.hidden=true},true);
+  ls.addEventListener('scroll',()=>{menu.hidden=true});
 
   renderList(); draw();
   RECDB.all().then(a=>{items=a.sort((x,y)=>y.t-x.t);if(w.isConnected)renderList()});
