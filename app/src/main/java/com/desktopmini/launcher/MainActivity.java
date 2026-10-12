@@ -1061,10 +1061,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean shareFile(String path) {
             try {
                 File f = new File(path);
-                String ext = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(f).toString());
-                String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
+                String mime = mimeOf(f.getName());
                 Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
-                Intent i = new Intent(Intent.ACTION_SEND).setType(mime == null ? "*/*" : mime).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Intent i = new Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 go(Intent.createChooser(i, "Chia sẻ"));
                 return true;
             } catch (Exception e) { return false; }
@@ -1147,15 +1146,132 @@ public class MainActivity extends Activity {
                 return ok;
             } catch (Exception e) { return false; }
         }
-        @JavascriptInterface public boolean openFile(String path) {
+        /* ---- Mở mọi loại tệp: nhận diện MIME theo đuôi tệp, APK, giải nén ZIP, "Mở bằng…" ---- */
+        private String extOf(String name) {
+            String n = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
+            int d = n.lastIndexOf('.');
+            return d >= 0 ? n.substring(d + 1) : "";
+        }
+        private String mimeOf(String name) {
+            String ext = extOf(name);
+            String[][] X = {
+                {"apk", "application/vnd.android.package-archive"},
+                {"zip", "application/zip"}, {"rar", "application/vnd.rar"}, {"7z", "application/x-7z-compressed"},
+                {"tar", "application/x-tar"}, {"gz", "application/gzip"}, {"tgz", "application/gzip"},
+                {"doc", "application/msword"}, {"docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+                {"xls", "application/vnd.ms-excel"}, {"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+                {"ppt", "application/vnd.ms-powerpoint"}, {"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
+                {"odt", "application/vnd.oasis.opendocument.text"}, {"ods", "application/vnd.oasis.opendocument.spreadsheet"}, {"odp", "application/vnd.oasis.opendocument.presentation"},
+                {"pdf", "application/pdf"}, {"epub", "application/epub+zip"}, {"csv", "text/csv"}, {"txt", "text/plain"}, {"md", "text/plain"},
+                {"log", "text/plain"}, {"json", "application/json"}, {"xml", "text/xml"}, {"html", "text/html"}, {"htm", "text/html"},
+                {"vcf", "text/x-vcard"}, {"ics", "text/calendar"},
+                {"mp3", "audio/mpeg"}, {"m4a", "audio/mp4"}, {"aac", "audio/aac"}, {"flac", "audio/flac"}, {"wav", "audio/x-wav"},
+                {"ogg", "audio/ogg"}, {"opus", "audio/ogg"}, {"amr", "audio/amr"}, {"mid", "audio/midi"}, {"wma", "audio/x-ms-wma"},
+                {"mp4", "video/mp4"}, {"m4v", "video/mp4"}, {"mkv", "video/x-matroska"}, {"webm", "video/webm"}, {"3gp", "video/3gpp"},
+                {"avi", "video/x-msvideo"}, {"mov", "video/quicktime"}, {"flv", "video/x-flv"}, {"wmv", "video/x-ms-wmv"}, {"ts", "video/mp2t"},
+                {"jpg", "image/jpeg"}, {"jpeg", "image/jpeg"}, {"png", "image/png"}, {"gif", "image/gif"}, {"webp", "image/webp"},
+                {"bmp", "image/bmp"}, {"heic", "image/heic"}, {"svg", "image/svg+xml"}
+            };
+            for (String[] x : X) if (x[0].equals(ext)) return x[1];
+            String m = ext.length() == 0 ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+            return m == null ? "*/*" : m;
+        }
+        /** Mở Uri bằng app phù hợp; thử đúng loại trước rồi mới thử mọi loại. Trả đúng/sai thật (không nuốt lỗi như go()). */
+        private boolean viewUri(Uri u, String mime) {
+            String[] tries = "*/*".equals(mime) ? new String[]{"*/*"} : new String[]{mime, "*/*"};
+            for (String m : tries) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(u, m)
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK));
+                    return true;
+                } catch (Exception e) { }
+            }
+            return false;
+        }
+        /** Trả "" nếu mở được, ngược lại là lý do để hiện cho người dùng. */
+        @JavascriptInterface public String openFileMsg(String path) {
             try {
                 File f = new File(path);
-                String ext = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(f).toString());
-                String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
+                if (!f.exists()) return "Không tìm thấy tệp";
+                if (f.isDirectory()) return "Đây là thư mục";
+                String ext = extOf(f.getName());
+                Uri u;
+                try { u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f); }
+                catch (Exception e) { return "Không đọc được tệp"; }
+                if ("apk".equals(ext)) {
+                    if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+                        go(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
+                        return "Hãy bật \"Cho phép từ nguồn này\" cho Desktop Mini rồi bấm lại tệp APK";
+                    }
+                    return viewUri(u, "application/vnd.android.package-archive") ? "" : "Không mở được trình cài đặt";
+                }
+                return viewUri(u, mimeOf(f.getName())) ? "" : "Máy chưa có ứng dụng nào mở được loại tệp ." + ext + " (thử \"Mở bằng…\")";
+            } catch (Exception e) { return "Không mở được tệp"; }
+        }
+        @JavascriptInterface public boolean openFile(String path) { return openFileMsg(path).length() == 0; }
+        /** "Mở bằng…": luôn hiện hộp chọn ứng dụng. */
+        @JavascriptInterface public boolean openFileWith(String path) {
+            try {
+                File f = new File(path);
                 Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
-                Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime == null ? "*/*" : mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                go(i); return true;
+                Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mimeOf(f.getName())).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Intent c = Intent.createChooser(v, "Mở bằng");
+                c.setClipData(android.content.ClipData.newRawUri("", u));
+                c.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(c);
+                return true;
             } catch (Exception e) { return false; }
+        }
+
+        /** Giải nén ZIP vào thư mục cùng tên cạnh tệp (chạy nền). Xong gọi window.nativeZipDone(token, json). */
+        @JavascriptInterface public void extractZipAsync(final String path, final String token) {
+            new Thread(new Runnable() { public void run() {
+                JSONObject res = new JSONObject();
+                File out = null; boolean ok = false;
+                try {
+                    File z = new File(path), parent = z.getParentFile();
+                    String base = z.getName(); int d = base.lastIndexOf('.'); if (d > 0) base = base.substring(0, d);
+                    out = new File(parent, base); int k = 2;
+                    while (out.exists()) { out = new File(parent, base + " " + k); k++; }
+                    if (!out.mkdirs()) throw new java.io.IOException("Không tạo được thư mục đích");
+                    ArrayList<String> made = new ArrayList<String>();
+                    java.util.zip.ZipFile zf;
+                    try { zf = new java.util.zip.ZipFile(z); }
+                    catch (IllegalArgumentException e) { zf = new java.util.zip.ZipFile(z, java.nio.charset.StandardCharsets.ISO_8859_1); }
+                    String root = out.getCanonicalPath() + File.separator;
+                    int count = 0;
+                    try {
+                        java.util.Enumeration<? extends java.util.zip.ZipEntry> en = zf.entries();
+                        while (en.hasMoreElements()) {
+                            java.util.zip.ZipEntry e = en.nextElement();
+                            if (++count > 100000) throw new java.io.IOException("Tệp ZIP có quá nhiều mục");
+                            File t = new File(out, e.getName());
+                            String cp = t.getCanonicalPath();
+                            if (!(cp + File.separator).startsWith(root)) continue; /* chặn zip-slip */
+                            if (e.isDirectory()) { t.mkdirs(); continue; }
+                            File pr = t.getParentFile(); if (pr != null) pr.mkdirs();
+                            InputStream in = zf.getInputStream(e); FileOutputStream os = new FileOutputStream(t);
+                            try { byte[] buf = new byte[65536]; int n; while ((n = in.read(buf)) > 0) os.write(buf, 0, n); }
+                            finally { os.close(); in.close(); }
+                            long tm = e.getTime(); if (tm > 0) t.setLastModified(tm);
+                            made.add(t.getAbsolutePath());
+                        }
+                    } finally { zf.close(); }
+                    ok = true;
+                    try { android.media.MediaScannerConnection.scanFile(MainActivity.this, made.toArray(new String[0]), null, null); } catch (Exception e) { }
+                    res.put("dir", out.getAbsolutePath()); res.put("n", made.size());
+                } catch (Exception e) {
+                    try { res.put("error", e.getMessage() == null ? "Tệp ZIP lỗi hoặc có mật khẩu" : e.getMessage()); } catch (Exception x) { }
+                }
+                if (!ok && out != null) rmTree(out);
+                final String js = "window.nativeZipDone&&window.nativeZipDone(" + JSONObject.quote(token) + "," + JSONObject.quote(res.toString()) + ")";
+                runOnUiThread(new Runnable() { public void run() { if (web != null) web.evaluateJavascript(js, null); } });
+            }}).start();
+        }
+        private void rmTree(File f) {
+            File[] k = f.listFiles();
+            if (k != null) for (File c : k) rmTree(c);
+            f.delete();
         }
 
         /** Gmail thật: mở app Gmail trên máy; không có thì thử app thư khác, cuối cùng mới mở web. */
@@ -1205,8 +1321,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean openDownload(long id, String mime) {
             try {
                 Uri u = ContentUris.withAppendedId(MediaStore.Files.getContentUri("external"), id);
-                go(new Intent(Intent.ACTION_VIEW).setDataAndType(u, (mime == null || mime.length() == 0) ? "*/*" : mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
-                return true;
+                return viewUri(u, (mime == null || mime.length() == 0) ? "*/*" : mime);
             } catch (Exception e) { return false; }
         }
 

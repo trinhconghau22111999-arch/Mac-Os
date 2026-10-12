@@ -2481,6 +2481,25 @@ function buildRealFiles(b,w,arg,mode){
       });
     },20);
   }
+  /* ---------- Mở mọi loại tệp + giải nén ZIP ---------- */
+  const isZip=n=>/\.zip$/i.test(n||'');
+  function unzip(full,nm){
+    if(!A.extractZipAsync){notify({app:'Tệp',title:'Chưa hỗ trợ giải nén',body:'Hãy cập nhật ứng dụng',icon:'files'});return}
+    const tok='z'+Date.now()+Math.random().toString(36).slice(2,6);
+    ZIPCB[tok]=r=>{
+      if(r.error){notify({app:'Tệp',title:'Không giải nén được',body:nm+': '+r.error,icon:'files'});return}
+      notify({app:'Tệp',title:'Đã giải nén',body:nm+' → '+r.n+' tệp',icon:'files'});
+      M={}; bus.emit('files'); go(r.dir);
+    };
+    notify({app:'Tệp',title:'Đang giải nén…',body:nm,icon:'files'});
+    A.extractZipAsync(full,tok);
+  }
+  function openPath(full,nm,alt){
+    if(isZip(nm)){unzip(full,nm);return}
+    let m=A.openFileMsg?A.openFileMsg(full):(A.openFile(full)?'':'Không mở được tệp');
+    if(m&&alt&&alt.id&&A.openDownload&&A.openDownload(alt.id,alt.t))m='';
+    if(m)notify({app:'Tệp',title:'Không mở được tệp',body:nm+': '+m,icon:'files'});
+  }
   function renameBox(n,full,refresh){
     const o=document.createElement('div'); o.className='bpk';
     o.innerHTML='<div class="bps"><b>Đổi tên</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn rc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
@@ -2497,6 +2516,8 @@ function buildRealFiles(b,w,arg,mode){
   }
   function fileMenu(e,n,full,opn,refresh,isDir){
     const it=[{t:'Mở',fn:opn}];
+    if(full&&!isDir&&A.openFileWith)it.push({t:'Mở bằng…',fn:()=>{if(!A.openFileWith(full))notify({app:'Tệp',title:'Không mở được tệp',body:n,icon:'files'})}});
+    if(full&&!isDir&&isZip(n))it.push({t:'Giải nén tại đây',fn:()=>unzip(full,n)});
     if(full&&!isDir)it.push({t:'Chia sẻ…',fn:()=>{if(!A.shareFile(full))notify({app:'Tệp',title:'Không chia sẻ được',body:n,icon:'files'})}});
     if(full)it.push({t:'Đổi tên…',fn:()=>renameBox(n,full,refresh)});
     if(full)it.push('-',{t:'Xoá',fn:()=>{if(A.deleteFile(full)){M={};refresh()}else notify({app:'Tệp',title:'Không xoá được',body:n+(isDir?' (thư mục chưa trống)':''),icon:'files'})}});
@@ -2510,7 +2531,7 @@ function buildRealFiles(b,w,arg,mode){
       const ext=f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp';
       return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+fmtSize(f.s)+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
     }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
-    const opn=f=>{if(!((f.p&&A.openFile(f.p))||A.openDownload(f.id,f.t)))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
+    const opn=f=>{if(f.p){openPath(f.p,f.n,f);return} if(!A.openDownload(f.id,f.t))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
     $$('.rfi',list).forEach(x=>{
       const f=r.list[+x.dataset.i];
       x.addEventListener('click',()=>opn(f));
@@ -2530,7 +2551,7 @@ function buildRealFiles(b,w,arg,mode){
     }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
     $$('.rfi',list).forEach(x=>{
       const f=r.list[+x.dataset.i], full=path.replace(/\/$/,'')+'/'+f.n;
-      const opn=()=>{if(f.d)go(full); else if(!A.openFile(full))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
+      const opn=()=>{if(f.d)go(full); else openPath(full,f.n)};
       x.addEventListener('click',opn);
       x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,full,opn,()=>render(),f.d)});
       if(f.d)x.__dz=full;
@@ -2623,6 +2644,8 @@ function buildRealFiles(b,w,arg,mode){
   render();
   return {open(a){if(a&&a.path)go(a.path)}};
 }
+const ZIPCB={};
+window.nativeZipDone=(t,j)=>{let r={};try{r=JSON.parse(j)}catch(e){r={error:'Lỗi giải nén'}}const f=ZIPCB[t];delete ZIPCB[t];if(f)f(r)};
 const EXTERR={};
 window.nativeExtError=k=>{if(EXTERR[k])EXTERR[k]()};
 function buildWebApp(b,w,key,url,title){
