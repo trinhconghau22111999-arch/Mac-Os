@@ -582,6 +582,58 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return false; }
         }
 
+        /** Gmail thật: mở app Gmail trên máy; không có thì thử app thư khác, cuối cùng mới mở web. */
+        @JavascriptInterface public boolean openMail() {
+            try {
+                PackageManager pm = getPackageManager();
+                Intent i = pm.getLaunchIntentForPackage("com.google.android.gm");
+                if (i == null) {
+                    Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_EMAIL);
+                    List<ResolveInfo> l = pm.queryIntentActivities(q, 0);
+                    for (ResolveInfo r : l) { if (!r.activityInfo.packageName.equals(getPackageName())) { i = pm.getLaunchIntentForPackage(r.activityInfo.packageName); if (i != null) break; } }
+                }
+                if (i == null) i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com/"));
+                go(i); return true;
+            } catch (Exception e) { return false; }
+        }
+
+        /* ---- Tải xuống: toàn bộ tệp trong thư mục Download của máy (kể cả thư mục con), qua MediaStore ---- */
+        @JavascriptInterface public String listDownloads() {
+            JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
+            try {
+                Uri base = MediaStore.Files.getContentUri("external");
+                String sel, args[];
+                if (Build.VERSION.SDK_INT >= 29) { sel = MediaStore.MediaColumns.RELATIVE_PATH + " LIKE ?"; args = new String[]{"Download/%"}; }
+                else { sel = MediaStore.MediaColumns.DATA + " LIKE ?"; args = new String[]{"%/Download/%"}; }
+                sel += " AND " + MediaStore.Files.FileColumns.MEDIA_TYPE + " IS NOT NULL";
+                Cursor c = getContentResolver().query(base, new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.MediaColumns.MIME_TYPE},
+                    sel, args, MediaStore.MediaColumns.DATE_MODIFIED + " DESC");
+                if (c == null) res.put("error", "Không đọc được thư mục Tải xuống");
+                else {
+                    int n = 0;
+                    while (c.moveToNext() && n++ < 10000) {
+                        String nm = c.getString(1); if (nm == null || nm.startsWith(".")) continue;
+                        JSONObject o = new JSONObject(); o.put("id", c.getLong(0)); o.put("n", nm); o.put("s", c.getLong(2)); o.put("m", c.getLong(3) * 1000L);
+                        String mt = c.getString(4); o.put("t", mt == null ? "" : mt); arr.put(o);
+                    }
+                    c.close();
+                }
+            } catch (SecurityException e) {
+                try { res.put("error", "Chưa cấp quyền truy cập tệp"); } catch (Exception x) { }
+            } catch (Exception e) {
+                try { res.put("error", "Không đọc được thư mục Tải xuống"); } catch (Exception x) { }
+            }
+            try { res.put("list", arr); } catch (Exception e) { }
+            return res.toString();
+        }
+        @JavascriptInterface public boolean openDownload(long id, String mime) {
+            try {
+                Uri u = ContentUris.withAppendedId(MediaStore.Files.getContentUri("external"), id);
+                go(new Intent(Intent.ACTION_VIEW).setDataAndType(u, (mime == null || mime.length() == 0) ? "*/*" : mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
         /* ---- Lịch thật của máy ---- */
         @JavascriptInterface public String getDeviceEvents(long start, long end) {
             JSONArray arr = new JSONArray();

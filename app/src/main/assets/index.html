@@ -310,6 +310,15 @@ ul,ol{margin:0;padding:0;list-style:none}
 .wk{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--line);color:var(--muted);font-size:12px}
 .wk span{padding:4px 8px;text-align:right}
 .cg{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr))}
+/* Lịch: tiêu đề tháng và nút ‹ Hôm nay › luôn hiện đủ, không bị khuất */
+.cal>.bar{min-width:0;gap:6px;padding-right:12px}
+.cal-bar .t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:clamp(14px,4.2vw,20px)}
+.cal-bar .grow{display:none}
+.cnav{flex:none}
+.cnav button{padding-inline:10px}
+.cal>.wk,.cal>.cg{min-width:0}
+.cal>.cg{min-height:120px}
+
 .cd{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:4px 5px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13px;font-variant-numeric:tabular-nums;overflow:hidden;position:relative}
 .cd:nth-child(7n+1){border-left:0}
 .cd:nth-child(-n+7){border-top:0}
@@ -829,7 +838,6 @@ const ICONS={
   terminal:{bg:'linear-gradient(#3b3c41,#111113)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#7CFC9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l5 4-5 4M12.5 17h6.5"/></svg>'},
   clock:{bg:'linear-gradient(#2a2b30,#0d0d0f)',g:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f6f6f8"/><path d="M12 6.5V12l3.6 2.2" fill="none" stroke="#1d1d1f" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.1" fill="#ff3b30"/></svg>'},
   settings:{bg:'linear-gradient(#c5c8cf,#6f727b)',g:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.4" fill="none" stroke="#fff" stroke-width="3.8" stroke-dasharray="3.3 3.3"/><circle cx="12" cy="12" r="5.8" fill="#fff"/><circle cx="12" cy="12" r="2.4" fill="#7d808a"/></svg>'},
-  gcal:{bg:'linear-gradient(#6ab7ff,#2f6fe0)',g:'<svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="3" fill="#fff"/><path d="M3.5 9.5h17" stroke="#2f6fe0" stroke-width="1.6"/><circle cx="15.5" cy="15" r="3" fill="none" stroke="#2f6fe0" stroke-width="1.5"/><path d="M12.5 15h6M15.5 12c1 1.2 1 4.8 0 6M15.5 12c-1 1.2-1 4.8 0 6" stroke="#2f6fe0" stroke-width=".9"/><path d="M8 3.5v3M16 3.5v3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>'},
   downloads:{bg:'linear-gradient(#63e6c4,#169bd1)',g:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M3 7.2A2.2 2.2 0 0 1 5.2 5h4c.6 0 1.2.3 1.6.8L12 7.2h6.8A2.2 2.2 0 0 1 21 9.4v7.4A2.2 2.2 0 0 1 18.8 19H5.2A2.2 2.2 0 0 1 3 16.8z" opacity=".95"/><path d="M12 9.6v5.2M9.8 12.7l2.2 2.2 2.2-2.2" fill="none" stroke="#169bd1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
   trash:{bg:'linear-gradient(rgba(240,243,250,.95),rgba(170,176,192,.9))',g:trashGlyph(false)},
   about:{bg:'linear-gradient(#9be8ff,#2342d8)',g:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>'},
@@ -900,7 +908,6 @@ bus.on('fs',()=>{
 const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
-  gcal:{name:'Lịch Google',w:760,h:500,minW:340,minH:320,build:(b,w)=>buildWebApp(b,w,'gcal','https://calendar.google.com/calendar/u/0/r','Lịch Google')},
   browser:{name:'Trình duyệt',w:700,h:440,minW:360,minH:260,build:buildBrowser},
   mail:{name:'Thư',w:760,h:460,minW:360,minH:280,build:buildMail},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
@@ -916,8 +923,8 @@ const APPS={
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
-const LP_APPS=['files','downloads','browser','mail','calendar','gcal','photos','music','notes','reminders','calc','clock','settings'];
-const DOCK=['launchpad','files','browser','mail','calendar','gcal','photos','music','notes','reminders','calc','clock','settings','|','downloads'];
+const LP_APPS=['files','downloads','browser','mail','calendar','photos','music','notes','reminders','calc','clock','settings'];
+const DOCK=['launchpad','files','browser','mail','calendar','photos','music','notes','reminders','calc','clock','settings','|','downloads'];
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
@@ -1034,6 +1041,7 @@ function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
   if(id==='browser'&&openRealBrowser())return;
+  if(id==='mail'&&window.AndroidLauncher&&window.AndroidLauncher.openMail){try{if(window.AndroidLauncher.openMail())return}catch(e){}}
   if(!APPS[id])return;
   const w=wins[id];
   if(w){
@@ -1058,7 +1066,8 @@ function createWin(id,arg){
   w.style.top=Math.max(40,Math.min(46+n*28,sr.height-bh-110))+'px';
   layer.appendChild(w); wins[id]=w;
   w._api=a.build($('.body',w),w,arg)||{};
-  wire(w,id,a); focusWin(w); syncDock(); flyIn(w,id);
+  wire(w,id,a); if(id==='calendar'&&(sr.height-28-110<a.minH||sr.width<a.minW+24))toggleMax(w);
+  focusWin(w); syncDock(); flyIn(w,id);
   bus.emit('wins');
 }
 function closeWin(w){
@@ -1808,7 +1817,22 @@ function buildRealFiles(b,w,arg,mode){
       });
     },20);
   }
+  function renderDownloads(){
+    let r={list:[]}; try{r=JSON.parse(A.listDownloads())}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
+    if(r.error&&!r.list.length){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
+    ft.textContent=r.list.length+' mục';
+    list.innerHTML=r.list.length?r.list.map((f,i)=>{
+      const ext=f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp';
+      return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+fmtSize(f.s)+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
+    }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
+    $$('.rfi',list).forEach(x=>x.addEventListener('click',()=>{
+      const f=r.list[+x.dataset.i];
+      if(!A.openDownload(f.id,f.t))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'});
+    }));
+  }
   function renderDir(){
+    /* Thư mục Tải xuống gốc: hiện toàn bộ tệp bên trong ứng dụng (MediaStore), không nhảy sang app Tải xuống của hệ thống */
+    if(path===R.down&&A.listDownloads){renderDownloads();return}
     let r={list:[]}; try{r=JSON.parse(A.listDir(path))}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
     if(r.error){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
     ft.textContent=r.list.length+' mục';
@@ -2820,9 +2844,7 @@ if(window.AndroidLauncher){(function(){
     try{
       if(overlaysOpen())return;
       const w=$('.win.focus',layer); if(!w)return;
-      const k={mail:'mail',gcal:'gcal'}[w.dataset.app];
-      if(k){safe(()=>A.extBack(k));return}
-      closeWin(w);
+            closeWin(w);
     }catch(e){}
   };
   /* Thông báo thật của máy -> Trung tâm thông báo */
@@ -2932,7 +2954,6 @@ if(window.AndroidLauncher){(function(){
   function big_ok(i){return !i.getAttribute('src')}
   window.nativeReload=function(){loadTracks();loadPhotos();sync();realBatt();insets();if(window.devCalReset)devCalReset()};
   /* Thư = Gmail trong cửa sổ */
-  APPS.mail.build=(b,w)=>buildWebApp(b,w,'mail','https://mail.google.com/mail/u/0/','Gmail');
   APPS.mail.name='Gmail'; const mb=dockBtn('mail'); if(mb){mb.dataset.label='Gmail';mb.setAttribute('aria-label','Gmail')}
   /* Giới thiệu: thông tin máy thật */
   const inf=safe(()=>JSON.parse(A.getInfo()),{});
