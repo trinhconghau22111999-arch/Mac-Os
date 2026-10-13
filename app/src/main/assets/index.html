@@ -120,7 +120,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 
 .stage{--base:54px;position:relative;height:100%;min-height:560px;border-radius:16px;overflow:hidden;isolation:isolate;user-select:none;-webkit-user-select:none;
   background:radial-gradient(70% 55% at 18% -5%,#9be8ff 0,transparent 60%),radial-gradient(60% 60% at 92% 18%,#8aa8ff 0,transparent 62%),radial-gradient(90% 70% at 55% 112%,#2342d8 0,transparent 70%),linear-gradient(#2f6fe0,#2f6fe0)}
-.stage{background-size:100% calc(100% - var(--base) - 38px)!important;background-repeat:no-repeat!important;background-position:top center!important}
+/* Hình nền phủ kín cả màn hình, kể cả phía sau dock (không cắt thành hai phần trên/dưới) */
+.stage{background-size:cover;background-repeat:no-repeat;background-position:center}
 .stage[data-wall="2"]{background:radial-gradient(65% 55% at 15% 8%,#ffb48a 0,transparent 62%),radial-gradient(60% 60% at 92% 30%,#d55bd8 0,transparent 62%),radial-gradient(90% 70% at 50% 115%,#3a2a9a 0,transparent 70%),linear-gradient(#7b3fb0,#7b3fb0)}
 .stage[data-wall="3"]{background:radial-gradient(60% 50% at 20% 5%,#3d5a9e 0,transparent 62%),radial-gradient(55% 60% at 90% 25%,#6a45d6 0,transparent 62%),radial-gradient(90% 70% at 50% 115%,#1a2250 0,transparent 70%),linear-gradient(#0b1026,#0b1026)}
 .dim{position:absolute;inset:0;z-index:30;background:#000;opacity:0;pointer-events:none}
