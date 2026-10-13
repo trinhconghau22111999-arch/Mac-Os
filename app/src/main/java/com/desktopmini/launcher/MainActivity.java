@@ -77,6 +77,8 @@ public class MainActivity extends Activity {
     private boolean askingRuntime = false;
     private WebView web;
     private final HashMap<String, WebView> ext = new HashMap<String, WebView>();
+    /** Gmail / Drive web: giao diện máy tính. */
+    private static final String UA_DESK = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
     private static final String UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
 
     /** Đẩy sự kiện từ service nền vào giao diện HTML. */
@@ -379,7 +381,8 @@ public class MainActivity extends Activity {
         if (v == null) {
             v = new WebView(this);
             WebSettings s = v.getSettings();
-            s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setUserAgentString(UA);
+            s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
+            s.setUserAgentString(("gmail".equals(key) || "drive".equals(key)) ? UA_DESK : UA);
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(v, true);
             v.setWebViewClient(new WebViewClient() {
                 @Override public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
