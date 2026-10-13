@@ -845,6 +845,11 @@ a.btn.pri{color:#fff}
 .dk.run .dot{opacity:.8}
 .bdg{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#ff3b30;color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px;box-shadow:0 1px 4px rgba(0,0,0,.35);z-index:2}
 .sep{width:1px;height:calc(var(--base)*.8);align-self:center;background:var(--line);margin-inline:2px;flex:none}
+/* Quá nhiều icon: Dock không tràn ra ngoài, các icon dư ẩn đi và vuốt ngang để xem */
+.dock.scroll{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;justify-content:flex-start;touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.dock.scroll::-webkit-scrollbar{display:none}
+.dock.scroll .dk::after{display:none}
+.dock.scroll .dk.bounce .ic{animation-name:bounce-s}
 @media (max-width:560px){
   .dock{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;justify-content:flex-start}
   .dock::-webkit-scrollbar{display:none}
@@ -1305,6 +1310,7 @@ function addTempDock(id){
   TEMP.push(id); addDockBtn(id);
   const b=dockBtn(id); if(b&&!reduce){b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),320)}
   fitDock(); syncDock(); unmagnify();
+  if(b&&dock.classList.contains('scroll'))dock.scrollLeft=Math.max(0,b.offsetLeft-(dock.clientWidth-b.offsetWidth)/2);
 }
 function removeTempDock(id){
   const i=TEMP.indexOf(id); if(i<0)return;
@@ -1365,8 +1371,12 @@ function setBadge(id,n){const b=dockBtn(id);if(!b)return;const e=$('.bdg',b);e.h
 function fitDock(){
   const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
   let base=Math.floor((sw-40-(tot-1)*6-seps*8-12)/n);
-  base=Math.max(36,Math.min(pref('dockSize',54),base));
+  const ps=pref('dockSize',54);
+  base=Math.max(Math.min(44,ps),Math.min(ps,base));
   stage.style.setProperty('--base',base+'px');
+  /* Nếu vẫn chưa vừa chiều ngang thì chuyển sang chế độ vuốt ngang (Dock vẫn nằm giữa, icon dư bị ẩn) */
+  dock.classList.remove('scroll');
+  if(dock.scrollWidth>dock.clientWidth+1)dock.classList.add('scroll'); else dock.scrollLeft=0;
 }
 function fitCalc(w){
   const sr=stage.getBoundingClientRect(), wide=sr.width>sr.height*1.25, a=APPS.calc;
@@ -1377,7 +1387,7 @@ function fitCalc(w){
 }
 window.addEventListener('resize',()=>{fitDock();$$('.win.max',layer).forEach(fitMax);$$('.win[data-app="calc"]:not(.max)',layer).forEach(fitCalc)});
 let centers=[], mgBase=54, mgRaf=0, mgX=0, mgEls=[];
-const narrowDock=()=>window.matchMedia('(max-width:560px)').matches;
+const narrowDock=()=>window.matchMedia('(max-width:560px)').matches||dock.classList.contains('scroll');
 /* Tâm icon tính theo offsetLeft nên không bị ảnh hưởng bởi transform đang phóng đại */
 const calcCenters=()=>{
   mgEls=$$('.dk',dock); const dl=dock.getBoundingClientRect().left;
