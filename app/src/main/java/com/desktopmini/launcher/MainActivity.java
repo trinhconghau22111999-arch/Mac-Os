@@ -374,6 +374,14 @@ public class MainActivity extends Activity {
     }
     @Override public void onBackPressed() { web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
 
+    /** Mở trình duyệt mặc định của app ("Duyệt web"); có url thì mở thẳng trang đó trong thẻ mới. */
+    void openWeb(String url) {
+        Intent i = new Intent(this, WebBrowserActivity.class);
+        if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) i.setData(Uri.parse(url));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(i); } catch (Exception e) { }
+    }
+
     private void go(Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { startActivity(i); } catch (Exception e) { } }
 
     private WebView extGet(final String key, String url) {
@@ -1115,6 +1123,8 @@ public class MainActivity extends Activity {
                 }
             });
         }
+        /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */
+        @JavascriptInterface public void openWebBrowser(String url) { openWeb(url); }
         @JavascriptInterface public boolean hasPackage(String pkg) {
             try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
         }

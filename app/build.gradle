@@ -13,6 +13,9 @@ dependencies {
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
     // ---- Trình duyệt Gecko (Firefox) đóng gói sẵn; thư viện gốc được lọc chỉ còn arm64-v8a và x86_64 (xem abiFilters bên dưới) ----
     implementation 'org.mozilla.geckoview:geckoview-omni:128.+'
+    // ---- App con "Duyệt web" (chép từ repo Webandr) ----
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
 }
 android {
     namespace 'com.desktopmini.launcher'
