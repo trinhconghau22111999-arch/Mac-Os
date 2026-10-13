@@ -887,6 +887,9 @@ a.btn.pri{color:#fff}
 .rfi{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}
 .rfi{outline:0}.rfi:hover{background:var(--row)}
 .rfi.sel{background:var(--sel);box-shadow:inset 0 0 0 2px var(--accent)}
+.mt.sel::before{content:"";position:absolute;inset:0;border:3px solid var(--accent);border-radius:6px;pointer-events:none;z-index:1}
+.mt.sel::after{content:"✓";position:absolute;right:4px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;line-height:20px;text-align:center;z-index:2}
+.mt.sel img.ld{opacity:.7}
 .rfi .ri{flex:none;width:34px;height:34px;display:grid;place-items:center}.rfi .ri .fic{transform:scale(.8)}
 .rfi .rn{display:flex;flex-direction:column;min-width:0}.rfi .rn b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rfi .rn small{color:var(--muted);font-size:11.5px}
 .rft{padding:6px;text-align:center;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
@@ -2687,7 +2690,7 @@ function buildRealFiles(b,w,arg,mode){
   let path=(arg&&arg.path)||home, hist=[path], pos=0, M={}, io=null;
   b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><strong class="t rpt"></strong><span class="grow"></span><button class="btn rcn" hidden>Bỏ chọn</button><button class="btn rdel" hidden>Xoá</button></div><div class="rfl"></div><div class="rft"></div></div></div>';
   const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b), rcn=$('.rcn',b), rdel=$('.rdel',b);
-  const SEL=new Set();
+  const SEL=new Set(); let MK=null;
   if(!files)side.style.display='none';
   const secPath=k=>k==='img'||k==='vid'||k==='aud'?'@'+k:(k==='root'?R.root:R.down);
   const where=p=>p==='@img'?'img':p==='@vid'?'vid':p==='@aud'?'aud':p==='@home'?'':(R.down&&(p===R.down||p.indexOf(R.down+'/')===0))?'down':'root';
@@ -2704,7 +2707,7 @@ function buildRealFiles(b,w,arg,mode){
   const fmtDur=ms=>{const t=Math.round((ms||0)/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return (h?h+':'+pad(m):m)+':'+pad(s)};
   function reset(){list.onscroll=null;if(io){io.disconnect();io=null}}
   function render(){
-    reset(); SEL.clear(); pt.textContent=name(path); rcn.hidden=true; rdel.hidden=true;
+    reset(); SEL.clear(); MK=null; pt.textContent=name(path); rcn.hidden=true; rdel.hidden=true;
     $$('.si',side).forEach(x=>x.setAttribute('aria-current',String(where(path)===x.dataset.k)));
     $('.rbk',b).disabled=pos<=0;
     list.__dz=path[0]==='@'?null:path;
@@ -2731,7 +2734,7 @@ function buildRealFiles(b,w,arg,mode){
   }
   function renderMedia(kind){
     list.innerHTML='<div class="rnote"><b>Đang tải…</b></div>'; ft.textContent='';
-    const tok=path;
+    const tok=path; MK=kind;
     setTimeout(()=>{
       if(path!==tok)return;
       if(!M[kind]){try{M[kind]=JSON.parse(A.listMedia(kind))}catch(e){M[kind]={error:'Lỗi đọc thư viện',list:[]}}}
@@ -2749,9 +2752,9 @@ function buildRealFiles(b,w,arg,mode){
       let shown=0;
       const tile=(f,i)=>{
         const nm=f.n||'(không tên)';
-        if(grid)return '<button class="mt" data-i="'+i+'" aria-label="'+esc(nm)+'"><img alt="" data-id="'+f.id+'">'+(kind==='vid'?'<span class="mdur">'+fmtDur(f.d)+'</span>':'')+'</button>';
+        if(grid)return '<button class="mt" data-i="'+i+'" data-full="'+f.id+'" aria-label="'+esc(nm)+'"><img alt="" data-id="'+f.id+'">'+(kind==='vid'?'<span class="mdur">'+fmtDur(f.d)+'</span>':'')+'</button>';
         const ext=nm.indexOf('.')>0?nm.split('.').pop().toLowerCase().slice(0,4):'âm';
-        return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(nm)+'</b><small>'+fmtSize(f.s)+(f.d?' · '+fmtDur(f.d):'')+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
+        return '<button class="rfi" data-i="'+i+'" data-full="'+f.id+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(nm)+'</b><small>'+fmtSize(f.s)+(f.d?' · '+fmtDur(f.d):'')+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
       };
       const addChunk=()=>{
         const end=Math.min(items.length,shown+(grid?240:150)); let h='';
@@ -2761,8 +2764,19 @@ function buildRealFiles(b,w,arg,mode){
       };
       addChunk();
       list.onscroll=()=>{if(shown<items.length&&list.scrollTop+list.clientHeight>list.scrollHeight-700)addChunk()};
+      let lp=null, lpd=false, lx=0, ly=0;
+      wrap.addEventListener('pointerdown',e=>{
+        const x=e.target.closest('[data-i]'); if(!x)return;
+        lpd=false; lx=e.clientX; ly=e.clientY; clearTimeout(lp);
+        lp=setTimeout(()=>{lp=null;lpd=true;try{if(navigator.vibrate)navigator.vibrate(15)}catch(_){}toggleSel(x.dataset.full)},400);
+      });
+      wrap.addEventListener('pointermove',e=>{if(lp&&Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>10){clearTimeout(lp);lp=null}});
+      ['pointerup','pointercancel','pointerleave'].forEach(t=>wrap.addEventListener(t,()=>{clearTimeout(lp);lp=null}));
+      wrap.addEventListener('contextmenu',e=>e.preventDefault());
       wrap.addEventListener('click',e=>{
         const x=e.target.closest('[data-i]'); if(!x)return;
+        if(lpd){lpd=false;return}
+        if(SEL.size){toggleSel(x.dataset.full);return}
         const f=items[+x.dataset.i];
         if(kind==='img'){openApp('photos',{pid:f.id,name:f.n});return}
         if(!A.openMedia(kind,f.id))notify({app:'Tệp',title:'Không mở được tệp',body:f.n||'',icon:'files'});
@@ -2928,7 +2942,7 @@ function buildRealFiles(b,w,arg,mode){
   list.addEventListener('click',e=>{if(Date.now()<noClick){e.preventDefault();e.stopPropagation()}},true);
   function selUpdate(){
     const on=SEL.size>0;
-    $$('.rfi',list).forEach(x=>x.classList.toggle('sel',SEL.has(x.dataset.full)));
+    $$('.rfi,.mt',list).forEach(x=>x.classList.toggle('sel',SEL.has(x.dataset.full)));
     rcn.hidden=!on; rdel.hidden=!on;
     pt.textContent=on?'Đã chọn '+SEL.size:name(path);
     rdel.textContent='Xoá ('+SEL.size+')';
@@ -2943,7 +2957,14 @@ function buildRealFiles(b,w,arg,mode){
     $('.rc',o).addEventListener('click',()=>o.remove());
     o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
     $('.ok',o).addEventListener('click',()=>{
-      o.remove(); let bad=0;
+      o.remove();
+      if(MK){
+        const ids=[...SEL], n=ids.length, fin=ok=>{M={};SEL.clear();render();notify({app:'Tệp',title:ok?'Đã xoá '+n+' mục':'Chưa xoá được hết các mục',body:ok?'':'Hãy cấp quyền truy cập tệp rồi thử lại',icon:'files'})};
+        let r=0; try{r=A.deleteMedia?A.deleteMedia(MK,ids.join(',')):0}catch(e){}
+        if(r===1)fin(true); else if(r===2)window.nativeDelResult=ok=>{window.nativeDelResult=null;fin(!!ok)}; else fin(false);
+        return;
+      }
+      let bad=0;
       [...SEL].forEach(f=>{let r=false;try{r=A.deleteFile(f)}catch(e){}if(!r)bad++});
       const n=SEL.size; M={}; SEL.clear(); render();
       if(bad)notify({app:'Tệp',title:'Không xoá được '+bad+' mục',body:'Thư mục chưa trống hoặc chưa có quyền',icon:'files'});

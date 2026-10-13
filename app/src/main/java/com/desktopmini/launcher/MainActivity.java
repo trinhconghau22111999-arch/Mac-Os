@@ -790,6 +790,30 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return 0; }
         }
 
+        /* Xoá nhiều ảnh/video/nhạc cùng lúc: 1 = đã xoá hết, 2 = chờ người dùng xác nhận (kết quả qua nativeDelResult), 0 = lỗi */
+        @JavascriptInterface public int deleteMedia(String kind, String ids) {
+            final List<Uri> pend = new ArrayList<Uri>(); int fail = 0;
+            for (String t : ids.split(",")) {
+                t = t.trim(); if (t.length() == 0) continue;
+                long id; try { id = Long.parseLong(t); } catch (Exception e) { continue; }
+                Uri u = ContentUris.withAppendedId(mediaUri(kind), id);
+                try { if (getContentResolver().delete(u, null, null) <= 0) fail++; }
+                catch (SecurityException se) { pend.add(u); }
+                catch (Exception e) { fail++; }
+            }
+            if (pend.isEmpty()) return fail == 0 ? 1 : 0;
+            if (Build.VERSION.SDK_INT >= 30) {
+                runOnUiThread(new Runnable() { public void run() {
+                    try {
+                        android.app.PendingIntent pi = MediaStore.createDeleteRequest(getContentResolver(), pend);
+                        startIntentSenderForResult(pi.getIntentSender(), 91, null, 0, 0, 0);
+                    } catch (Exception e) { push("nativeDelResult", "0"); }
+                }});
+                return 2;
+            }
+            return 0;
+        }
+
         /* ---- Tự xoay màn hình (cài đặt thật của máy) ---- */
         @JavascriptInterface public boolean isAutoRotate() {
             try { return Settings.System.getInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION) == 1; } catch (Exception e) { return false; }
