@@ -1357,7 +1357,7 @@ function showBrowserPicker(){
   stage.appendChild(o);
   o.addEventListener('click',e=>{
     const x=e.target.closest('.bpi');
-    if(x){const bw=list[+x.dataset.i]; lsSet(BK,bw.pkg); o.remove(); extLaunch(bw.pkg) return}
+    if(x){const bw=list[+x.dataset.i]; lsSet(BK,bw.pkg); o.remove(); extLaunch(bw.pkg); return}
     if(!e.target.closest('.bps'))o.remove();
   });
   return true;
