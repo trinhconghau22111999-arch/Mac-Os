@@ -157,6 +157,7 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(), "AndroidLauncher");
         web.loadUrl("file:///android_asset/index.html");
         prefetchApps();
+        warnOldWebView();
         if (Build.VERSION.SDK_INT >= 28) {
             WindowManager.LayoutParams lp = getWindow().getAttributes();
             lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
@@ -769,6 +770,21 @@ public class MainActivity extends Activity {
         se.loadUri(GK_HOME);
     }
     private void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
+
+    /** Giao diện cần WebView (Chrome) từ bản 105 trở lên; máy Android 7 thường phải cập nhật Android System WebView. */
+    private void warnOldWebView() {
+        try {
+            String ua = web.getSettings().getUserAgentString();
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("Chrome/(\\d+)").matcher(ua == null ? "" : ua);
+            if (!m.find()) return;
+            int v = Integer.parseInt(m.group(1));
+            android.content.SharedPreferences w = getSharedPreferences("wvwarn", 0);
+            if (v < 105 && w.getInt("shown", 0) != v) {
+                w.edit().putInt("shown", v).apply();
+                android.widget.Toast.makeText(this, "WebView hệ thống (Chrome " + v + ") quá cũ, giao diện có thể lỗi. Hãy cập nhật \"Android System WebView\" trong Google Play.", android.widget.Toast.LENGTH_LONG).show();
+            }
+        } catch (Throwable e) { }
+    }
 
     private volatile String appsCache;
     /** Dựng sẵn danh sách app cài đặt (kèm icon) ở luồng nền để Launchpad mở ngay, không khựng. */

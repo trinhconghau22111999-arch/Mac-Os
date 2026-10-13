@@ -29,7 +29,9 @@ android {
         versionCode run
         versionName "1.0.${run}"
         // Chỉ đóng gói 2 loại CPU: arm64-v8a (arm64) và x86_64 -> bỏ armeabi-v7a và x86 cho nhẹ máy
-        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+        // Đổi bằng -Pabis=x86_64,x86 (hoặc nhập ở nút Run workflow) khi cần, ví dụ máy Intel dùng hệ 32-bit
+        def abis = ((project.findProperty('abis') ?: 'arm64-v8a,x86_64') as String).split(',').collect { it.trim() }.findAll { it }
+        ndk { abiFilters.addAll(abis) }
     }
     signingConfigs {
         release {

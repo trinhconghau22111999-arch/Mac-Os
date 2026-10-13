@@ -866,6 +866,14 @@ a.btn.pri{color:#fff}
 .cic b{background:#ff3b30;color:#fff;text-align:center;font-size:15cqw;line-height:1;padding:9cqw 0 6cqw;letter-spacing:.04em}
 .cic span{flex:1;display:grid;place-items:center;font-size:48cqw;font-weight:300;line-height:1}
 
+
+/* Chế độ nhẹ (máy yếu, Android cũ như Yoga Book 7.1.1): bỏ mờ kính và bóng lớn, giữ giao diện đặc để mượt hơn */
+html.lite *,html.lite *::before,html.lite *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html.lite{--glass:rgba(248,248,251,.96)!important;--side:rgba(238,238,243,.97)!important;--hdr:rgba(255,255,255,.97)!important}
+html.lite[data-theme="dark"]{--glass:rgba(40,41,48,.97)!important;--side:rgba(52,53,60,.97)!important;--hdr:rgba(40,41,46,.97)!important}
+@media (prefers-color-scheme: dark){html.lite:not([data-theme="light"]){--glass:rgba(40,41,48,.97)!important;--side:rgba(52,53,60,.97)!important;--hdr:rgba(40,41,46,.97)!important}}
+html.lite .win,html.lite .dock,html.lite .lp,html.lite .sw,html.lite .qlp{box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25)!important}
+html.lite .lp{background:rgba(14,18,34,.88)}
 @media (prefers-reduced-motion: reduce){.dk,.dk::after,.dock,.tg i,.tg{transition:none}.dk.bounce .ic{animation:none}.bn{animation:none}.lp{animation:none}.tr.on .eq{animation:none}}
 </style>
 <style>
@@ -1114,6 +1122,10 @@ const bus={l:{},on(e,f){(this.l[e]=this.l[e]||[]).push(f)},emit(e,a){(this.l[e]|
 let P=jget('dm-prefs',{});
 const pref=(k,d)=>k in P?P[k]:d;
 const setPref=(k,v)=>{P[k]=v;jset('dm-prefs',P);bus.emit('ui')};
+/* Chế độ nhẹ: lần đầu tự bật trên Android 7 trở xuống, sau đó theo lựa chọn trong Cài đặt */
+if(!('lite' in P)){P.lite=/Android [1-7][.;\s]/.test(navigator.userAgent);jset('dm-prefs',P)}
+const applyLite=()=>root.classList.toggle('lite',!!pref('lite',false));
+applyLite(); bus.on('ui',applyLite);
 const userName=()=>lsGet('dm-user')||'Người dùng';
 
 /* ---------- Biểu tượng ---------- */
@@ -2390,7 +2402,7 @@ function buildSettings(b,w,arg){
       }
       case 'ap':return ['Giao diện','<div class="tiles"><button class="ap" data-m="auto" aria-pressed="'+(dm==='auto')+'"><span class="th a"></span><span>Tự động</span></button><button class="ap" data-m="light" aria-pressed="'+(dm==='light')+'"><span class="th l"></span><span>Sáng</span></button><button class="ap" data-m="dark" aria-pressed="'+(dm==='dark')+'"><span class="th d"></span><span>Tối</span></button></div>'];
       case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button>'+(NA()&&NA().getPhotos?'<button class="ap" data-pick="1" aria-pressed="'+(!!lsGet('dm-photowall'))+'"><span class="wl" style="background:linear-gradient(135deg,#5b6577,#2b303b);display:grid;place-items:center;font-size:30px;color:#fff">▣</span><span>Ảnh trên máy</span></button>':'')+'</div>'];
-      case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+rw('Nút Desktop nổi trên ứng dụng khác',tgl(pref('dockFloat',true),'dockFloat','Nút Desktop nổi'),'Hiện nút tròn "Desktop" trên ứng dụng khác: bấm 1 lần để về màn hình Desktop, nhấn giữ rồi kéo để đổi vị trí. Cần bật dịch vụ trợ năng. Muốn ẩn luôn thanh trạng thái và thanh điều hướng của hệ thống (Android 10 trở xuống) cần cấp quyền WRITE_SECURE_SETTINGS qua adb')+'</div>'];
+      case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Chế độ nhẹ (máy yếu)',tgl(pref('lite',false),'lite','Chế độ nhẹ'),'Tắt hiệu ứng mờ kính và bóng lớn để mượt hơn trên máy cấu hình thấp')+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+rw('Nút Desktop nổi trên ứng dụng khác',tgl(pref('dockFloat',true),'dockFloat','Nút Desktop nổi'),'Hiện nút tròn "Desktop" trên ứng dụng khác: bấm 1 lần để về màn hình Desktop, nhấn giữ rồi kéo để đổi vị trí. Cần bật dịch vụ trợ năng. Muốn ẩn luôn thanh trạng thái và thanh điều hướng của hệ thống (Android 10 trở xuống) cần cấp quyền WRITE_SECURE_SETTINGS qua adb')+'</div>'];
       case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+rw('Tự xoay màn hình',tgl(rotOn(),'rot','Tự xoay màn hình'),rotOn()?'Đang bật':'Đã tắt')+'</div>'];
       case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+svRows()+'</div>'+(svRows()?'<small class="svn" hidden style="display:block;margin:8px 4px;opacity:.7">Không đổi được âm lượng này. Hãy tắt chế độ Không làm phiền của máy rồi thử lại.</small>':'')];
       case 'bt2':{
