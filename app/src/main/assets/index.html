@@ -146,6 +146,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .da .dl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
 .dghost{position:absolute;z-index:30;pointer-events:none;opacity:.92;transform:scale(1.1);background:rgba(255,255,255,.18);box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .da.dmov{opacity:.28}
+.da.dtgt{background:rgba(255,255,255,.28);box-shadow:0 0 0 2px rgba(255,255,255,.55) inset}
 .mcbg{position:absolute;inset:0;z-index:1;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s}
 .stage.mc .mcbg{background:rgba(0,0,0,.42);pointer-events:auto}
 .mcsp{position:absolute;top:36px;left:50%;transform:translateX(-50%);padding:5px 16px;border-radius:10px;background:rgba(255,255,255,.22);color:#fff;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
@@ -1263,6 +1264,24 @@ const saveDock=()=>jset('dm-dock',DOCK);
 let DESKAPPS=jget('dm-deskapps',null);
 const deskApps=()=>(Array.isArray(DESKAPPS)?DESKAPPS:LP_APPS).filter(id=>APPS[id]);
 const saveDeskApps=l=>{DESKAPPS=l;jset('dm-deskapps',l)};
+/* Vị trí ô (cột,hàng) của từng icon desktop: thả vào ô nào thì nằm yên ở ô đó, không dồn các icon khác */
+let DESKPOS=jget('dm-deskpos',null); if(!DESKPOS||typeof DESKPOS!=='object'||Array.isArray(DESKPOS))DESKPOS={};
+const saveDeskPos=()=>jset('dm-deskpos',DESKPOS);
+const deskRows=()=>{
+  const cs=getComputedStyle(desk), h=desk.clientHeight-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0), gy=parseFloat(cs.rowGap)||0;
+  return h>0?Math.max(1,Math.floor((h+gy)/(98+gy))):6;
+};
+function deskLayout(rows){
+  const ids=deskApps(), pos={}, used=new Set(), key=(c,r)=>c+','+r;
+  ids.forEach(id=>{const p=DESKPOS[id]; if(Array.isArray(p)&&p[0]>=0&&p[1]>=0&&p[1]<rows&&!used.has(key(p[0],p[1]))){pos[id]=[p[0],p[1]];used.add(key(p[0],p[1]))}});
+  let c=0,r=0;
+  ids.forEach(id=>{
+    if(pos[id])return;
+    while(used.has(key(c,r))){r++;if(r>=rows){r=0;c++}}
+    pos[id]=[c,r]; used.add(key(c,r));
+  });
+  return pos;
+}
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
@@ -1352,10 +1371,12 @@ function removeFromDock(id){
 }
 function addToDesk(id){
   const l=deskApps().slice(); if(!APPS[id]||l.indexOf(id)>=0)return;
-  l.push(id); saveDeskApps(l); renderDesk();
+  l.push(id); saveDeskApps(l);
+  const p=deskLayout(deskRows())[id]; if(p){DESKPOS[id]=p; saveDeskPos()}
+  renderDesk();
 }
 function removeFromDesk(id){
-  saveDeskApps(deskApps().filter(x=>x!==id)); renderDesk();
+  saveDeskApps(deskApps().filter(x=>x!==id)); delete DESKPOS[id]; saveDeskPos(); renderDesk();
 }
 /* Menu chuột phải / nhấn giữ dùng chung cho Launchpad, Dock, Desktop */
 let ctxStamp=0;
@@ -4264,7 +4285,8 @@ function greet(){
 let dsel=-2, dren=-1;
 const diskIcon='<span class="fic disk"><svg viewBox="0 0 48 40"><rect x="3" y="8" width="42" height="26" rx="6" fill="#aab0bd"/><rect x="3" y="8" width="42" height="14" rx="6" fill="#d5d9e2"/><circle cx="38" cy="28" r="2.2" fill="#6b7280"/></svg></span>';
 function renderDesk(){
-  desk.innerHTML=deskApps().map(id=>'<div class="da" data-app="'+id+'" tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
+  const lay=deskLayout(deskRows());
+  desk.innerHTML=deskApps().map(id=>'<div class="da" data-app="'+id+'" style="grid-column:'+(lay[id][0]+1)+';grid-row:'+(lay[id][1]+1)+'" tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
   return;
   let h='<div class="di" data-i="-1" aria-selected="'+(dsel===-1)+'" tabindex="0">'+diskIcon+'<span class="dl">Ổ đĩa</span></div>';
   FS.desk.forEach((it,i)=>{
@@ -4282,14 +4304,14 @@ function renderDesk(){
 }
 bus.on('fs',renderDesk);
 /* Icon ứng dụng trên desktop: chạm / bấm để mở; chuột phải hoặc nhấn giữ -> Xóa khỏi màn hình desktop */
-/* Kéo icon trên desktop để đổi chỗ: di chuyển vượt ngưỡng nhỏ là kéo; giữ yên thì ra menu. Thả vào ô nào thì icon vào ô đó, các icon khác dồn lại, luôn thẳng hàng */
-let deskDragEnd=0;
+/* Kéo icon trên desktop để đổi chỗ: di chuyển vượt ngưỡng nhỏ là kéo; giữ yên thì ra menu. Thả vào ô nào thì icon nằm yên ở ô đó, các icon khác không bị dồn; thả vào ô đã có icon thì hai icon đổi chỗ cho nhau */
+let deskDragEnd=0, deskDragOn=false;
 (function(){
   let dr=null;
   const metrics=()=>{
     const cs=getComputedStyle(desk), r=desk.getBoundingClientRect();
-    const rows=Math.max(1,cs.gridTemplateRows.split(' ').filter(Boolean).length);
-    const cw=parseFloat(cs.gridAutoColumns)||84, ch=parseFloat(cs.gridTemplateRows.split(' ')[0])||98;
+    const rows=deskRows();
+    const cw=parseFloat(cs.gridAutoColumns)||84, ch=98;
     const gx=parseFloat(cs.columnGap)||0, gy=parseFloat(cs.rowGap)||0;
     return {rows,cw:cw+gx,ch:ch+gy,x0:r.left+parseFloat(cs.paddingLeft)-desk.scrollLeft,y0:r.top+parseFloat(cs.paddingTop)};
   };
@@ -4308,29 +4330,46 @@ let deskDragEnd=0;
       const r=dr.el.getBoundingClientRect(); dr.ox=dr.sx-r.left; dr.oy=dr.sy-r.top;
       const g=dr.el.cloneNode(true); g.className='da dghost'; g.style.width=r.width+'px'; g.style.height=r.height+'px';
       stage.appendChild(g); dr.gh=g; dr.el.classList.add('dmov');
+      dr.pos=deskLayout(deskRows()); dr.from=dr.pos[dr.el.dataset.app]; dr.tgt=null; dr.occ=null; deskDragOn=true;
     }
     dr.gh.style.left=(e.clientX-dr.ox-sr.left)+'px'; dr.gh.style.top=(e.clientY-dr.oy-sr.top)+'px';
     const dRect=desk.getBoundingClientRect();
     if(e.clientX<dRect.left+48)desk.scrollLeft-=14; else if(e.clientX>dRect.right-48)desk.scrollLeft+=14;
-    const m=metrics(), n=desk.children.length;
+    const m=metrics(), id=dr.el.dataset.app;
     let col=Math.floor((e.clientX-m.x0)/m.cw), row=Math.floor((e.clientY-m.y0)/m.ch);
-    row=Math.max(0,Math.min(m.rows-1,row)); col=Math.max(0,col);
-    const idx=Math.max(0,Math.min(n-1,col*m.rows+row));
-    const kids=[...desk.children].filter(c=>c!==dr.el), ref=kids[idx]||null;
-    if(desk.children[idx]!==dr.el)desk.insertBefore(dr.el,ref);
+    let maxCol=0; for(const k in dr.pos)maxCol=Math.max(maxCol,dr.pos[k][0]);
+    row=Math.max(0,Math.min(m.rows-1,row)); col=Math.max(0,Math.min(maxCol+1,col));
+    dr.tgt=[col,row];
+    let occ=null; for(const k in dr.pos){if(k!==id&&dr.pos[k][0]===col&&dr.pos[k][1]===row){occ=k;break}}
+    if(occ!==dr.occ){
+      const old=dr.occ&&$('.da[data-app="'+dr.occ+'"]',desk); if(old)old.classList.remove('dtgt');
+      const nw=occ&&$('.da[data-app="'+occ+'"]',desk); if(nw)nw.classList.add('dtgt');
+      dr.occ=occ;
+    }
+    /* Ô trống: icon gốc (mờ) nhảy theo vào ô đó; ô có icon: icon gốc ở lại chỗ cũ, icon kia được tô sáng để báo sẽ đổi chỗ */
+    const p=occ?dr.from:dr.tgt;
+    dr.el.style.gridColumn=(p[0]+1); dr.el.style.gridRow=(p[1]+1);
   });
   const end=e=>{
     if(!dr||e.pointerId!==dr.pid)return;
     const d=dr; dr=null;
     if(!d.on)return;
-    deskDragEnd=Date.now();
+    deskDragEnd=Date.now(); deskDragOn=false;
     if(d.gh)d.gh.remove();
     d.el.classList.remove('dmov');
-    if(e.type==='pointerup'){saveDeskApps([...desk.children].map(c=>c.dataset.app).filter(Boolean))}
+    if(e.type==='pointerup'&&d.tgt&&d.from){
+      const id=d.el.dataset.app, pos=d.pos;
+      if(d.occ)pos[d.occ]=d.from; /* ô đích có icon: hai icon đổi chỗ, không dồn ai */
+      pos[id]=d.tgt;
+      DESKPOS={}; for(const k in pos)DESKPOS[k]=[pos[k][0],pos[k][1]];
+      saveDeskPos();
+    }
     renderDesk();
   };
   window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
 })();
+/* Xoay màn hình / đổi cỡ cửa sổ: số hàng đổi nên dựng lại lưới (vị trí đã lưu vẫn giữ, icon nào không còn vừa thì tạm vào ô trống đầu tiên) */
+let deskRzT; window.addEventListener('resize',()=>{clearTimeout(deskRzT);deskRzT=setTimeout(()=>{if(!deskDragOn)renderDesk()},150)});
 desk.addEventListener('click',e=>{
   const a=e.target.closest('.da'); if(!a)return;
   if(a._lp){a._lp=false;return}
