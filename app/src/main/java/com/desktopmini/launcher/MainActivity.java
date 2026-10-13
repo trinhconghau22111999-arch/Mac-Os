@@ -888,6 +888,12 @@ public class MainActivity extends Activity {
             } catch (Exception e) { }
             return arr.toString();
         }
+        /** Mở app con "Ổ mềm" (Activity nằm ngay trong ứng dụng này). */
+        @JavascriptInterface public void openOmem() {
+            runOnUiThread(new Runnable() { public void run() {
+                try { startActivity(new Intent(MainActivity.this, vn.omem.MainActivity.class)); } catch (Exception e) { }
+            } });
+        }
         @JavascriptInterface public boolean hasPackage(String pkg) {
             try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
         }
