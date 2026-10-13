@@ -161,7 +161,7 @@ object OmemApi {
     private fun startWarm(ctx: Context) {
         if (warmRun) return
         // Chỉ lấy những ảnh CHƯA có ảnh xem trước; tấm nào tải rồi thì bỏ qua
-        val gs = lastLib.filter { it.head.mime.startsWith("image/") }
+        val gs = lastLib.filter { it.head.mime.startsWith("image/") || (it.head.mime.startsWith("video/") && it.head.hasThumb) }
             .filter { g -> thumbFile(ctx, g.head.grp).let { !(it.exists() && it.length() > 0) } }
         if (gs.isEmpty()) return
         warmRun = true; warmDone = 0; warmTotal = gs.size
@@ -172,7 +172,7 @@ object OmemApi {
                     if (!warmRun) break
                     val f = thumbFile(ctx, g.head.grp)
                     if (!(f.exists() && f.length() > 0)) {
-                        val r = runCatching { remoteThumb(ctx, g.head.grp, false, true) }.getOrNull()
+                        val r = runCatching { remoteThumb(ctx, g.head.grp, g.head.mime.startsWith("video/"), true) }.getOrNull()
                         if (r != null && r.optBoolean("ok")) fails = 0 else fails++
                         if (fails >= 5) break   // server liên tục lỗi: dừng, lần mở sau sẽ thử lại
                     }
