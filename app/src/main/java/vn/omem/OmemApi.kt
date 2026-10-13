@@ -58,6 +58,20 @@ object OmemApi {
             img(toB64(b, 88), "image/jpeg")
         }
         "video" -> { openVideo(ctx, a); ok() }
+        // Mở trong app: trả đường dẫn tệp (file://) để trình xem trong Ổ mềm tự phát/hiển thị
+        "media" -> {
+            val f: java.io.File; val mime: String
+            if (a.getString("kind") == "r") { val g = group(a.getString("key")); f = Restore.toCache(ctx, g); mime = g.head.mime }
+            else { f = localFile(ctx, a.getString("key").toLong(), a.optBoolean("video")); mime = "" }
+            ok().put("url", Uri.fromFile(f).toString()).put("mime", mime).put("size", f.length())
+        }
+        "text" -> {
+            val f = Restore.toCache(ctx, group(a.getString("key")))
+            val cap = 512 * 1024
+            val buf = ByteArray(cap)
+            val n = f.inputStream().use { it.read(buf) }.coerceAtLeast(0)
+            ok().put("text", String(buf, 0, n, Charsets.UTF_8)).put("cut", f.length() > cap)
+        }
         "dl" -> {
             val gs = a.getJSONArray("grps"); var n = 0; var err = ""
             for (i in 0 until gs.length()) {
@@ -91,6 +105,27 @@ object OmemApi {
             ok()
         }
         else -> throw Exception("Lệnh không hợp lệ: $op")
+    }
+
+    /** Tệp cục bộ của một mục trong thư viện: dùng đường dẫn thật nếu đọc được, nếu không thì chép vào bộ nhớ đệm. */
+    private fun localFile(ctx: Context, id: Long, video: Boolean): java.io.File {
+        val uri = Compat.fileUri(id)
+        runCatching {
+            ctx.contentResolver.query(uri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val p = c.getString(0)
+                    if (!p.isNullOrEmpty()) { val f = java.io.File(p); if (f.canRead()) return f }
+                }
+            }
+        }
+        val dir = java.io.File(ctx.cacheDir, "view").apply { mkdirs() }
+        val f = java.io.File(dir, "local_$id" + if (video) ".mp4" else "")
+        if (!f.exists()) {
+            val tmp = java.io.File(dir, f.name + ".tmp")
+            ctx.contentResolver.openInputStream(uri)!!.use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
+            tmp.renameTo(f)
+        }
+        return f
     }
 
     private fun start(ctx: Context, i: Intent) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); ctx.startActivity(i) }

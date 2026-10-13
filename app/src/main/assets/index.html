@@ -354,6 +354,11 @@ ul,ol{margin:0;padding:0;list-style:none}
 .omvb{flex:1;min-height:0;display:grid;place-items:center;overflow:auto}
 .omvb img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .15s}
 .omvb img.z{transform:scale(2.4);cursor:zoom-out}
+.omvb video{max-width:100%;max-height:100%;background:#000}
+.omvb audio.omaud{width:90%}
+.omvb pre.omtx{margin:0;padding:12px;color:#eee;font:12.5px/1.5 ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;align-self:start;justify-self:stretch;width:100%;box-sizing:border-box}
+.omvb .omfi{color:#fff;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;padding:16px}
+.omvb .omfi span{opacity:.75}
 .omov[hidden]{display:none!important}
 .ib{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none}
 .ib:hover:not(:disabled){background:var(--field)}
@@ -1944,23 +1949,41 @@ function buildOmem(b,w){
     tab=+x.dataset.t; sel.clear(); selMode=false; drawTabs(); drawBar(); drawBody(true);
   });
 
-  /* xem ảnh / mở video */
-  function openItem(kind,key,name,video){
-    if(video){
-      setMsg(kind==='r'?'Đang tải video về để mở…':'Đang mở video…');
-      omCall('video',{kind:kind,key:key},r=>{if(alive)setMsg(r.ok?'':'Lỗi: '+r.err)});
-      return;
-    }
-    ov.hidden=false; ov.className='omov view';
-    ov.innerHTML='<div class="omvh"><button class="btn" data-x="close">✕</button><span>'+esc(name)+'</span></div><div class="omvb"><div class="none" style="color:#fff">Đang mở…</div></div>';
+  /* xem ảnh / video / tệp ngay trong Ổ mềm (không mở app ngoài hay app hệ thống) */
+  let ovTok=0;
+  const ovHead=(name,dl)=>'<div class="omvh"><button class="btn" data-x="close">✕</button><span>'+esc(name)+'</span>'+(dl?'<span class="grow"></span><button class="btn" data-x="dl">Tải về</button>':'')+'</div>';
+  function closeOv(){ovTok++;const m=$('video,audio',ov);if(m){try{m.pause();m.removeAttribute('src');m.load()}catch(e){}}ov.hidden=true;ov.innerHTML='';ov.onclick=null}
+  function showOv(name,msg,dlGrp){
+    ov.hidden=false; ov.className='omov view'; const tk=++ovTok;
+    ov.innerHTML=ovHead(name,!!dlGrp)+'<div class="omvb"><div class="none" style="color:#fff">'+msg+'</div></div>';
     ov.onclick=e=>{
-      if(e.target.closest('[data-x="close"]')){ov.hidden=true;ov.innerHTML='';return}
+      if(e.target.closest('[data-x="close"]')){closeOv();return}
+      const d=e.target.closest('[data-x="dl"]');
+      if(d&&dlGrp){d.disabled=true;d.textContent='Đang tải…';omCall('dl',{grps:[dlGrp]},x=>{if(!alive||ovTok!==tk)return;d.textContent=(!x.ok||x.err)?'Lỗi: '+(x.err||'lỗi'):'Đã lưu vào Download/OMem'});return}
       const im=e.target.closest('img'); if(im){const z=im.classList.toggle('z');if(z){const r=im.getBoundingClientRect();im.style.transformOrigin=(e.clientX-r.left)+'px '+(e.clientY-r.top)+'px'}}
     };
-    omCall('view',{kind:kind,key:key},r=>{
-      const vb=$('.omvb',ov); if(!alive||!vb)return;
-      vb.innerHTML=r.ok?'<img alt="" src="'+r.img+'">':'<div class="none" style="color:#fff">Lỗi: '+esc(r.err||'không mở được')+'</div>';
-    });
+    return tk;
+  }
+  const fillOv=(tk,html)=>{const vb=$('.omvb',ov);if(alive&&ovTok===tk&&vb)vb.innerHTML=html};
+  function openItem(kind,key,name,video){
+    if(video){
+      const tk=showOv(name,kind==='r'?'Đang tải video về để mở…':'Đang mở video…');
+      omCall('media',{kind:kind,key:key,video:true},r=>fillOv(tk,r.ok?'<video class="omvid" src="'+esc(r.url)+'" controls autoplay playsinline></video>':'<div class="none" style="color:#fff">Lỗi: '+esc(r.err||'không mở được video')+'</div>'));
+      return;
+    }
+    const tk=showOv(name,'Đang mở…');
+    omCall('view',{kind:kind,key:key},r=>fillOv(tk,r.ok?'<img alt="" src="'+r.img+'">':'<div class="none" style="color:#fff">Lỗi: '+esc(r.err||'không mở được')+'</div>'));
+  }
+  const EXT={img:/\.(jpe?g|png|gif|webp|bmp|heic)$/i,vid:/\.(mp4|m4v|mkv|webm|3gp|mov)$/i,aud:/\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i,txt:/\.(txt|md|json|csv|log|xml|html?|css|js|java|kt|py|ini|ya?ml|srt|conf)$/i};
+  function openFileItem(g){
+    const nm=g.name||'', dl=g.g;
+    const err=r=>'<div class="none" style="color:#fff">Lỗi: '+esc(r.err||'không mở được tệp')+'</div>';
+    if(EXT.img.test(nm)){const tk=showOv(nm,'Đang tải tệp về để mở…',dl);omCall('view',{kind:'r',key:g.g},r=>fillOv(tk,r.ok?'<img alt="" src="'+r.img+'">':err(r)));return}
+    if(EXT.vid.test(nm)){const tk=showOv(nm,'Đang tải video về để mở…',dl);omCall('media',{kind:'r',key:g.g,video:true},r=>fillOv(tk,r.ok?'<video class="omvid" src="'+esc(r.url)+'" controls autoplay playsinline></video>':err(r)));return}
+    if(EXT.aud.test(nm)){const tk=showOv(nm,'Đang tải tệp về để mở…',dl);omCall('media',{kind:'r',key:g.g},r=>fillOv(tk,r.ok?'<audio class="omaud" src="'+esc(r.url)+'" controls autoplay></audio>':err(r)));return}
+    if(EXT.txt.test(nm)&&g.size<=50*1048576){const tk=showOv(nm,'Đang tải tệp về để mở…',dl);omCall('text',{key:g.g},r=>fillOv(tk,r.ok?'<pre class="omtx">'+esc(r.text)+(r.cut?'\n\n… (chỉ hiện 512 KB đầu)':'')+'</pre>':err(r)));return}
+    const tk=showOv(nm,'',dl);
+    fillOv(tk,'<div class="omfi"><b>'+esc(nm)+'</b><span>'+omFmt(g.size)+(g.parts>1?' • chia '+g.parts+' phần':'')+'</span><span>Loại tệp này chưa xem được trong app. Bấm “Tải về” để lưu vào Download/OMem.</span></div>');
   }
 
   /* lưới ảnh/video */
@@ -2013,10 +2036,7 @@ function buildOmem(b,w){
           r.innerHTML='<b>'+esc(g.name)+'</b><span>'+omFmt(g.size)+(g.parts>1?' • chia '+g.parts+' phần':'')+'</span>';
           press(r,()=>{
             if(selMode)toggleSel(g.g);
-            else dialog(g.name+' ('+omFmt(g.size)+'): tải về thư mục Download/OMem?','Tải về',()=>{
-              setMsg('Đang tải…');
-              omCall('dl',{grps:[g.g]},x=>{if(alive)setMsg(!x.ok?'Lỗi: '+x.err:(x.err?'Lỗi: '+x.err:'Đã lưu vào Download/OMem'))});
-            });
+            else openFileItem(g);
           },()=>toggleSel(g.g));
           body.appendChild(r);
         });
