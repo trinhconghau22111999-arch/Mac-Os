@@ -281,6 +281,10 @@ public class MainActivity extends Activity {
             sp.edit().putBoolean("ax", true).apply();
             go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return;
         }
+        if (Build.VERSION.SDK_INT <= 29 && !hasSecureWrite() && !sp.getBoolean("ss", false)) {
+            sp.edit().putBoolean("ss", true).apply();
+            askSecureWrite(); return;
+        }
         if (Build.VERSION.SDK_INT >= 23 && !((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).isNotificationPolicyAccessGranted() && !sp.getBoolean("dnd", false)) {
             sp.edit().putBoolean("dnd", true).apply();
             go(new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)); return;
@@ -289,6 +293,48 @@ public class MainActivity extends Activity {
             sp.edit().putBoolean("af", true).apply();
             go(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + getPackageName()))); return;
         }
+    }
+
+
+    private static final String SS_CMD = "pm grant com.desktopmini.launcher android.permission.WRITE_SECURE_SETTINGS";
+    private boolean hasSecureWrite() {
+        return checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") == PackageManager.PERMISSION_GRANTED;
+    }
+    /** Android 10 trở xuống: hỏi quyền để ẩn hẳn thanh trạng thái / thanh điều hướng khi mở app khác. */
+    private void askSecureWrite() {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Ẩn thanh trạng thái và thanh điều hướng")
+            .setMessage("Để ẩn hẳn thanh thông báo và thanh điều hướng của hệ thống khi mở app khác, Desktop Mini cần quyền đặc biệt WRITE_SECURE_SETTINGS.\n\n"
+                + "Android không có hộp xin quyền này, nên phải cấp bằng một trong hai cách:\n"
+                + "• Máy đã root: bấm \"Cấp bằng root\".\n"
+                + "• Máy tính: nối adb rồi chạy\nadb shell " + SS_CMD)
+            .setPositiveButton("Cấp bằng root", new android.content.DialogInterface.OnClickListener() {
+                public void onClick(android.content.DialogInterface d, int w) { grantByRoot(); } })
+            .setNeutralButton("Sao chép lệnh adb", new android.content.DialogInterface.OnClickListener() {
+                public void onClick(android.content.DialogInterface d, int w) {
+                    try {
+                        ((android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE))
+                            .setPrimaryClip(android.content.ClipData.newPlainText("adb", "adb shell " + SS_CMD));
+                        android.widget.Toast.makeText(MainActivity.this, "Đã sao chép lệnh", android.widget.Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) { }
+                } })
+            .setNegativeButton("Để sau", null)
+            .show();
+    }
+    private void grantByRoot() {
+        new Thread(new Runnable() { public void run() {
+            boolean ok = false;
+            try {
+                Process p = Runtime.getRuntime().exec(new String[] { "su", "-c", SS_CMD });
+                p.waitFor();
+            } catch (Exception e) { }
+            ok = hasSecureWrite();
+            final boolean res = ok;
+            runOnUiThread(new Runnable() { public void run() {
+                android.widget.Toast.makeText(MainActivity.this, res ? "Đã cấp quyền, thanh hệ thống sẽ được ẩn khi mở app khác"
+                    : "Không cấp được (máy chưa root?). Hãy dùng lệnh adb.", android.widget.Toast.LENGTH_LONG).show();
+            } });
+        } }).start();
     }
 
     @Override public void onRequestPermissionsResult(int c, String[] p, int[] r) {
