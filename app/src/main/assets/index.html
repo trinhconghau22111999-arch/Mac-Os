@@ -597,7 +597,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .fqr{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:8px;width:100%}
 .fqr .ic{width:28px;height:28px}
 .fqr[aria-pressed="true"]{background:var(--accent);color:#fff}
-.fqf{padding:12px 16px;text-align:right}
+.fqf{padding:12px 16px;display:flex;justify-content:flex-end;gap:8px}
 
 /* Trình duyệt */
 .br .bbar{height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px 0 78px;background:var(--hdr)}
@@ -2363,8 +2363,8 @@ function buildAbout(b){
   return {};
 }
 function buildForceQuit(b,w){
-  b.innerHTML='<div class="app fq"><div class="bar"><strong class="t">Buộc thoát ứng dụng</strong></div><p class="fqh">Chọn một ứng dụng để thoát nếu nó không phản hồi.</p><div class="fql"></div><div class="fqf"><button class="btn fqb">Buộc thoát</button></div></div>';
-  const l=$('.fql',b), fb=$('.fqb',b); let sel=null;
+  b.innerHTML='<div class="app fq"><div class="bar"><strong class="t">Buộc thoát ứng dụng</strong></div><p class="fqh">Chọn một ứng dụng để thoát nếu nó không phản hồi.</p><div class="fql"></div><div class="fqf"><button class="btn fqa">Thoát tất cả</button><button class="btn fqb">Buộc thoát</button></div></div>';
+  const l=$('.fql',b), fb=$('.fqb',b), fa=$('.fqa',b); let sel=null;
   function render(){
     const ids=Object.keys(wins).filter(i=>i!=='forcequit'); l.innerHTML='';
     ids.forEach(id=>{
@@ -2375,8 +2375,10 @@ function buildForceQuit(b,w){
     });
     if(!ids.length)l.innerHTML='<div class="none">Không có ứng dụng nào đang mở</div>';
     fb.disabled=!sel||!wins[sel];
+    fa.disabled=!ids.length;
   }
   fb.addEventListener('click',()=>{if(sel&&wins[sel]){closeWin(wins[sel]);sel=null}});
+  fa.addEventListener('click',()=>{Object.keys(wins).filter(i=>i!=='forcequit').forEach(i=>{if(wins[i])closeWin(wins[i])});sel=null;render()});
   live(w,'wins',render);
   render();
   return {};
