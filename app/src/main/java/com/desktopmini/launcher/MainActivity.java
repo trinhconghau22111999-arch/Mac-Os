@@ -1467,10 +1467,32 @@ public class MainActivity extends Activity {
                 /* Cột đường dẫn: RELATIVE_PATH (Android 10+) hoặc DATA, để phân loại Ảnh chụp / Ảnh chụp màn hình */
                 String pathCol = Build.VERSION.SDK_INT >= 29 ? MediaStore.Images.Media.RELATIVE_PATH : MediaStore.Images.Media.DATA;
                 Cursor c = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    new String[]{MediaStore.Images.Media._ID, MediaStore.Images.Media.DISPLAY_NAME, pathCol}, null, null, MediaStore.Images.Media.DATE_ADDED + " DESC");
-                if (c != null) { int n = 0;
-                    while (c.moveToNext() && n++ < 500) { JSONObject o = new JSONObject(); o.put("id", c.getLong(0)); o.put("n", c.getString(1)); String pp = c.getString(2); o.put("p", pp == null ? "" : pp); arr.put(o); }
-                    c.close(); }
+                    new String[]{MediaStore.Images.Media._ID, MediaStore.Images.Media.DISPLAY_NAME, pathCol,
+                        MediaStore.Images.Media.DATE_TAKEN, MediaStore.Images.Media.DATE_ADDED, MediaStore.Images.Media.DATE_MODIFIED},
+                    null, null, MediaStore.Images.Media.DATE_ADDED + " DESC");
+                if (c != null) {
+                    /* Mới nhất lên đầu: lấy mốc thời gian lớn nhất (lúc chụp / lúc thêm / lúc sửa) rồi sắp giảm dần, sau đó mới cắt 500 ảnh */
+                    final java.util.ArrayList<long[]> rows = new java.util.ArrayList<long[]>();
+                    final java.util.ArrayList<String[]> info = new java.util.ArrayList<String[]>();
+                    while (c.moveToNext()) {
+                        long t = Math.max(c.getLong(3), Math.max(c.getLong(4), c.getLong(5)) * 1000L);
+                        rows.add(new long[]{c.getLong(0), t});
+                        String pp = c.getString(2);
+                        info.add(new String[]{c.getString(1), pp == null ? "" : pp});
+                    }
+                    c.close();
+                    Integer[] idx = new Integer[rows.size()];
+                    for (int i = 0; i < idx.length; i++) idx[i] = i;
+                    java.util.Arrays.sort(idx, new java.util.Comparator<Integer>() {
+                        @Override public int compare(Integer x, Integer y) { return Long.compare(rows.get(y)[1], rows.get(x)[1]); }
+                    });
+                    for (int k = 0; k < idx.length && k < 500; k++) {
+                        int i = idx[k];
+                        JSONObject o = new JSONObject();
+                        o.put("id", rows.get(i)[0]); o.put("n", info.get(i)[0]); o.put("p", info.get(i)[1]); o.put("t", rows.get(i)[1]);
+                        arr.put(o);
+                    }
+                }
             } catch (Exception e) { }
             return arr.toString();
         }

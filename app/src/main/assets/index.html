@@ -3495,7 +3495,7 @@ function buildPhotos(b,w,arg){
   document.addEventListener('keydown',kd);
   function openPid(id,name){
     id=+id; let k=PH.findIndex(p=>+p.pid===id);
-    if(k<0){const e=['','','','','',name||'Ảnh'];e.pid=id;PH.push(e);k=PH.length-1}
+    if(k<0){const e=['','','','','',name||'Ảnh'];e.pid=id;PH.unshift(e);fav=fav.map(i=>i+1);jset('dm-pfav',fav);k=0}
     tab='all'; view=k; render();
   }
   function openFile(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;tab='all';view=h%PH.length;render()}
