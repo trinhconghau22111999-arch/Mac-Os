@@ -946,6 +946,9 @@ body.native .stage{border-radius:0;min-height:0}
 .msh{display:flex;align-items:center;gap:8px;color:#fff;font-size:14px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 .msh .ic{width:26px;height:26px;border-radius:7px}
 .msx{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.22);color:#fff;font-size:12px;line-height:1;display:grid;place-items:center}
+.msxv{display:grid;place-items:center;background:rgba(255,255,255,.14);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.msxv img{width:44%;max-width:96px;aspect-ratio:1;border-radius:22%;object-fit:cover;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.msh img.ic{width:26px;height:26px;border-radius:7px;object-fit:cover}
 .msv{position:relative;overflow:hidden;border-radius:18px;background:var(--win);box-shadow:0 14px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.18);pointer-events:none}
 .msall{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--base) + 14px);padding:9px 24px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 0 0 1px rgba(255,255,255,.18);cursor:pointer;z-index:2}
 .msall:active{background:rgba(255,255,255,.32)}
@@ -1073,6 +1076,25 @@ const origTheme=root.getAttribute('data-theme');
 const reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+/* Ứng dụng ngoài đang mở (Zalo...) -> hiện thẻ trong đa nhiệm */
+const EXTK='dm-ext';
+let extRun=[]; try{extRun=JSON.parse(lsGet(EXTK)||'[]').filter(x=>x&&x.pkg)}catch(e){extRun=[]}
+const extSave=()=>lsSet(EXTK,JSON.stringify(extRun));
+function extLaunch(pkg){
+  const A=window.AndroidLauncher; if(!A)return;
+  try{A.launchApp(pkg)}catch(e){return}
+  try{
+    let info=null; if(A.appInfo){const r=A.appInfo(pkg); if(r)info=JSON.parse(r)}
+    const old=extRun.find(x=>x.pkg===pkg);
+    extRun=extRun.filter(x=>x.pkg!==pkg);
+    if(info||old)extRun.unshift(info||old);
+    extSave();
+  }catch(e){}
+}
+function extKill(pkg){
+  extRun=extRun.filter(x=>x.pkg!==pkg); extSave();
+  try{const A=window.AndroidLauncher; if(A&&A.killApp)A.killApp(pkg)}catch(e){}
+}
 const jget=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const jset=(k,v)=>lsSet(k,JSON.stringify(v));
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').toLowerCase();
@@ -1335,7 +1357,7 @@ function showBrowserPicker(){
   stage.appendChild(o);
   o.addEventListener('click',e=>{
     const x=e.target.closest('.bpi');
-    if(x){const bw=list[+x.dataset.i]; lsSet(BK,bw.pkg); o.remove(); try{A.launchApp(bw.pkg)}catch(err){} return}
+    if(x){const bw=list[+x.dataset.i]; lsSet(BK,bw.pkg); o.remove(); extLaunch(bw.pkg) return}
     if(!e.target.closest('.bps'))o.remove();
   });
   return true;
@@ -1343,7 +1365,7 @@ function showBrowserPicker(){
 function openRealBrowser(){
   const A=window.AndroidLauncher; if(!A||!A.getBrowsers)return false;
   const pkg=lsGet(BK);
-  if(pkg){let ok=false;try{ok=A.hasPackage(pkg)}catch(e){} if(ok){try{A.launchApp(pkg)}catch(e){} return true}}
+  if(pkg){let ok=false;try{ok=A.hasPackage(pkg)}catch(e){} if(ok){extLaunch(pkg); return true}}
   return showBrowserPicker();
 }
 function openApp(id,arg){
@@ -4253,7 +4275,7 @@ const msw=$('#msw'), mst=$('#mst'), dsh=$('#dsh');
 function openMS(){
   closeAllPopups(); if(lpOn)closeLP(); if(mcOn)exitMC();
   const ids=Object.keys(wins).filter(id=>wins[id]&&!wins[id]._leaving).sort((a,b)=>(+wins[b].style.zIndex||0)-(+wins[a].style.zIndex||0));
-  if(!ids.length)return;
+  if(!ids.length&&!extRun.length)return;
   msOn=true; msw.hidden=false; mst.innerHTML='';
   const sr=stage.getBoundingClientRect(), base=parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||54;
   const H=Math.max(150,sr.height-28-base-150), maxW=sr.width*.66;
@@ -4293,10 +4315,33 @@ function openMS(){
     });
     mst.appendChild(card);
   });
+  extRun.forEach(x=>{
+    const cw=Math.round(Math.min(H*.62,maxW*.6)), ch=Math.round(H);
+    if(!ids.length&&x===extRun[0])firstW=cw; lastW=cw;
+    const card=document.createElement('div'); card.className='msc msext'; card.dataset.id='x:'+x.pkg;
+    card.innerHTML='<div class="msh"><img class="ic" alt="" src="'+esc(x.icon||'')+'"><span>'+esc(x.label||x.pkg)+'</span><button class="msx" type="button" aria-label="Đóng">✕</button></div><div class="msv msxv" style="width:'+cw+'px;height:'+ch+'px"><img alt="" src="'+esc(x.icon||'')+'"></div>';
+    let sx=0,sy=0,dy=0,mv=false,drag=false;
+    card.addEventListener('pointerdown',e=>{if(e.target.closest('.msx'))return;sx=e.clientX;sy=e.clientY;dy=0;mv=false;drag=true});
+    card.addEventListener('pointermove',e=>{
+      if(!drag)return; const ddx=e.clientX-sx, ddy=e.clientY-sy;
+      if(Math.abs(ddy)>10&&Math.abs(ddy)>Math.abs(ddx)){mv=true;dy=Math.min(0,ddy);card.style.transition='none';card.style.transform='translateY('+dy+'px)';card.style.opacity=String(Math.max(.2,1+dy/420))}
+      else if(Math.abs(ddx)>10)mv=true;
+    });
+    const end=()=>{if(!drag)return;drag=false;card.style.transition='';if(dy<-100)msClose(card.dataset.id,card);else{card.style.transform='';card.style.opacity=''}};
+    card.addEventListener('pointerup',end); card.addEventListener('pointercancel',end);
+    card.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(mv){mv=false;return}
+      if(e.target.closest('.msx')){msClose(card.dataset.id,card);return}
+      closeMS(); extLaunch(x.pkg);
+    });
+    mst.appendChild(card);
+  });
   const tail=document.createElement('div'); tail.className='msp'; mst.appendChild(tail);
   lead.style.width=Math.max(0,(sr.width-firstW)/2-26)+'px'; tail.style.width=Math.max(0,(sr.width-lastW)/2-26)+'px';
 }
 function msClose(id,card){
+  if(id.indexOf('x:')===0)extKill(id.slice(2));
   const w=wins[id];
   if(w){if(id==='music')musHalt();closeWin(w);setTimeout(()=>{try{w.remove()}catch(e){}},300)}
   card.style.transition='transform .2s ease,opacity .2s ease'; card.style.transform='translateY(-130%)'; card.style.opacity='0';
@@ -4502,7 +4547,7 @@ if(window.AndroidLauncher){(function(){
   };
   /* Thông báo thật của máy -> Trung tâm thông báo */
   window.nativeAlarm=function(o){notify({app:'Đồng hồ',title:'Báo thức '+pad(o.h)+':'+pad(o.m),body:'Bấm để tắt báo thức',icon:'clock',fn:()=>safe(()=>A.stopAlarmRinging())})};
-  window.nativeNotif=function(o){notify({app:o.app,title:o.title||o.app,body:o.body,img:o.icon,fn:()=>safe(()=>A.launchApp(o.pkg))})};
+  window.nativeNotif=function(o){notify({app:o.app,title:o.title||o.app,body:o.body,img:o.icon,fn:()=>extLaunch(o.pkg)})};
   /* Khóa màn hình / nguồn thật của Android */
   const needA11y=()=>notify({app:'Hệ thống',title:'Cần cho phép tắt màn hình',body:'Bấm "Kích hoạt" ở màn hình vừa mở, rồi bấm Tắt máy lần nữa.',icon:'settings'});
   const doLock=()=>{closeAllPopups();if(hasLock()){lockUI();safe(()=>A.lockScreen(),false);return}if(!safe(()=>A.lockScreen(),false))needA11y()};
@@ -4543,7 +4588,7 @@ if(window.AndroidLauncher){(function(){
     REAL.filter(a=>!term||norm(a.label).indexOf(term)>=0).forEach(a=>{
       const b=document.createElement('button'); b.className='lpi';
       b.innerHTML='<img src="'+a.icon+'" alt="" style="width:var(--lpic,64px);height:var(--lpic,64px);border-radius:22%;object-fit:cover"><span>'+esc(a.label)+'</span>';
-      b.addEventListener('click',e=>{e.stopPropagation();closeLP();safe(()=>A.launchApp(a.pkg))});
+      b.addEventListener('click',e=>{e.stopPropagation();closeLP();extLaunch(a.pkg)});
       g.appendChild(b);
     });
   };

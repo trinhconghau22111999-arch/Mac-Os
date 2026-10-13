@@ -2,6 +2,7 @@ package com.desktopmini.launcher;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
@@ -974,6 +975,24 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void launchApp(String pkg) {
             Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
             if (i != null) go(i);
+        }
+        /** Tên + biểu tượng của một ứng dụng đã cài (cho thẻ đa nhiệm). */
+        @JavascriptInterface public String appInfo(String pkg) {
+            try {
+                PackageManager pm = getPackageManager();
+                android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+                JSONObject o = new JSONObject();
+                o.put("label", pm.getApplicationLabel(ai).toString()); o.put("pkg", pkg); o.put("icon", icon(pm.getApplicationIcon(ai), 96));
+                return o.toString();
+            } catch (Exception e) { return ""; }
+        }
+        /** Tắt tiến trình nền của ứng dụng ngoài (cần quyền KILL_BACKGROUND_PROCESSES). */
+        @JavascriptInterface public boolean killApp(String pkg) {
+            if (pkg == null || pkg.equals(getPackageName())) return false;
+            try {
+                ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pkg);
+                return true;
+            } catch (Exception e) { return false; }
         }
 
         /* ---- Nhạc thật trong máy ---- */
