@@ -4,7 +4,15 @@ import android.accessibilityservice.AccessibilityService;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.app.ActivityManager;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
+import android.provider.Settings;
+import android.util.TypedValue;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Handler;
@@ -40,6 +48,11 @@ public class LockService extends AccessibilityService {
     private DockLayout dock;
     private WebView web;
     private boolean webReady, launcherFront, enabled = true;
+    private View topStrip, navCover;
+    private LinearLayout topBar;
+    private String fgPkg;
+    private boolean policyApplied;
+    private final Runnable autoHideTop = new Runnable() { public void run() { hideTopBar(); } };
     private final Runnable autoHide = new Runnable() { public void run() { hideDock(); } };
 
     /** Gọi từ MainActivity: lưu dữ liệu biểu tượng Dock (JSON) để vẽ trong cửa sổ nổi. */
@@ -51,12 +64,14 @@ public class LockService extends AccessibilityService {
     public static boolean isEnabled(Context c) { return c.getSharedPreferences(PK, 0).getBoolean("on", true); }
 
     @Override protected void onServiceConnected() {
-        inst = this; wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE); apply();
+        inst = this; wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        if (!isEnabled(this)) setImmersivePolicy(false);
+        apply();
     }
     @Override public boolean onUnbind(Intent i) { inst = null; tearDown(); return super.onUnbind(i); }
     @Override public void onDestroy() { inst = null; tearDown(); super.onDestroy(); }
     @Override public void onConfigurationChanged(Configuration c) {
-        super.onConfigurationChanged(c); hideDock(); removeStrip(); updateStrip();
+        super.onConfigurationChanged(c); hideDock(); hideTopBar(); removeStrip(); updateStrip();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
@@ -68,6 +83,7 @@ public class LockService extends AccessibilityService {
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
         if (pk.equals("com.android.systemui") || imePackages().contains(pk)) return; /* thanh thông báo, bàn phím: không đổi app đang mở */
+        fgPkg = pk;
         setLauncherFront(false);
     }
     @Override public void onInterrupt() { }
@@ -83,7 +99,7 @@ public class LockService extends AccessibilityService {
 
     private void apply() {
         enabled = isEnabled(this);
-        if (!enabled) { hideDock(); removeStrip(); } else updateStrip();
+        if (!enabled) { hideDock(); hideTopBar(); removeStrip(); setImmersivePolicy(false); } else updateStrip();
     }
     private void setLauncherFront(boolean b) {
         if (launcherFront == b) return;
@@ -105,7 +121,12 @@ public class LockService extends AccessibilityService {
     /* ---- Dải kích hoạt ở mép dưới ---- */
     private void updateStrip() {
         boolean want = enabled && !launcherFront && wm != null;
-        if (want && strip == null) addStrip(); else if (!want) removeStrip();
+        if (want) {
+            setImmersivePolicy(true);
+            if (strip == null) addStrip();
+            if (topStrip == null) addTopStrip();
+            if (!policyApplied && navCover == null) addNavCover();
+        } else { removeStrip(); hideTopBar(); }
     }
     private void addStrip() {
         final View v = new View(this);
@@ -136,6 +157,134 @@ public class LockService extends AccessibilityService {
     }
     private void removeStrip() {
         if (strip != null) { try { wm.removeView(strip); } catch (Exception e) { } strip = null; }
+        if (topStrip != null) { try { wm.removeView(topStrip); } catch (Exception e) { } topStrip = null; }
+        if (navCover != null) { try { wm.removeView(navCover); } catch (Exception e) { } navCover = null; }
+    }
+
+    /* ---- Ẩn thanh trạng thái + thanh điều hướng của hệ thống ---- */
+    /** Cách 1 (Android ≤ 10, cần quyền WRITE_SECURE_SETTINGS cấp qua adb): ẩn thật bằng policy_control. */
+    private void setImmersivePolicy(boolean on) {
+        if (Build.VERSION.SDK_INT > 29) { policyApplied = false; return; }
+        try {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) { policyApplied = false; return; }
+            Settings.Global.putString(getContentResolver(), "policy_control", on ? "immersive.full=*" : null);
+            policyApplied = on;
+        } catch (Exception e) { policyApplied = false; }
+    }
+    private int statusBarH() {
+        int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        return id > 0 ? getResources().getDimensionPixelSize(id) : dp(24);
+    }
+    private final View.OnTouchListener eat = new View.OnTouchListener() {
+        @Override public boolean onTouch(View v, MotionEvent ev) { return true; }
+    };
+    /** Cách 2 (mọi máy): phủ tấm đen lên thanh nav 3 phím để che + chặn chạm. */
+    private void addNavCover() {
+        int nb = navBarH(); if (nb <= 0) return;
+        View v = new View(this); v.setBackgroundColor(Color.BLACK); v.setOnTouchListener(eat);
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, nb,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.BOTTOM;
+        try { wm.addView(v, lp); navCover = v; } catch (Exception e) { navCover = null; }
+    }
+
+    /* ---- Dải kích hoạt ở mép trên: vuốt xuống / rê chuột lên trên cùng -> hiện thanh 3 nút ---- */
+    private void addTopStrip() {
+        final View v = new View(this);
+        /* Nếu không ẩn thật được thanh trạng thái thì phủ đen đúng chiều cao của nó */
+        v.setBackgroundColor(policyApplied ? Color.TRANSPARENT : Color.BLACK);
+        v.setOnHoverListener(new View.OnHoverListener() {
+            @Override public boolean onHover(View view, MotionEvent ev) {
+                int a = ev.getActionMasked();
+                if (a == MotionEvent.ACTION_HOVER_ENTER || a == MotionEvent.ACTION_HOVER_MOVE) showTopBar();
+                return true;
+            }
+        });
+        v.setOnTouchListener(new View.OnTouchListener() {
+            float y0;
+            @Override public boolean onTouch(View view, MotionEvent ev) {
+                switch (ev.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN: y0 = ev.getRawY(); return true;
+                    case MotionEvent.ACTION_MOVE: if (ev.getRawY() - y0 > dp(16)) { showTopBar(); y0 = -Float.MAX_VALUE; } return true;
+                    default: return true;
+                }
+            }
+        });
+        int th = policyApplied ? dp(10) : Math.max(statusBarH(), dp(16));
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, th,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP;
+        try { wm.addView(v, lp); topStrip = v; } catch (Exception e) { topStrip = null; }
+    }
+
+    /* ---- Thanh trên cùng: 3 nút Đóng / Thu nhỏ / Phóng to ---- */
+    private TextView lightBtn(int color, String glyph, View.OnClickListener l) {
+        TextView t = new TextView(this);
+        GradientDrawable g = new GradientDrawable(); g.setShape(GradientDrawable.OVAL); g.setColor(color);
+        g.setStroke(dp(1), 0x40000000);
+        t.setBackground(g); t.setText(glyph); t.setGravity(Gravity.CENTER);
+        t.setTextColor(0x99000000); t.setTypeface(null, android.graphics.Typeface.BOLD);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18); t.setIncludeFontPadding(false);
+        t.setOnClickListener(l);
+        return t;
+    }
+    private void addLight(LinearLayout row, int color, String glyph, View.OnClickListener l) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(34), dp(34));
+        lp.rightMargin = dp(12);
+        row.addView(lightBtn(color, glyph, l), lp);
+    }
+    private String appLabel() {
+        if (fgPkg == null) return "";
+        try { return getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(fgPkg, 0)).toString(); }
+        catch (Exception e) { return fgPkg; }
+    }
+    private void showTopBar() {
+        if (wm == null || !enabled) return;
+        if (topBar != null && topBar.isAttachedToWindow()) { h.removeCallbacks(autoHideTop); h.postDelayed(autoHideTop, 4500); return; }
+        LinearLayout row = new LinearLayout(this) {
+            @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+                if (ev.getActionMasked() == MotionEvent.ACTION_OUTSIDE) { hideTopBar(); return true; }
+                h.removeCallbacks(autoHideTop); h.postDelayed(autoHideTop, 4500);
+                return super.dispatchTouchEvent(ev);
+            }
+        };
+        row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16), 0, dp(16), 0);
+        GradientDrawable bg = new GradientDrawable(); bg.setCornerRadius(dp(24)); bg.setColor(0xDB24262E); bg.setStroke(dp(1), 0x2EFFFFFF);
+        row.setBackground(bg);
+        final String target = fgPkg;
+        addLight(row, 0xFFFF5F57, "\u00D7", new View.OnClickListener() { public void onClick(View v) { closeCurrent(target); } });
+        addLight(row, 0xFFFEBC2E, "\u2212", new View.OnClickListener() { public void onClick(View v) { hideTopBar(); doGlobal(GLOBAL_ACTION_HOME); } });
+        addLight(row, 0xFF28C840, "+", new View.OnClickListener() { public void onClick(View v) {
+            hideTopBar(); if (Build.VERSION.SDK_INT >= 24) doGlobal(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN); } });
+        TextView title = new TextView(this); title.setText(appLabel()); title.setTextColor(0xCCFFFFFF);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14); title.setSingleLine(true); title.setPadding(dp(4), 0, 0, 0);
+        row.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
+        topBar = row;
+        int w = Math.min(screenW() - dp(16), dp(760));
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(w, dp(52),
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL; lp.y = dp(8);
+        try { wm.addView(topBar, lp); h.removeCallbacks(autoHideTop); h.postDelayed(autoHideTop, 4500); } catch (Exception e) { topBar = null; }
+    }
+    private void hideTopBar() {
+        h.removeCallbacks(autoHideTop);
+        if (topBar != null) { try { if (topBar.isAttachedToWindow()) wm.removeView(topBar); } catch (Exception e) { } topBar = null; }
+    }
+    private void doGlobal(final int act) { h.postDelayed(new Runnable() { public void run() { performGlobalAction(act); } }, 80); }
+    /** Nút đỏ: về màn hình chính rồi tắt tiến trình nền của app đang mở. */
+    private void closeCurrent(final String pkg) {
+        hideTopBar(); doGlobal(GLOBAL_ACTION_HOME);
+        if (pkg == null || pkg.equals(getPackageName()) || pkg.equals("com.android.systemui")) return;
+        h.postDelayed(new Runnable() { public void run() {
+            try { ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pkg); } catch (Exception e) { }
+        } }, 900);
     }
 
     /* ---- Cửa sổ Dock nổi ---- */
@@ -203,7 +352,7 @@ public class LockService extends AccessibilityService {
         if (dock != null && dock.isAttachedToWindow()) { try { wm.removeView(dock); } catch (Exception e) { } }
     }
     private void tearDown() {
-        hideDock(); removeStrip();
+        hideDock(); hideTopBar(); removeStrip(); setImmersivePolicy(false);
         if (web != null) { try { web.destroy(); } catch (Exception e) { } web = null; }
         dock = null; webReady = false;
     }

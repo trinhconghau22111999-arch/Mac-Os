@@ -215,7 +215,7 @@ public class MainActivity extends Activity {
             android.view.WindowInsetsController c = getWindow().getInsetsController();
             if (c != null) {
                 c.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                c.hide(WindowInsets.Type.navigationBars());
+                c.hide(WindowInsets.Type.navigationBars() | WindowInsets.Type.statusBars());
             }
             return;
         }
