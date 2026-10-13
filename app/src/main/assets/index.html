@@ -2154,11 +2154,21 @@ function buildOmem(b,w){
     omCall('state',{},r=>{
       if(!alive)return;
       if(!r.ok){if(!S)body.innerHTML='<div class="none">Lỗi: '+esc(r.err||'')+'</div>';setMsg('Lỗi: '+(r.err||''))}
-      else{S=r; if(msg.indexOf('Lỗi')===0)setMsg(''); if(!selMode&&ov.hidden)drawBody(false)}
+      else{
+        S=r;
+        if(r.stale)setMsg('Máy chủ đang lỗi, hiện bản đã lưu');
+        else if(msg.indexOf('Lỗi')===0||msg.indexOf('Máy chủ')===0)setMsg('');
+        if(!selMode&&ov.hidden)drawBody(false)
+      }
       schedule();
     });
   }
   drawTabs(); drawBar(); drawBody(true);
+  /* Hiện ngay bản lưu lần trước (không chờ mạng), rồi mới làm mới từ máy chủ */
+  omCall('cstate',{},r=>{
+    if(!alive||S)return;
+    if(r.ok){S=r; if(!selMode&&ov.hidden)drawBody(true)}
+  });
   omCall('init',{},()=>load());
   return {destroy(){alive=false;clearTimeout(timer);if(io)io.disconnect()}};
 }

@@ -41,8 +41,19 @@ object OmemApi {
     private fun ok() = JSONObject().put("ok", true)
 
     private fun handle(ctx: Context, op: String, a: JSONObject): JSONObject = when (op) {
-        "init" -> { Scheduler.apply(ctx); ok() }
-        "state" -> state(ctx)
+        "init" -> { migrateThumbs(ctx); Scheduler.apply(ctx); ok() }
+        "state" -> try { state(ctx) } catch (e: Exception) {
+            // Server lỗi (ví dụ 500) hoặc mất mạng: vẫn hiện bản đã lưu trong máy thay vì báo lỗi trắng màn hình
+            val f = libCacheFile(ctx)
+            if (f.exists() && f.length() > 0) JSONObject(f.readText()).put("stale", true).put("serr", e.message ?: "lỗi")
+            else throw e
+        }
+        // Trạng thái lần trước lưu trong máy: trả ngay để lưới ảnh hiện tức thì, không chờ mạng
+        "cstate" -> {
+            migrateThumbs(ctx)
+            val f = libCacheFile(ctx)
+            if (f.exists() && f.length() > 0) JSONObject(f.readText()) else JSONObject().put("ok", false).put("err", "no cache")
+        }
         "thumb" -> remoteThumb(ctx, a.getString("id"), a.optBoolean("video"))
         "lthumb" -> {
             val b = Compat.thumbnail(ctx, a.getString("id").toLong(), a.optBoolean("video"), 240)
@@ -113,8 +124,17 @@ object OmemApi {
 
     /** Thư mục ảnh xem trước: khi “khoá” thì nằm trong bộ nhớ riêng của app (bền), ngược lại nằm trong bộ nhớ đệm (hệ thống có thể dọn). */
     private fun thumbDir(ctx: Context): java.io.File =
-        if (Store.lockCache(ctx)) java.io.File(ctx.filesDir, "omem_thumbs").apply { mkdirs() }
-        else java.io.File(ctx.cacheDir, "thumbs").apply { mkdirs() }
+        java.io.File(ctx.filesDir, "omem_thumbs").apply { mkdirs() }   // luôn lưu bền, hệ thống không dọn
+
+    private fun thumbFile(ctx: Context, key: String): java.io.File =
+        java.io.File(thumbDir(ctx), key.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".jpg")
+
+    /** Chuyển ảnh xem trước cũ (nằm trong bộ nhớ đệm hệ thống) sang thư mục bền. */
+    private fun migrateThumbs(ctx: Context) {
+        runCatching { moveThumbs(java.io.File(ctx.cacheDir, "thumbs"), thumbDir(ctx)) }
+    }
+
+    private fun libCacheFile(ctx: Context) = java.io.File(ctx.filesDir, "omem_state.json")
 
     private fun moveThumbs(from: java.io.File, to: java.io.File) {
         if (from.absolutePath == to.absolutePath) return
@@ -140,13 +160,22 @@ object OmemApi {
     /** Tạo sẵn ảnh xem trước cho mọi ảnh đã sao lưu để cuộn thư viện luôn nhanh. */
     private fun startWarm(ctx: Context) {
         if (warmRun) return
+        // Chỉ lấy những ảnh CHƯA có ảnh xem trước; tấm nào tải rồi thì bỏ qua
         val gs = lastLib.filter { it.head.mime.startsWith("image/") }
+            .filter { g -> thumbFile(ctx, g.head.grp).let { !(it.exists() && it.length() > 0) } }
+        if (gs.isEmpty()) return
         warmRun = true; warmDone = 0; warmTotal = gs.size
         Thread {
             try {
+                var fails = 0
                 for (g in gs) {
                     if (!warmRun) break
-                    runCatching { remoteThumb(ctx, g.head.grp, false, true) }
+                    val f = thumbFile(ctx, g.head.grp)
+                    if (!(f.exists() && f.length() > 0)) {
+                        val r = runCatching { remoteThumb(ctx, g.head.grp, false, true) }.getOrNull()
+                        if (r != null && r.optBoolean("ok")) fails = 0 else fails++
+                        if (fails >= 5) break   // server liên tục lỗi: dừng, lần mở sau sẽ thử lại
+                    }
                     warmDone++
                 }
             } finally { warmRun = false }
@@ -155,7 +184,7 @@ object OmemApi {
 
     /** Bản xem trước của mục trên Drive: lấy từ bộ nhớ đệm, rồi từ máy chủ; nếu không có thì tự tạo từ ảnh gốc (chỉ với ảnh). */
     private fun remoteThumb(ctx: Context, key: String, video: Boolean, tmp: Boolean = false): JSONObject {
-        val cf = java.io.File(thumbDir(ctx), key.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".jpg")
+        val cf = thumbFile(ctx, key)
         if (cf.exists() && cf.length() > 0) {
             val b = cf.readBytes()
             return img(Base64.encodeToString(b, Base64.NO_WRAP), sniff(b))
@@ -239,7 +268,9 @@ object OmemApi {
 
         val en = accs.filter { it.enabled && it.ok }
         val pm = ctx.getSystemService(PowerManager::class.java)
-        return ok()
+        // Luôn tự tải sẵn ảnh xem trước còn thiếu (không cần bấm)
+        startWarm(ctx)
+        val res = ok()
             .put("accounts", JSONArray().apply { accs.forEach { put(JSONObject().put("email", it.email).put("en", it.enabled).put("q", it.ok).put("limit", it.limit).put("usage", it.usage)) } })
             .put("total", en.sumOf { it.limit }).put("used", en.sumOf { it.usage })
             .put("lib", JSONArray().apply {
@@ -256,5 +287,7 @@ object OmemApi {
             .put("warm", warmRun).put("wd", warmDone).put("wt", warmTotal)
             .put("battery", pm?.isIgnoringBatteryOptimizations(ctx.packageName) ?: true)
             .put("needAll", Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager())
+        runCatching { libCacheFile(ctx).writeText(res.toString()) }
+        return res
     }
 }
