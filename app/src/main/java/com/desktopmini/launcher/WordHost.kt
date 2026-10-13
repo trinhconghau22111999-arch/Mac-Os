@@ -57,6 +57,10 @@ class WordHost(
 ) {
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
+    /** Zoom 2 ngón / Ctrl+lăn chuột và nhớ mức zoom (gắn từ MainActivity). */
+    private var zoom: ZoomHelper? = null
+    fun setZoom(z: ZoomHelper?) { zoom = z }
+
     private val assetLoader by lazy {
         WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(act))
@@ -313,6 +317,18 @@ class WordHost(
         }
         web.addJavascriptInterface(Bridge(), "AndroidBridge")
         web.webViewClient = object : WebViewClient() {
+            override fun onScaleChanged(view: WebView?, oldScale: Float, newScale: Float) { zoom?.onScaleChanged(oldScale, newScale) }
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                zoom?.onPageStarted()
+            }
+
+            override fun onPageFinished(view: WebView, url: String?) {
+                super.onPageFinished(view, url)
+                zoom?.onPageFinished(view)
+            }
+
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
                 assetLoader.shouldInterceptRequest(request.url)
 

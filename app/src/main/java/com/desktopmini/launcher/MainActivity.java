@@ -77,6 +77,8 @@ public class MainActivity extends Activity {
     private boolean askingRuntime = false;
     private WebView web;
     private final HashMap<String, WebView> ext = new HashMap<String, WebView>();
+    /* Zoom (2 ngón / Ctrl+lăn chuột) + nhớ mức zoom theo từng ứng dụng web nhúng */
+    private final HashMap<String, ZoomHelper> zooms = new HashMap<String, ZoomHelper>();
     /** Gmail / Drive / Zalo / Facebook web: giao diện máy tính. */
     private static final String UA_DESK = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
     private static final String UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
@@ -488,6 +490,9 @@ public class MainActivity extends Activity {
                     return kotlin.Unit.INSTANCE;
                 }
             });
+            ZoomHelper zw = ZoomHelper.attach(this, v, key);
+            zooms.put(key, zw);
+            wordHost.setZoom(zw);
             wordHost.setup();
             v.setVisibility(View.GONE);
             root.addView(v, new FrameLayout.LayoutParams(1, 1));
@@ -499,6 +504,8 @@ public class MainActivity extends Activity {
             final boolean yt = "youtube".equals(key), br = "web".equals(key), ms = key.startsWith("ms-");
             v = new WebView(this);
             final WebView wv = v;
+            final ZoomHelper zm = ZoomHelper.attach(this, v, key);
+            zooms.put(key, zm);
             WebSettings s = v.getSettings();
             s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
             if (yt || br || ms) {
@@ -566,9 +573,11 @@ public class MainActivity extends Activity {
                     }
                     return null;
                 }
-                @Override public void onPageStarted(WebView view, String u, android.graphics.Bitmap f) { if (yt || br || ms) extNav(key, view, 10); }
+                @Override public void onScaleChanged(WebView view, float oldScale, float newScale) { zm.onScaleChanged(oldScale, newScale); }
+                @Override public void onPageStarted(WebView view, String u, android.graphics.Bitmap f) { zm.onPageStarted(); if (yt || br || ms) extNav(key, view, 10); }
                 @Override public void doUpdateVisitedHistory(WebView view, String u, boolean r) { if (yt || br || ms) extNav(key, view, 50); }
                 @Override public void onPageFinished(WebView view, String u) {
+                    zm.onPageFinished(view);
                     if (yt || br || ms) {
                         /* WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần) */
                         try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
@@ -738,13 +747,50 @@ public class MainActivity extends Activity {
         if (!text.contains(" ") && text.contains(".")) return "https://" + text;
         return GK_SEARCH + Uri.encode(text);
     }
+    private float gkZoom = 1f;
+    private void gkApplyZoom() {
+        try {
+            gkRuntime.getSettings().setAutomaticFontSizeAdjustment(false);
+            gkRuntime.getSettings().setFontSizeFactor(gkZoom);
+        } catch (Throwable t) { }
+    }
+    private void gkStep(float f) {
+        gkZoom = Math.max(0.5f, Math.min(3f, gkZoom * f));
+        gkApplyZoom();
+        getSharedPreferences("dm_zoom", MODE_PRIVATE).edit().putFloat("gecko", gkZoom).apply();
+    }
     private void gkEnsure() {
         if (gkView != null) return;
-        if (gkRuntime == null) gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
+        if (gkRuntime == null) {
+            gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
+            /* cho phép 2 ngón zoom cả trang cấm zoom; nạp mức zoom chữ đã lưu */
+            try { org.mozilla.geckoview.GeckoRuntimeSettings.class.getMethod("setForceUserScalableEnabled", boolean.class).invoke(gkRuntime.getSettings(), true); } catch (Throwable t) { }
+            gkZoom = getSharedPreferences("dm_zoom", MODE_PRIVATE).getFloat("gecko", 1f);
+            if (Math.abs(gkZoom - 1f) > 0.01f) gkApplyZoom();
+        }
         gkUrl = GK_HOME; gkBackOk = false; gkFwdOk = false; gkProg = 0;
         gkView = new org.mozilla.geckoview.GeckoView(this);
         /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
         gkView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
+        /* Ctrl + lăn chuột / Ctrl + - 0: đổi cỡ chữ cả trang (lưu lại); 2 ngón dùng zoom gốc của Gecko */
+        gkView.setOnGenericMotionListener(new View.OnGenericMotionListener() {
+            @Override public boolean onGenericMotion(View view, android.view.MotionEvent e) {
+                if (e.getAction() != android.view.MotionEvent.ACTION_SCROLL || (e.getMetaState() & android.view.KeyEvent.META_CTRL_ON) == 0) return false;
+                float dy = e.getAxisValue(android.view.MotionEvent.AXIS_VSCROLL);
+                if (dy == 0) return false;
+                gkStep((float) Math.pow(1.1, dy)); return true;
+            }
+        });
+        gkView.setOnKeyListener(new View.OnKeyListener() {
+            @Override public boolean onKey(View view, int code, android.view.KeyEvent e) {
+                if (!e.isCtrlPressed()) return false;
+                boolean down = e.getAction() == android.view.KeyEvent.ACTION_DOWN;
+                if (code == android.view.KeyEvent.KEYCODE_PLUS || code == android.view.KeyEvent.KEYCODE_EQUALS || code == android.view.KeyEvent.KEYCODE_NUMPAD_ADD) { if (down) gkStep(1.1f); return true; }
+                if (code == android.view.KeyEvent.KEYCODE_MINUS || code == android.view.KeyEvent.KEYCODE_NUMPAD_SUBTRACT) { if (down) gkStep(1f / 1.1f); return true; }
+                if (code == android.view.KeyEvent.KEYCODE_0 || code == android.view.KeyEvent.KEYCODE_NUMPAD_0) { if (down) gkStep(1f / gkZoom); return true; }
+                return false;
+            }
+        });
         final org.mozilla.geckoview.GeckoSession se = new org.mozilla.geckoview.GeckoSession();
         gkSession = se;
         se.setContentDelegate(new org.mozilla.geckoview.GeckoSession.ContentDelegate() {
@@ -1943,6 +1989,7 @@ public class MainActivity extends Activity {
                 FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
                 lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
                 v.setLayoutParams(lp); v.setVisibility(View.VISIBLE);
+                ZoomHelper zz = zooms.get(key); if (zz != null) zz.onShown();
             }});
         }
         @JavascriptInterface public void extHide(final String key) {
@@ -1968,6 +2015,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() { public void run() {
                 extHideFull();
                 final WebView v = ext.remove(key);
+                zooms.remove(key);
                 if (v == null) return;
                 if ("word".equals(key) && wordHost != null) {
                     /* lưu nội dung đang gõ rồi mới hủy trang (lệnh lưu chạy bất đồng bộ) */
