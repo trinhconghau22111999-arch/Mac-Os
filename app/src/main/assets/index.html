@@ -1536,7 +1536,13 @@ function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
   if(!APPS[id])return;
-  /* "Duyệt web", "YouTube", "Gõ văn bản" chạy trong cửa sổ như các app khác (WebView gốc nhúng) */
+  /* "Duyệt web" là trình duyệt Webandr đầy đủ (thẻ, dấu sao, phím tắt, dịch, chụp màn hình...) nên mở màn hình trình duyệt thật; thoát thì quay về Desktop Mini */
+  if(id==='webbrowser'&&window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser){
+    const u=typeof arg==='string'?arg:(arg&&arg.url);
+    try{window.AndroidLauncher.openWebBrowser(u||'')}catch(e){}
+    return;
+  }
+  /* "YouTube", "Gõ văn bản" chạy trong cửa sổ như các app khác (WebView gốc nhúng) */
   const w=wins[id];
   if(w){
     if(w.classList.contains('min')){w.classList.remove('min');flyIn(w,id)}
