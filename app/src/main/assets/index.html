@@ -1201,7 +1201,7 @@ const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
   browser:{name:'Trình duyệt',w:700,h:440,minW:360,minH:260,build:buildBrowser},
-  mail:{name:'Thư',w:760,h:460,minW:360,minH:280,build:buildMail},
+  mail:{name:'Thư',w:760,h:460,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail'):buildMail(b,w)},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
   photos:{name:'Ảnh',w:660,h:440,minW:340,minH:280,build:buildPhotos},
   music:{name:'Nhạc',w:620,h:470,minW:340,minH:300,build:buildMusic},
@@ -1372,7 +1372,6 @@ function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
   if(id==='browser'&&openRealBrowser())return;
-  if(id==='mail'&&window.AndroidLauncher&&window.AndroidLauncher.openMail){try{if(window.AndroidLauncher.openMail())return}catch(e){}}
   if(!APPS[id])return;
   const w=wins[id];
   if(w){
