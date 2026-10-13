@@ -824,7 +824,7 @@ a.btn.pri{color:#fff}
 .laps li{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 
 /* Dock */
-.dock{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px;max-width:calc(100% - 12px);
+.dock{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px;max-width:calc(100% - 12px);
   background:var(--glass);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);transition:transform .25s ease}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
