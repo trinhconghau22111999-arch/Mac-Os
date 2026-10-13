@@ -79,7 +79,7 @@ object OmemApi {
         "del" -> {
             val gs = a.getJSONArray("grps"); var n = 0; var err = ""
             for (i in 0 until gs.length()) {
-                try { Server.deleteGroup(ctx, gs.getString(i)); n++ } catch (e: Exception) { err = e.message ?: "lỗi" }
+                try { Server.deleteGroup(ctx, gs.getString(i)); purgeCache(ctx, gs.getString(i)); n++ } catch (e: Exception) { err = e.message ?: "lỗi" }
             }
             ok().put("done", n).put("total", gs.length()).put("err", err)
         }
@@ -122,6 +122,16 @@ object OmemApi {
         from.listFiles()?.forEach { f ->
             runCatching { val t = java.io.File(to, f.name); if (!f.renameTo(t)) { f.copyTo(t, true); f.delete() } }
         }
+    }
+
+    /** Xoá mọi bộ nhớ đệm của một mục đã xoá: ảnh xem trước và tệp gốc tải tạm để xem. */
+    private fun purgeCache(ctx: Context, grp: String) {
+        runCatching { java.io.File(thumbDir(ctx), grp.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".jpg").delete() }
+        runCatching {
+            val pre = grp.replace('/', '_') + "_"
+            java.io.File(ctx.cacheDir, "view").listFiles()?.filter { it.name.startsWith(pre) }?.forEach { it.delete() }
+        }
+        lastLib = lastLib.filter { it.head.grp != grp }
     }
 
     @Volatile private var warmRun = false

@@ -1941,6 +1941,7 @@ function buildOmem(b,w){
     else if(k==='del')dialog((gs.length===1?'Tệp này':gs.length+' mục đã chọn')+' sẽ bị xóa vĩnh viễn khỏi Google Drive và thư viện Ổ mềm. Bản gốc trên máy không bị ảnh hưởng.','Xóa',()=>{
       exitSel();setMsg('Đang xóa '+gs.length+' mục…');
       omCall('del',{grps:gs},r=>{
+        gs.forEach(g=>OM.thumbs.delete('r'+g));
         if(!alive)return;
         setMsg(!r.ok?'Lỗi: '+r.err:(r.err?'Đã xóa '+r.done+'/'+r.total+', lỗi: '+r.err:'Đã xóa '+r.done+' mục'));
         load();
