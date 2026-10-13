@@ -243,7 +243,7 @@ public class LockService extends AccessibilityService {
         catch (Exception e) { return fgPkg; }
     }
     private void showTopBar() {
-        if (wm == null || !enabled) return;
+        if (wm == null || !enabled || launcherFront) return;
         if (topBar != null && topBar.isAttachedToWindow()) { h.removeCallbacks(autoHideTop); h.postDelayed(autoHideTop, 4500); return; }
         LinearLayout row = new LinearLayout(this) {
             @Override public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -259,8 +259,6 @@ public class LockService extends AccessibilityService {
         final String target = fgPkg;
         addLight(row, 0xFFFF5F57, "\u00D7", new View.OnClickListener() { public void onClick(View v) { closeCurrent(target); } });
         addLight(row, 0xFFFEBC2E, "\u2212", new View.OnClickListener() { public void onClick(View v) { hideTopBar(); doGlobal(GLOBAL_ACTION_HOME); } });
-        addLight(row, 0xFF28C840, "+", new View.OnClickListener() { public void onClick(View v) {
-            hideTopBar(); if (Build.VERSION.SDK_INT >= 24) doGlobal(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN); } });
         TextView title = new TextView(this); title.setText(appLabel()); title.setTextColor(0xCCFFFFFF);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14); title.setSingleLine(true); title.setPadding(dp(4), 0, 0, 0);
         row.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -318,7 +316,7 @@ public class LockService extends AccessibilityService {
         @JavascriptInterface public void keep() { h.post(new Runnable() { public void run() { resetAutoHide(); } }); }
     }
     private void showDock() {
-        if (wm == null || !enabled) return;
+        if (wm == null || !enabled || launcherFront) return;
         if (dock != null && dock.isAttachedToWindow()) { resetAutoHide(); return; }
         if (dock == null) {
             dock = new DockLayout(this);
