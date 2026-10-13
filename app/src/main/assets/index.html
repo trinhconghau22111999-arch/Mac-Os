@@ -1131,6 +1131,8 @@ const ICONS={
   settings:{bg:'linear-gradient(#c5c8cf,#6f727b)',g:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.4" fill="none" stroke="#fff" stroke-width="3.8" stroke-dasharray="3.3 3.3"/><circle cx="12" cy="12" r="5.8" fill="#fff"/><circle cx="12" cy="12" r="2.4" fill="#7d808a"/></svg>'},
   omem:{bg:'linear-gradient(#b9a2ff,#5b3fe6)',g:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M7.2 18.2a4.1 4.1 0 0 1-.7-8.1A5.6 5.6 0 0 1 17.2 9.4a4.4 4.4 0 0 1 .4 8.8z"/></svg>'},
   drive:{bg:'#fff',g:'<svg viewBox="0 0 24 24"><path fill="#ffba00" d="M9 3.5h6l6.6 11.4h-6z"/><path fill="#0da960" d="M9 3.5L2.4 14.9l3 5.1L12 8.6z"/><path fill="#2684fc" d="M5.4 20h13.2l3-5.1H8.4z"/></svg>'},
+  zalo:{bg:'#0068ff',g:'<svg viewBox="0 0 24 24"><text x="12" y="15.6" text-anchor="middle" font-size="8.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">Zalo</text></svg>'},
+  facebook:{bg:'#1877f2',g:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M13.4 21v-7.6h2.6l.4-3h-3V8.5c0-.9.3-1.5 1.6-1.5h1.5V4.3C16.2 4.2 15.3 4 14.2 4 12 4 10.4 5.3 10.4 7.8v2.6H7.8v3h2.6V21z"/></svg>'},
   downloads:{bg:'linear-gradient(#63e6c4,#169bd1)',g:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M3 7.2A2.2 2.2 0 0 1 5.2 5h4c.6 0 1.2.3 1.6.8L12 7.2h6.8A2.2 2.2 0 0 1 21 9.4v7.4A2.2 2.2 0 0 1 18.8 19H5.2A2.2 2.2 0 0 1 3 16.8z" opacity=".95"/><path d="M12 9.6v5.2M9.8 12.7l2.2 2.2 2.2-2.2" fill="none" stroke="#169bd1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
   trash:{bg:'linear-gradient(rgba(240,243,250,.95),rgba(170,176,192,.9))',g:trashGlyph(false)},
   about:{bg:'linear-gradient(#9be8ff,#2342d8)',g:'<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>'},
@@ -1216,12 +1218,14 @@ const APPS={
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
   omem:{name:'Ổ mềm',w:560,h:460,minW:340,minH:300,build:buildOmem},
   drive:{name:'Drive web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'drive','https://drive.google.com/drive/my-drive','Drive web')},
+  zalo:{name:'Zalo web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'zalo','https://chat.zalo.me/','Zalo web')},
+  facebook:{name:'Facebook web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'facebook','https://www.facebook.com/','Facebook web')},
   trash:{name:'Thùng rác',w:520,h:340,minW:320,minH:240,build:buildTrash},
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
-const LP_APPS=['files','downloads','browser','mail','calendar','photos','camera','music','notes','reminders','calc','clock','recorder','omem','drive','settings'];
-const DOCK=['launchpad','files','browser','mail','calendar','photos','camera','music','notes','reminders','calc','clock','recorder','omem','drive','settings','downloads'];
+const LP_APPS=['files','downloads','browser','mail','calendar','photos','camera','music','notes','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
+const DOCK=['launchpad','files','browser','mail','calendar','photos','camera','music','notes','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
