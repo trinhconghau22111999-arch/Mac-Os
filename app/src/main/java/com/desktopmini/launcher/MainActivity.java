@@ -699,7 +699,7 @@ public class MainActivity extends Activity {
                 WindowInsets w = getWindow().getDecorView().getRootWindowInsets();
                 if (w != null) {
                     top = w.getSystemWindowInsetTop(); bottom = w.getSystemWindowInsetBottom();
-                    if (Build.VERSION.SDK_INT >= 28 && w.getDisplayCutout() != null) top = Math.max(top, w.getDisplayCutout().getSafeInsetTop());
+                    /* Thanh trạng thái đã ẩn: giao diện tràn lên sát mép trên, không chừa vùng tai thỏ/lỗ camera */
                 }
                 JSONObject o = new JSONObject(); o.put("top", Math.round(top / d)); o.put("bottom", Math.round(bottom / d)); return o.toString();
             } catch (Exception e) { return "{}"; }
