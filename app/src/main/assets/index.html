@@ -1126,6 +1126,10 @@ const ICONS={
   calendar:{bg:'#fff',g:'<span class="cic"><b>THG '+(now.getMonth()+1)+'</b><span>'+now.getDate()+'</span></span>'},
   photos:{bg:'linear-gradient(#ffd98a,#ff6f91)',g:'<svg viewBox="0 0 24 24"><circle cx="16.5" cy="8" r="2.6" fill="#fff"/><path d="M2.5 19l6.2-8.2 4 5 2.3-2.8 6.5 6z" fill="#fff" opacity=".95"/></svg>'},
   music:{bg:'linear-gradient(#ff7a8f,#e0143c)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M9 17.5V6l9-2v11.5"/><circle cx="6.8" cy="17.6" r="2.4" fill="#fff"/><circle cx="15.8" cy="15.6" r="2.4" fill="#fff"/></svg>'},
+  msword:{bg:'linear-gradient(#4a8cf0,#1a54b8)',g:'<svg viewBox="0 0 24 24"><text x="12" y="17.4" text-anchor="middle" font-size="15.5" font-weight="800" font-family="Arial,Helvetica,sans-serif" fill="#fff">W</text></svg>'},
+  msexcel:{bg:'linear-gradient(#3fc27b,#13794a)',g:'<svg viewBox="0 0 24 24"><text x="12" y="17.4" text-anchor="middle" font-size="15.5" font-weight="800" font-family="Arial,Helvetica,sans-serif" fill="#fff">X</text></svg>'},
+  msppt:{bg:'linear-gradient(#ff8a5c,#c9381a)',g:'<svg viewBox="0 0 24 24"><text x="12" y="17.4" text-anchor="middle" font-size="15.5" font-weight="800" font-family="Arial,Helvetica,sans-serif" fill="#fff">P</text></svg>'},
+  msoffice:{bg:'linear-gradient(#ff9a3d,#e0430f)',g:'<svg viewBox="0 0 24 24"><text x="12" y="17.4" text-anchor="middle" font-size="15.5" font-weight="800" font-family="Arial,Helvetica,sans-serif" fill="#fff">O</text></svg>'},
   typing:{bg:'linear-gradient(#5aa0ff,#1f4fc4)',g:'<svg viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="2.6" fill="#fff"/><path d="M8 8h8M8 11.5h8M8 15h5" stroke="#2b579a" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>'},
   notes:{bg:'linear-gradient(#ffe680,#ffc21f)',g:'<svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="3" fill="#fff"/><g stroke="#c9a227" stroke-width="1.6" stroke-linecap="round"><path d="M8 9h8M8 12.5h8M8 16h5"/></g></svg>'},
   reminders:{bg:'#fff',g:'<svg viewBox="0 0 24 24"><g stroke="#d3d6dd" stroke-width="1.2"><path d="M10 7.4h10M10 12h10M10 16.6h10"/></g><circle cx="5.6" cy="7.4" r="1.9" fill="#ff9500"/><circle cx="5.6" cy="12" r="1.9" fill="#0a84ff"/><circle cx="5.6" cy="16.6" r="1.9" fill="#34c759"/></svg>'},
@@ -1218,6 +1222,10 @@ const APPS={
   music:{name:'Nhạc',w:620,h:470,minW:340,minH:300,build:buildMusic},
   notes:{name:'Ghi chú',w:560,h:380,minW:340,minH:240,build:buildNotes},
   typing:{name:'Gõ văn bản',w:980,h:620,minW:420,minH:320,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.wordBack)?buildWebApp(b,w,'word','https://appassets.androidplatform.net/assets/word/index.html','Gõ văn bản',{plain:true,local:true,close:true}):buildNotes(b,w,a)},
+  msword:{name:'Word Online',w:900,h:560,minW:360,minH:280,build:(b,w,a)=>buildWebApp(b,w,'ms-word','https://www.office.com/launch/word','Word Online',{close:true})},
+  msexcel:{name:'Excel Online',w:900,h:560,minW:360,minH:280,build:(b,w,a)=>buildWebApp(b,w,'ms-excel','https://www.office.com/launch/excel','Excel Online',{close:true})},
+  msppt:{name:'PowerPoint Online',w:900,h:560,minW:360,minH:280,build:(b,w,a)=>buildWebApp(b,w,'ms-ppt','https://www.office.com/launch/powerpoint','PowerPoint Online',{close:true})},
+  msoffice:{name:'Office Online',w:900,h:560,minW:360,minH:280,build:(b,w,a)=>buildWebApp(b,w,'ms-office','https://www.office.com/','Office Online',{close:true})},
   reminders:{name:'Nhắc nhở',w:380,h:440,minW:300,minH:280,build:buildReminders},
   calc:{name:'Máy tính',w:256,h:392,minW:240,minH:200,build:buildCalc,dark:true},
   terminal:{name:'Terminal',w:560,h:340,minW:320,minH:200,build:buildTerminal,dark:true},
@@ -1233,8 +1241,8 @@ const APPS={
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
-const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
-const DOCK=['launchpad','files','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
+const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
+const DOCK=['launchpad','files','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
@@ -4662,7 +4670,7 @@ if(window.AndroidLauncher){(function(){
       if(w.dataset.app==='browser'&&GK.dlOpen&&GK.closeDl){GK.closeDl();return}
       if(w.dataset.app==='browser'&&GK.back&&window.AndroidLauncher&&window.AndroidLauncher.gkBack){window.AndroidLauncher.gkBack();return}
       if(w.dataset.app==='typing'&&window.AndroidLauncher&&window.AndroidLauncher.wordBack){window.AndroidLauncher.wordBack();return}
-      {const ek={webbrowser:'web',youtube:'youtube'}[w.dataset.app]; if(ek&&EXTST[ek]&&EXTST[ek].back&&window.AndroidLauncher&&window.AndroidLauncher.extBack){window.AndroidLauncher.extBack(ek);return}}
+      {const ek={webbrowser:'web',youtube:'youtube',msword:'ms-word',msexcel:'ms-excel',msppt:'ms-ppt',msoffice:'ms-office'}[w.dataset.app]; if(ek&&EXTST[ek]&&EXTST[ek].back&&window.AndroidLauncher&&window.AndroidLauncher.extBack){window.AndroidLauncher.extBack(ek);return}}
             closeWin(w);
     }catch(e){}
   };

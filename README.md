@@ -33,3 +33,10 @@ Mỗi quyền đặc biệt chỉ hỏi một lần; xem lại và cấp sau tro
 - Tối ưu so với repo gốc: nạp trang qua WebViewAssetLoader (không dùng file://); mammoth/JSZip chỉ nạp khi mở/lưu .docx (khởi động nhanh hơn);
   bỏ font brands và các font thừa (~120 KB); chặn scheme lạ khi mở link; giải mã/ghi tệp/đọc PDF ở luồng nền;
   tự lưu khi rời app hoặc đóng cửa sổ.
+
+## Office Online (4 app dạng cửa sổ, không thanh địa chỉ)
+- Bốn biểu tượng **Word Online** (xanh dương), **Excel Online** (xanh lá), **PowerPoint Online** (cam), **Office Online** (trang chủ office.com) nằm sau Gõ văn bản; mở trong cửa sổ như YouTube, **không có thanh địa chỉ** (chỉ có nút Quay lại, tên app, Tải lại).
+- Dùng WebView gốc nhúng (`extGet` trong `MainActivity.java`, khóa `ms-word`, `ms-excel`, `ms-ppt`, `ms-office`), giao diện máy tính. Đăng nhập tài khoản Microsoft một lần, dùng chung cho cả bốn (chung cookie).
+- Chỉ vào được trang của Microsoft (office.com, microsoft365.com, microsoftonline.com, live.com, sharepoint.com, onedrive.com…); link ra ngoài bị chặn và hiện thông báo, như YouTube.
+- Hỗ trợ chọn tệp từ máy (mở/tải lên tài liệu) và tải tệp về qua trình tải xuống của máy. Cần Internet; đóng cửa sổ thì trang được hủy (tài liệu đã tự lưu trên OneDrive).
+- Microsoft có thể hiện trang chặn/xác minh khi đăng nhập trong WebView; nếu bị, mở office.com ở Chrome đăng nhập trước hoặc báo lại để đổi cách.

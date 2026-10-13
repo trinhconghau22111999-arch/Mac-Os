@@ -358,6 +358,10 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
         if (wordHost != null && wordHost.handleResult(req, res, data)) return;
+        if (req == REQ_EXTFILE) {
+            if (extFileCb != null) { extFileCb.onReceiveValue(android.webkit.WebChromeClient.FileChooserParams.parseResult(res, data)); extFileCb = null; }
+            return;
+        }
         if (req == 91) push("nativeDelResult", res == RESULT_OK ? "1" : "0");
     }
     /** Ẩn thanh điều hướng ngay và thêm một lần sau 0,4 giây (một số máy tự hiện lại thanh khi app vừa quay về). */
@@ -413,6 +417,23 @@ public class MainActivity extends Activity {
     };
     private WordHost wordHost;
     private static final int REQ_WORD = 1002;
+    private static final int REQ_EXTFILE = 1003;
+    private android.webkit.ValueCallback<Uri[]> extFileCb;
+    private static final String[] MS_HOSTS = {
+        "office.com", "office365.com", "microsoft365.com", "microsoft.com", "microsoftonline.com", "microsoftonline-p.com",
+        "live.com", "sharepoint.com", "onedrive.com", "1drv.ms", "office.net", "msauth.net", "msftauth.net", "msocdn.com",
+        "windows.net", "azureedge.net", "sway.com", "officeapps.live.com", "cloud.microsoft", "msn.com", "bing.com"
+    };
+    /** Khóa các app "Office online": chỉ cho vào các trang của Microsoft (Office, OneDrive, SharePoint, đăng nhập). */
+    private static boolean msAllowed(Uri u) {
+        String sc = u.getScheme() == null ? "" : u.getScheme().toLowerCase();
+        if (sc.equals("about") || sc.equals("blob") || sc.equals("data")) return true;
+        if (!sc.equals("https") && !sc.equals("http")) return false;
+        String h = u.getHost() == null ? "" : u.getHost().toLowerCase();
+        if (h.length() == 0) return false;
+        for (String d : MS_HOSTS) if (hostIs(h, d)) return true;
+        return false;
+    }
     private View extFullView;
     private android.webkit.WebChromeClient.CustomViewCallback extFullCb;
 
@@ -473,12 +494,12 @@ public class MainActivity extends Activity {
             return v;
         }
         if (v == null) {
-            final boolean yt = "youtube".equals(key), br = "web".equals(key);
+            final boolean yt = "youtube".equals(key), br = "web".equals(key), ms = key.startsWith("ms-");
             v = new WebView(this);
             final WebView wv = v;
             WebSettings s = v.getSettings();
             s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
-            if (yt || br) {
+            if (yt || br || ms) {
                 s.setDatabaseEnabled(true);
                 s.setMediaPlaybackRequiresUserGesture(false);
                 s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -500,16 +521,27 @@ public class MainActivity extends Activity {
                     }
                 } catch (Exception e) { }
             } else {
-                s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br) ? UA_DESK : UA);
+                s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms) ? UA_DESK : UA);
+                if (ms) {
+                    s.setJavaScriptCanOpenWindowsAutomatically(true);   // đăng nhập Microsoft có thể mở cửa sổ phụ
+                    try {
+                        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST))
+                            androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, new java.util.HashSet<String>());
+                    } catch (Exception e) { }
+                }
             }
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(v, true);
             v.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
-                    if (!(yt || br) || !req.isForMainFrame()) return false;
+                    if (!(yt || br || ms) || !req.isForMainFrame()) return false;
                     Uri u = req.getUrl();
                     if (yt) {
                         if (ytAllowed(u)) return false;
                         extToast("Ứng dụng này chỉ mở được YouTube"); return true;   // không mở link ngoài
+                    }
+                    if (ms) {
+                        if (msAllowed(u)) return false;
+                        extToast("Ứng dụng này chỉ mở được Microsoft Office"); return true;   // không mở link ngoài
                     }
                     String sc = u.getScheme() == null ? "" : u.getScheme().toLowerCase();
                     if (sc.equals("http") || sc.equals("https") || sc.equals("about") || sc.equals("file")) return false;
@@ -517,7 +549,7 @@ public class MainActivity extends Activity {
                     return false;
                 }
                 @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
-                    if (!(yt || br) || req.getUrl() == null || req.getUrl().getHost() == null) return null;
+                    if (!(yt || br || ms) || req.getUrl() == null || req.getUrl().getHost() == null) return null;
                     String h = req.getUrl().getHost().toLowerCase();
                     if (isAdHost(h)) return new android.webkit.WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0]));
                     if (yt && req.isForMainFrame() && !ytAllowed(req.getUrl())) {   // chuyển hướng từ máy chủ ra ngoài YouTube
@@ -525,12 +557,17 @@ public class MainActivity extends Activity {
                         String html = "<meta name=viewport content='width=device-width,initial-scale=1'><body style='background:#111;color:#eee;font:16px sans-serif;text-align:center;padding:48px 20px'>Ứng dụng này chỉ mở được YouTube.<br><br>Bấm Quay lại để trở về.</body>";
                         try { return new android.webkit.WebResourceResponse("text/html", "utf-8", new java.io.ByteArrayInputStream(html.getBytes("UTF-8"))); } catch (Exception e) { return null; }
                     }
+                    if (ms && req.isForMainFrame() && !msAllowed(req.getUrl())) {   // chuyển hướng từ máy chủ ra ngoài Office
+                        runOnUiThread(new Runnable() { public void run() { extToast("Ứng dụng này chỉ mở được Microsoft Office"); } });
+                        String html = "<meta name=viewport content='width=device-width,initial-scale=1'><body style='font:16px sans-serif;text-align:center;padding:48px 20px'>Ứng dụng này chỉ mở được Microsoft Office.<br><br>Bấm Quay lại để trở về.</body>";
+                        try { return new android.webkit.WebResourceResponse("text/html", "utf-8", new java.io.ByteArrayInputStream(html.getBytes("UTF-8"))); } catch (Exception e) { return null; }
+                    }
                     return null;
                 }
-                @Override public void onPageStarted(WebView view, String u, android.graphics.Bitmap f) { if (yt || br) extNav(key, view, 10); }
-                @Override public void doUpdateVisitedHistory(WebView view, String u, boolean r) { if (yt || br) extNav(key, view, 50); }
+                @Override public void onPageStarted(WebView view, String u, android.graphics.Bitmap f) { if (yt || br || ms) extNav(key, view, 10); }
+                @Override public void doUpdateVisitedHistory(WebView view, String u, boolean r) { if (yt || br || ms) extNav(key, view, 50); }
                 @Override public void onPageFinished(WebView view, String u) {
-                    if (yt || br) {
+                    if (yt || br || ms) {
                         /* WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần) */
                         try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
                         extNav(key, view, 100);
@@ -541,7 +578,7 @@ public class MainActivity extends Activity {
                     if (req.isForMainFrame() && web != null) web.evaluateJavascript("window.nativeExtError&&window.nativeExtError(" + JSONObject.quote(key) + ")", null);
                 }
             });
-            if (yt || br) {
+            if (yt || br || ms) {
                 v.setWebChromeClient(new android.webkit.WebChromeClient() {
                     @Override public void onProgressChanged(WebView view, int p) { extNav(key, view, p); }
                     /* xem video toàn màn hình */
@@ -553,9 +590,19 @@ public class MainActivity extends Activity {
                         root.addView(view, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
                     }
                     @Override public void onHideCustomView() { extHideFull(); }
+                    /* chọn tệp từ máy để mở trong Word/Excel/PowerPoint Online, Duyệt web */
+                    @Override public boolean onShowFileChooser(WebView w, android.webkit.ValueCallback<Uri[]> cb, FileChooserParams params) {
+                        if (extFileCb != null) extFileCb.onReceiveValue(null);
+                        extFileCb = cb;
+                        Intent it = new Intent(Intent.ACTION_GET_CONTENT);
+                        it.addCategory(Intent.CATEGORY_OPENABLE); it.setType("*/*");
+                        if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                        try { startActivityForResult(Intent.createChooser(it, "Chọn tệp"), REQ_EXTFILE); return true; }
+                        catch (Exception e) { extFileCb = null; return false; }
+                    }
                 });
             }
-            if (br) {
+            if (br || ms) {
                 v.setDownloadListener(new android.webkit.DownloadListener() {
                     @Override public void onDownloadStart(String dUrl, String ua, String cd, String mime, long len) {
                         try {
