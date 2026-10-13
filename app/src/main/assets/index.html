@@ -133,6 +133,13 @@ ul,ol{margin:0;padding:0;list-style:none}
 .di[aria-selected="true"]{background:rgba(255,255,255,.2)}
 .di[aria-selected="true"] .dl{background:var(--accent);text-shadow:none}
 .di .rn{width:100%;border:0;border-radius:4px;padding:1px 4px;font-size:12px;text-align:center;background:#fff;color:#1d1d1f}
+/* Icon ứng dụng trên màn hình desktop (cuộn ngang nếu nhiều) */
+.desk{overflow-x:auto;overflow-y:hidden;align-content:flex-start;scrollbar-width:none;overscroll-behavior:contain}
+.desk::-webkit-scrollbar{display:none}
+.da{width:76px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border-radius:12px;color:#fff;text-align:center;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.da .ic{width:52px;height:52px}
+.da .dl{max-width:100%;padding:1px 4px;border-radius:5px;font-size:11.5px;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.6);word-break:break-word}
+.da:hover,.da:focus-visible{background:rgba(255,255,255,.16);outline:0}
 .mcbg{position:absolute;inset:0;z-index:1;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s}
 .stage.mc .mcbg{background:rgba(0,0,0,.42);pointer-events:auto}
 .mcsp{position:absolute;top:36px;left:50%;transform:translateX(-50%);padding:5px 16px;border-radius:10px;background:rgba(255,255,255,.22);color:#fff;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
@@ -153,7 +160,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 
 .pop{position:absolute;top:30px;z-index:7;min-width:230px;padding:6px;border-radius:12px;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
   box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 16px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;text-shadow:none;font-size:13px}
-#ctx{z-index:8}
+#ctx{z-index:14}
 .mn{text-align:left;padding:4px 10px;border-radius:6px;display:flex;justify-content:space-between;gap:24px}
 .mn:hover:not(:disabled),.mn:focus-visible{background:var(--menu-hi);color:#fff;outline:0}
 .mn:disabled{opacity:.4}
@@ -1226,14 +1233,21 @@ const APPS={
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
 const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
-const DOCK=['launchpad','files','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
+const DOCK_DEF=['launchpad','files','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
+/* Dock và màn hình desktop do người dùng tự sắp xếp (lưu lại để mở app lần sau vẫn giữ) */
+const DOCK=(()=>{const s=jget('dm-dock',null);if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||APPS[id]);if(l.indexOf('launchpad')<0)l.unshift('launchpad');return l})();
+const saveDock=()=>jset('dm-dock',DOCK);
+let DESKAPPS=jget('dm-deskapps',null);
+const deskApps=()=>(Array.isArray(DESKAPPS)?DESKAPPS:LP_APPS).filter(id=>APPS[id]);
+const saveDeskApps=l=>{DESKAPPS=l;jset('dm-deskapps',l)};
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
 
 /* ---------- Dock ---------- */
-function buildDock(){
-  DOCK.forEach(id=>{
+function buildDock(){DOCK.forEach(id=>addDockBtn(id))}
+function addDockBtn(id){
+  [id].forEach(id=>{
     if(id==='|'){const s=document.createElement('span');s.className='sep';dock.appendChild(s);return}
     const b=document.createElement('button');
     b.className='dk'; b.dataset.id=id; b.dataset.label=appTitle(id); b.setAttribute('aria-label',appTitle(id));
@@ -1267,6 +1281,7 @@ function buildDock(){
         items.push({t:w?'Hiện cửa sổ':'Mở',fn:()=>openApp(id)});
         if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Thoát (tắt hẳn)',fn:()=>closeWin(w)})}
       }
+      if(id!=='launchpad')items.push('-',{t:'Xóa khỏi Dock',fn:()=>removeFromDock(id)});
       showCtx(cx,cy,items);
       if(r){ /* cảm ứng: đặt menu phía trên icon, tránh nằm dưới ngón tay, và bỏ qua lần nhả tay đầu */
         const ctx=$('#ctx'), sr=stage.getBoundingClientRect();
@@ -1276,9 +1291,51 @@ function buildDock(){
     };
     b.addEventListener('contextmenu',e=>{e.preventDefault();dockMenu(e.clientX,e.clientY)});
     dock.appendChild(b);
+    if(id==='mail'&&typeof MAIL!=='undefined')setBadge('mail',MAIL.filter(m=>m.box==='in'&&!m.read).length);
   });
 }
 const dockBtn=id=>$('.dk[data-id="'+id+'"]',dock);
+function addToDock(id){
+  if(!APPS[id]||DOCK.indexOf(id)>=0)return;
+  DOCK.push(id); saveDock(); addDockBtn(id); fitDock(); syncDock(); unmagnify();
+}
+function removeFromDock(id){
+  const i=DOCK.indexOf(id); if(id==='launchpad'||i<0)return;
+  DOCK.splice(i,1); saveDock();
+  const b=dockBtn(id); if(b)b.remove();
+  fitDock(); unmagnify();
+}
+function addToDesk(id){
+  const l=deskApps().slice(); if(!APPS[id]||l.indexOf(id)>=0)return;
+  l.push(id); saveDeskApps(l); renderDesk();
+}
+function removeFromDesk(id){
+  saveDeskApps(deskApps().filter(x=>x!==id)); renderDesk();
+}
+/* Menu chuột phải / nhấn giữ dùng chung cho Launchpad, Dock, Desktop */
+let ctxStamp=0;
+function popAt(cx,cy,items,r){
+  if(Date.now()-ctxStamp<700)return; ctxStamp=Date.now();
+  showCtx(cx,cy,items);
+  if(r){ /* cảm ứng: đặt menu phía trên icon, tránh nằm dưới ngón tay, bỏ qua lần nhả tay đầu */
+    const c=$('#ctx'), sr=stage.getBoundingClientRect();
+    c.style.top=Math.max(32,r.top-sr.top-c.offsetHeight-10)+'px';
+    c.style.pointerEvents='none'; setTimeout(()=>{c.style.pointerEvents=''},400);
+  }
+}
+function bindHold(host,sel,onMenu){
+  let t=0;
+  const cancel=()=>clearTimeout(t);
+  host.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse')return;
+    const el=e.target.closest(sel); if(!el)return;
+    el._lp=false; cancel();
+    t=setTimeout(()=>{el._lp=true;const r=el.getBoundingClientRect();onMenu(el,r.left+r.width/2-40,r.top-4,r)},450);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(n=>host.addEventListener(n,cancel));
+  host.addEventListener('pointermove',e=>{if(Math.abs(e.movementX)+Math.abs(e.movementY)>6)cancel()});
+  host.addEventListener('contextmenu',e=>{const el=e.target.closest(sel);if(!el)return;e.preventDefault();e.stopPropagation();onMenu(el,e.clientX,e.clientY)},true);
+}
 function syncDock(){$$('.dk',dock).forEach(d=>d.classList.toggle('run',!!wins[d.dataset.id]))}
 function setBadge(id,n){const b=dockBtn(id);if(!b)return;const e=$('.bdg',b);e.hidden=!n;e.textContent=n>99?'99+':n}
 function fitDock(){
@@ -3896,7 +3953,8 @@ function renderLP(){
   const term=norm($('#lpq').value.trim()), g=$('#lpg'); g.innerHTML='';
   LP_APPS.filter(id=>!term||norm(APPS[id].name).indexOf(term)>=0).forEach(id=>{
     const b=document.createElement('button'); b.className='lpi'; b.innerHTML=iconHTML(id)+'<span>'+esc(APPS[id].name)+'</span>';
-    b.addEventListener('click',e=>{e.stopPropagation();closeLP();openApp(id)});
+    b.dataset.app=id;
+    b.addEventListener('click',e=>{e.stopPropagation();if(b._lp){b._lp=false;return}closeLP();openApp(id)});
     g.appendChild(b);
   });
 }
@@ -3915,6 +3973,16 @@ function closeLP(){
 }
 function toggleLP(){lpOn?closeLP():openLP()}
 $('#lpq').addEventListener('input',renderLP);
+/* Nhấn giữ / chuột phải một app trong Launchpad: đặt lên màn hình desktop hoặc thanh Dock */
+bindHold($('#lpg'),'.lpi',(el,cx,cy,r)=>{
+  const id=el.dataset.app; if(!id)return;
+  const onDesk=deskApps().indexOf(id)>=0, inDock=DOCK.indexOf(id)>=0;
+  popAt(cx,cy,[
+    {t:'Mở',fn:()=>{closeLP();openApp(id)}},'-',
+    {t:onDesk?'✓ Đã có trên màn hình desktop':'Đặt lên màn hình desktop',fn:()=>addToDesk(id),dis:onDesk},
+    {t:inDock?'✓ Đã có trên thanh Dock':'Đặt lên thanh Dock',fn:()=>addToDock(id),dis:inDock}
+  ],r);
+});
 $('#lpq').addEventListener('keydown',e=>{if(e.key==='Enter'){const f=$('.lpi',lp);if(f)f.click()}});
 lp.addEventListener('click',e=>{if(!e.target.closest('.lpi,.lpq'))closeLP()});
 
@@ -4140,7 +4208,9 @@ function greet(){
 /* ---------- Màn hình nền (biểu tượng) ---------- */
 let dsel=-2, dren=-1;
 const diskIcon='<span class="fic disk"><svg viewBox="0 0 48 40"><rect x="3" y="8" width="42" height="26" rx="6" fill="#aab0bd"/><rect x="3" y="8" width="42" height="14" rx="6" fill="#d5d9e2"/><circle cx="38" cy="28" r="2.2" fill="#6b7280"/></svg></span>';
-function renderDesk(){ desk.innerHTML=''; return;
+function renderDesk(){
+  desk.innerHTML=deskApps().map(id=>'<div class="da" data-app="'+id+'" tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
+  return;
   let h='<div class="di" data-i="-1" aria-selected="'+(dsel===-1)+'" tabindex="0">'+diskIcon+'<span class="dl">Ổ đĩa</span></div>';
   FS.desk.forEach((it,i)=>{
     h+='<div class="di" data-i="'+i+'" aria-selected="'+(dsel===i)+'" tabindex="0">'+fileIcon(it.x)+(dren===i?'<input class="rn" value="'+esc(it.n)+'" aria-label="Tên mới">':'<span class="dl">'+esc(it.n)+'</span>')+'</div>';
@@ -4156,6 +4226,20 @@ function renderDesk(){ desk.innerHTML=''; return;
   }
 }
 bus.on('fs',renderDesk);
+/* Icon ứng dụng trên desktop: chạm / bấm để mở; chuột phải hoặc nhấn giữ -> Xóa khỏi màn hình desktop */
+desk.addEventListener('click',e=>{
+  const a=e.target.closest('.da'); if(!a)return;
+  if(a._lp){a._lp=false;return}
+  openApp(a.dataset.app);
+});
+desk.addEventListener('keydown',e=>{
+  const a=e.target.closest&&e.target.closest('.da'); if(!a)return;
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();openApp(a.dataset.app)}
+});
+bindHold(desk,'.da',(el,cx,cy,r)=>{
+  const id=el.dataset.app;
+  popAt(cx,cy,[{t:'Mở',fn:()=>openApp(id)},'-',{t:'Xóa khỏi màn hình desktop',fn:()=>removeFromDesk(id)}],r);
+});
 desk.addEventListener('pointerdown',e=>{
   closeAllPopups();
   const d=e.target.closest('.di');
