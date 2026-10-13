@@ -627,9 +627,7 @@ window.__loadLib = (function(){
       <button id="btnRedo" title="Làm lại (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
     </div>
     <div class="doc-title">Document1 - Word</div>
-    <div class="win-controls">
-      <span id="btnHomeAndroid" title="Về màn hình chính Android">&#10005;</span>
-    </div>
+    <div class="win-controls"></div>
   </div>
 
   <!-- RIBBON -->
@@ -5310,7 +5308,8 @@ window.addEventListener('resize', syncInkSvgViewBox);
 setTimeout(syncInkSvgViewBox, 500);
 
 /* Nút ✕ trên thanh tiêu đề: lưu rồi về màn hình chính Android */
-document.getElementById('btnHomeAndroid').addEventListener('click', () => {
+var btnHomeAndroid = document.getElementById('btnHomeAndroid');   // đã bỏ nút ✕: tắt app bằng nút đỏ của cửa sổ
+if (btnHomeAndroid) btnHomeAndroid.addEventListener('click', () => {
   try { saveNow(); } catch (e) {}
   if (window.AndroidBridge && AndroidBridge.goHome) AndroidBridge.goHome();
   else window.close();

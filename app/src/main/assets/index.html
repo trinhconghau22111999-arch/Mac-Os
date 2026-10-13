@@ -970,6 +970,11 @@ body.native .stage{border-radius:0;min-height:0}
   .clk2>.bar{padding-left:112px;padding-right:112px}
   .pvh{padding-left:112px}
 }
+/* Gõ văn bản: thu hẹp thanh trắng chứa nút đỏ/vàng/xanh + tên app */
+.win.wplain .wa .bar{height:32px}
+.win.wplain .tls{top:9.5px}
+.win.wplain .wa .bar .t{font-size:14px}
+@media (pointer:coarse){.win.wplain .tls{top:6px}}
 
 /* Đa nhiệm kiểu iPhone (thẻ ngang) */
 .msw{position:absolute;inset:0;z-index:8;display:flex;align-items:center;background:rgba(10,12,24,.5);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);animation:mswin .22s ease-out}
@@ -3081,6 +3086,7 @@ function buildWebApp(b,w,key,url,title,opt){
   opt=opt||{};
   const A=window.AndroidLauncher;
   if(!A){b.innerHTML='<div class="app"><div class="bar"><strong class="t">'+title+'</strong></div>'+NATIVE_ONLY(title)+'</div>';return {}}
+  if(opt.plain)w.classList.add('wplain');
   b.innerHTML='<div class="wa'+(opt.addr?' wad':'')+'"><div class="bar">'+(opt.plain?'':'<button class="ib wbk" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button>')+(opt.addr?'<button class="ib wfw" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>':'')+(opt.addr?'<input class="wau" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Thanh địa chỉ">':'<strong class="t">'+title+'</strong><span class="grow"></span>')+(opt.plain?'':'<button class="ib wrl" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button>')+(opt.addr?'<button class="ib whm" aria-label="Trang chủ">⌂</button>':'')+'</div>'+(opt.addr?'<div class="wpg"><i></i></div>':'')+'<div class="wab"></div></div>';
   const area=$('.wab',b), inp=$('.wau',b), fwb=$('.wfw',b), bkb=$('.wbk',b), pg=$('.wpg i',b); let last='', off=false, timer=null, firstUrl=opt.url||url;
   function offline(){
