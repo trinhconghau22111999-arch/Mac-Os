@@ -915,7 +915,13 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .wa{display:flex;flex-direction:column;height:100%;background:var(--win)}.wab{background:var(--win)}.wa .bar{padding-left:78px;gap:4px}.wa .bar .ib{width:42px;height:42px;font-size:26px;line-height:1;font-weight:500}.wa .bar .wau{height:34px;font-size:14px}.wa .wab{flex:1;min-height:0;position:relative}
 /* Nút lùi / tiến / tải lại: cùng cỡ chuẩn với nút ‹ lớn nhất ở trang Tệp (52×52), nét đậm, đều nhau ở mọi cửa sổ web + trình duyệt */
 .wa .bar .wbk,.wa .bar .wfw,.wa .bar .wrl,.wa .bar .gbk,.wa .bar .gfw,.wa .bar .grl,.br .bbar .bk,.br .bbar .fw,.br .bbar .rl{width:52px;height:52px;flex:none;display:grid;place-items:center;padding:0;color:inherit}
-.wa .bar .wbk svg,.wa .bar .wfw svg,.wa .bar .wrl svg,.wa .bar .gbk svg,.wa .bar .gfw svg,.wa .bar .grl svg,.br .bbar .bk svg,.br .bbar .fw svg,.br .bbar .rl svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+/* Nút lùi / tiến lấy đúng ký tự ‹ › cỡ 40px như nút lùi ở trang Tệp; tải lại và trang chủ cùng khung 52×52, nét cùng độ đậm */
+.wa .bar .wbk svg,.wa .bar .gbk svg,.br .bbar .bk svg,.wa .bar .wfw svg,.wa .bar .gfw svg,.br .bbar .fw svg{display:none}
+.wa .bar .wbk::before,.wa .bar .gbk::before,.br .bbar .bk::before{content:'\2039'}
+.wa .bar .wfw::before,.wa .bar .gfw::before,.br .bbar .fw::before{content:'\203A'}
+.wa .bar .wbk::before,.wa .bar .gbk::before,.br .bbar .bk::before,.wa .bar .wfw::before,.wa .bar .gfw::before,.br .bbar .fw::before{font-size:40px;line-height:1;font-weight:500}
+.wa .bar .wrl svg,.wa .bar .grl svg,.br .bbar .rl svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.wa .bar .whm{width:52px;height:52px;font-size:30px;line-height:1}
 .br .nv{background:none;border-radius:0;overflow:visible}
 .br .nv button{min-width:52px;width:52px;height:52px;padding:0;border-radius:50%}
 body.native{padding:0;box-sizing:border-box;background:transparent}
