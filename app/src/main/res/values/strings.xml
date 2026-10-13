@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Desktop Mini</string>
-    <string name="a11y_desc">Cho phép Desktop Mini khóa màn hình, mở menu nguồn, và hiện Dock nổi (vuốt lên từ mép dưới) cùng thanh 3 nút Đóng/Thu nhỏ/Phóng to (vuốt xuống từ mép trên) trên các ứng dụng khác.</string>
+    <string name="a11y_desc">Cho phép Desktop Mini khóa màn hình, mở menu nguồn, và hiện nút tròn \"Desktop\" nổi trên các ứng dụng khác (bấm để về màn hình Desktop, kéo để đổi vị trí).</string>
 </resources>
