@@ -835,6 +835,8 @@ a.btn.pri{color:#fff}
 .dock:not(.mg) .dk,.dock:not(.mg) .dk .ic{transition:transform .14s ease-out}
 .dk::after{margin-bottom:var(--lift,0px)}
 .dk.bounce .ic{animation:bounce .56s cubic-bezier(.3,.6,.4,1)}
+.dk.pop .ic{animation:dkpop .3s cubic-bezier(.22,.9,.28,1)}
+@keyframes dkpop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes bounce{0%{transform:translateY(0)}25%{transform:translateY(-24px)}50%{transform:translateY(0)}75%{transform:translateY(-12px)}100%{transform:translateY(0)}}
 .dk::after{content:attr(data-label);position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);padding:4px 11px;border-radius:9px;background:var(--glass);color:var(--fg);
   backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);box-shadow:0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.25);font-size:13px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s}
@@ -1276,13 +1278,13 @@ function addDockBtn(id){
       if(Date.now()-ctxT<700)return; ctxT=Date.now();
       const items=[];
       if(id==='trash'){items.push({t:'Mở',fn:()=>openApp('trash')},{t:'Dọn sạch Thùng rác',fn:emptyTrash,dis:!FS.trash.length})}
-      else if(id==='launchpad'||id==='downloads'){items.push({t:'Mở',fn:()=>openApp(id)})}
+      else if(id==='launchpad'){items.push({t:'Mở',fn:()=>openApp(id)})}
       else{
         const w=wins[id];
         items.push({t:w?'Hiện cửa sổ':'Mở',fn:()=>openApp(id)});
         if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Thoát (tắt hẳn)',fn:()=>closeWin(w)})}
       }
-      if(id!=='launchpad')items.push('-',{t:'Xóa khỏi Dock',fn:()=>removeFromDock(id)});
+      if(id!=='launchpad')items.push('-',TEMP.indexOf(id)>=0?{t:'Giữ trong Dock',fn:()=>addToDock(id)}:{t:'Xóa khỏi Dock',fn:()=>removeFromDock(id)});
       showCtx(cx,cy,items);
       if(r){ /* cảm ứng: đặt menu phía trên icon, tránh nằm dưới ngón tay, và bỏ qua lần nhả tay đầu */
         const ctx=$('#ctx'), sr=stage.getBoundingClientRect();
@@ -1296,9 +1298,30 @@ function addDockBtn(id){
   });
 }
 const dockBtn=id=>$('.dk[data-id="'+id+'"]',dock);
+/* App đang chạy mà chưa ghim: hiện icon tạm ở cuối Dock, thoát app thì icon biến mất. Mỗi lần thêm/bớt icon, Dock co giãn và luôn nằm giữa cạnh dưới */
+const TEMP=[];
+function addTempDock(id){
+  if(!APPS[id]||id==='launchpad'||DOCK.indexOf(id)>=0||TEMP.indexOf(id)>=0)return;
+  TEMP.push(id); addDockBtn(id);
+  const b=dockBtn(id); if(b&&!reduce){b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),320)}
+  fitDock(); syncDock(); unmagnify();
+}
+function removeTempDock(id){
+  const i=TEMP.indexOf(id); if(i<0)return;
+  TEMP.splice(i,1); const b=dockBtn(id); if(b)b.remove();
+  fitDock(); unmagnify();
+}
 function addToDock(id){
   if(!APPS[id]||DOCK.indexOf(id)>=0)return;
-  DOCK.push(id); saveDock(); addDockBtn(id); fitDock(); syncDock(); unmagnify();
+  const ti=TEMP.indexOf(id);
+  if(ti>=0){ /* đang chạy ở icon tạm: ghim luôn, giữ nguyên icon, đưa lên trước nhóm icon tạm */
+    TEMP.splice(ti,1); DOCK.push(id); saveDock();
+    const b=dockBtn(id), f=TEMP.length&&dockBtn(TEMP[0]); if(b&&f)dock.insertBefore(b,f);
+    fitDock(); unmagnify(); return;
+  }
+  DOCK.push(id); saveDock(); addDockBtn(id);
+  const f=TEMP.length&&dockBtn(TEMP[0]), b=dockBtn(id); if(b&&f)dock.insertBefore(b,f);
+  fitDock(); syncDock(); unmagnify();
 }
 function removeFromDock(id){
   const i=DOCK.indexOf(id); if(id==='launchpad'||i<0)return;
@@ -1340,8 +1363,8 @@ function bindHold(host,sel,onMenu){
 function syncDock(){$$('.dk',dock).forEach(d=>d.classList.toggle('run',!!wins[d.dataset.id]))}
 function setBadge(id,n){const b=dockBtn(id);if(!b)return;const e=$('.bdg',b);e.hidden=!n;e.textContent=n>99?'99+':n}
 function fitDock(){
-  const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length, seps=DOCK.length-n;
-  let base=Math.floor((sw-40-(DOCK.length-1)*6-seps*8-12)/n);
+  const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
+  let base=Math.floor((sw-40-(tot-1)*6-seps*8-12)/n);
   base=Math.max(36,Math.min(pref('dockSize',54),base));
   stage.style.setProperty('--base',base+'px');
 }
@@ -1459,6 +1482,7 @@ function createWin(id,arg){
   w.style.width=bw+'px'; w.style.height=bh+'px';
   w.style.left=Math.max(12,Math.min(30+n*32,sr.width-bw-12))+'px';
   w.style.top=Math.max(40,Math.min(46+n*28,sr.height-bh-110))+'px';
+  addTempDock(id);
   layer.appendChild(w); wins[id]=w;
   w._api=a.build($('.body',w),w,arg)||{};
   wire(w,id,a);
@@ -1469,7 +1493,7 @@ function createWin(id,arg){
 function closeWin(w){
   const id=w.dataset.app;
   if(w._api&&w._api.destroy)w._api.destroy();
-  w._leaving=true; delete wins[id]; syncDock(); focusTop(); bus.emit('wins');
+  w._leaving=true; delete wins[id]; removeTempDock(id); syncDock(); focusTop(); bus.emit('wins');
   if(reduce||stage.classList.contains('mc')){w.remove();return}
   const a=w.animate([{transform:'scale(1)',opacity:1},{transform:'scale(.93)',opacity:0}],{duration:140,easing:'ease-in',fill:'forwards'});
   a.onfinish=()=>w.remove();
@@ -4182,7 +4206,7 @@ window.addEventListener('resize',()=>{if(!lock.hidden&&hasLock()&&lockKind()!==l
 /* Tắt màn hình thì khóa lại */
 window.nativeScreenOff=()=>{if(hasLock()&&pref('lockOnOff',true)&&lock.hidden&&off.hidden)lockUI()};
 $$('.pb',lock).forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.pw;if(m==='sleep')sleepNow();else if(m==='restart')restartNow();else shutNow()}));
-function killAll(){Object.keys(wins).forEach(id=>{const w=wins[id];if(w._api&&w._api.destroy)w._api.destroy();w.remove();delete wins[id]});syncDock();focusTop()}
+function killAll(){Object.keys(wins).forEach(id=>{const w=wins[id];if(w._api&&w._api.destroy)w._api.destroy();w.remove();delete wins[id]});TEMP.slice().forEach(removeTempDock);syncDock();focusTop()}
 function showOff(mode){
   lock.hidden=true; off.hidden=false; off.dataset.mode=mode;
   off.innerHTML=mode==='sleep'?'<div class="offs">Nhấn hoặc chạm để đánh thức</div>':'<button class="pwr" aria-label="Bật máy"><svg viewBox="0 0 16 16"><path d="M8 1.5v6M4.3 3.8a5.5 5.5 0 1 0 7.4 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button><div class="offs">Nhấn để bật máy</div>';
