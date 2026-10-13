@@ -389,6 +389,13 @@ public class MainActivity extends Activity {
         try { startActivity(i); } catch (Exception e) { }
     }
 
+    /** Mở app con "Gõ văn bản". */
+    void openTy() {
+        Intent i = new Intent(this, TypingActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(i); } catch (Exception e) { }
+    }
+
     private void go(Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { startActivity(i); } catch (Exception e) { } }
 
     private WebView extGet(final String key, String url) {
@@ -1134,6 +1141,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openWebBrowser(String url) { openWeb(url); }
         /** Mở app con "YouTube" (chỉ YouTube, không thanh địa chỉ). */
         @JavascriptInterface public void openYouTube() { openYt(); }
+        /** Mở app con "Gõ văn bản" (trình soạn thảo kiểu Word). */
+        @JavascriptInterface public void openTyping() { openTy(); }
         @JavascriptInterface public boolean hasPackage(String pkg) {
             try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
         }

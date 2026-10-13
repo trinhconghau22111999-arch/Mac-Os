@@ -29,3 +29,11 @@ Mỗi quyền đặc biệt chỉ hỏi một lần; xem lại và cấp sau tro
 - Chặn quảng cáo như Duyệt web: chặn tên miền quảng cáo + script tự bấm "Bỏ qua", tua nhanh quảng cáo không bỏ qua được, ẩn banner.
 - Back: lùi trang; hết trang để lùi thì đóng app về Desktop Mini. Xem video toàn màn hình được.
 - Google có thể chặn đăng nhập trong WebView; app đã dùng UA như Chrome để giảm khả năng này, nhưng không đảm bảo. Xem YouTube không cần đăng nhập vẫn được.
+
+## Gõ văn bản (trình soạn thảo kiểu Word, chép từ repo Word)
+- Biểu tượng **Gõ văn bản** nằm ngay sau Ghi chú; mở màn hình riêng `TypingActivity.kt` + trang `assets/word/index.html`. Chạy offline.
+- Mở/lưu .docx, .html, .txt, xuất PDF (lưu vào **Tải xuống/GoVanBan**), chia sẻ qua Gmail/Drive/Zalo, đọc văn bản thành tiếng, tự lưu.
+- Thư viện (Font Awesome, mammoth, JSZip) chép sẵn vào `assets/word/lib` từ npm, không cần tải lúc build.
+- Tối ưu so với repo gốc: nạp trang qua WebViewAssetLoader (không dùng file://); mammoth/JSZip chỉ nạp khi mở/lưu .docx (khởi động nhanh hơn);
+  bỏ font brands và các font thừa (~120 KB); chặn scheme lạ khi mở link; giải mã/ghi tệp/đọc PDF ở luồng nền;
+  tự lưu khi rời app; nút ✕ / Back về Desktop Mini.
