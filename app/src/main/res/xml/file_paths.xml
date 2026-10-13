@@ -2,4 +2,5 @@
 <paths>
     <root-path name="root" path="." />
     <cache-path name="shared" path="shared/" />
+    <cache-path name="omemview" path="view/" />
 </paths>

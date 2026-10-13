@@ -888,11 +888,15 @@ public class MainActivity extends Activity {
             } catch (Exception e) { }
             return arr.toString();
         }
-        /** Mở app con "Ổ mềm" (Activity nằm ngay trong ứng dụng này). */
-        @JavascriptInterface public void openOmem() {
-            runOnUiThread(new Runnable() { public void run() {
-                try { startActivity(new Intent(MainActivity.this, vn.omem.MainActivity.class)); } catch (Exception e) { }
-            } });
+        /** App con "Ổ mềm": giao diện HTML gọi lệnh, kết quả (JSON) trả lại qua window.omemCb(id, json). */
+        @JavascriptInterface public void omem(final String op, final String arg, final int cb) {
+            vn.omem.OmemApi.call(MainActivity.this, op, arg, new vn.omem.OmemCb() {
+                @Override public void done(final String json) {
+                    runOnUiThread(new Runnable() { public void run() {
+                        if (web != null) web.evaluateJavascript("window.omemCb&&window.omemCb(" + cb + "," + JSONObject.quote(json) + ")", null);
+                    } });
+                }
+            });
         }
         @JavascriptInterface public boolean hasPackage(String pkg) {
             try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }

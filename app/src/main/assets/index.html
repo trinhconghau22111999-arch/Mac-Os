@@ -308,6 +308,52 @@ ul,ol{margin:0;padding:0;list-style:none}
 .btn:hover:not(:disabled){filter:brightness(.94)}
 .btn.pri{background:var(--accent);color:#fff}
 .btn:disabled{opacity:.4}
+/* Ổ mềm */
+.om{position:relative}
+.om .bar{touch-action:auto}
+.omst{flex:1;min-width:0;font-size:12px;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.omact{display:flex;align-items:center;gap:6px;flex:none}
+.omtabs{flex:none;display:flex;gap:4px;padding:4px 10px;border-bottom:1px solid rgba(128,128,128,.2)}
+.omtab{flex:1;padding:6px 4px;border-radius:8px;font-size:13px}
+.omtab[aria-current="true"]{background:var(--sel);color:var(--accent);font-weight:700}
+.ombody{flex:1;min-height:0;overflow-y:auto;padding:4px 8px 12px;-webkit-overflow-scrolling:touch}
+.omh{padding:8px 6px 4px;font-size:13px;font-weight:700}
+.omh.sub{font-weight:400;font-size:12px;color:var(--accent)}
+.omg{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:4px}
+.omi{position:relative;aspect-ratio:1;background:#d9d9de;border-radius:6px;overflow:hidden;user-select:none;-webkit-user-select:none;cursor:pointer}
+.omi img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.omph{position:absolute;inset:0;display:grid;place-items:center;color:#888;font-size:20px}
+.omv,.omb{position:absolute;font-style:normal;color:#fff;text-shadow:0 0 3px #000;font-size:12px}
+.omv{left:5px;bottom:3px}
+.omb{right:3px;bottom:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);display:grid;place-items:center;font-size:11px}
+.omck{position:absolute;left:5px;top:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.4);color:transparent;display:none;place-items:center;font-style:normal;font-size:13px}
+.omi.on{outline:3px solid var(--accent);outline-offset:-3px}
+.omi.on .omck{display:grid;background:var(--accent);color:#fff}
+.omr{padding:8px 8px;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.omr:hover{background:var(--field)}
+.omr b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.omr span{font-size:12px;color:var(--muted)}
+.omr.on{background:var(--sel);box-shadow:inset 0 0 0 2px var(--accent)}
+.omc{margin:6px;padding:12px 14px;border-radius:12px;background:var(--field);display:flex;flex-direction:column;gap:3px}
+.omc.sm{padding:8px 12px;font-size:13px}
+.omt{font-size:20px}
+.ompb{height:6px;border-radius:3px;background:rgba(128,128,128,.25);margin-top:6px;overflow:hidden}
+.ompb i{display:block;height:100%;background:var(--accent)}
+.omrow{display:flex;flex-wrap:wrap;gap:8px;padding:6px}
+.omsw{display:flex;align-items:center;gap:8px;padding:8px 8px;font-size:13px}
+.omov{position:absolute;inset:0;z-index:20}
+.omov.dlg{background:rgba(0,0,0,.35);display:grid;place-items:center}
+.omd{background:var(--win);border-radius:14px;padding:18px;max-width:86%;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.omd p{margin-bottom:14px;font-size:13px;line-height:1.4}
+.omdb{display:flex;justify-content:flex-end;gap:8px}
+.omov.view{background:#000;display:flex;flex-direction:column}
+.omvh{flex:none;display:flex;align-items:center;gap:10px;padding:8px 10px;color:#fff;font-size:13px}
+.omvh .btn{background:rgba(255,255,255,.18);color:#fff}
+.omvh span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.omvb{flex:1;min-height:0;display:grid;place-items:center;overflow:auto}
+.omvb img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .15s}
+.omvb img.z{transform:scale(2.4);cursor:zoom-out}
+.omov[hidden]{display:none!important}
 .ib{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none}
 .ib:hover:not(:disabled){background:var(--field)}
 .ib:disabled{opacity:.35}
@@ -1123,7 +1169,7 @@ const APPS={
   recorder:{name:'Ghi âm',w:380,h:600,minW:320,minH:440,build:buildRecorder,dark:true},
   camera:{name:'Webcam',w:380,h:620,minW:320,minH:460,build:buildCamera,dark:true},
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
-  omem:{name:'Ổ mềm',w:340,h:200,minW:300,minH:160,build:b=>{b.innerHTML='<div style="padding:22px;font-size:14px">Ổ mềm là app con chạy trên Android. Hãy mở trong ứng dụng Desktop Mini.</div>'}},
+  omem:{name:'Ổ mềm',w:560,h:460,minW:340,minH:300,build:buildOmem},
   trash:{name:'Thùng rác',w:520,h:340,minW:320,minH:240,build:buildTrash},
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
@@ -1282,7 +1328,6 @@ function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
   if(id==='browser'&&openRealBrowser())return;
-  if(id==='omem'&&window.AndroidLauncher&&window.AndroidLauncher.openOmem){try{window.AndroidLauncher.openOmem();return}catch(e){}}
   if(id==='mail'&&window.AndroidLauncher&&window.AndroidLauncher.openMail){try{if(window.AndroidLauncher.openMail())return}catch(e){}}
   if(!APPS[id])return;
   const w=wins[id];
@@ -1790,6 +1835,228 @@ function buildNotes(b,w,arg){
   function fromFile(name){add(name.replace(/\.md$/,'')+'\nNội dung mẫu của tệp "'+name+'" được mở từ ứng dụng Tệp.')}
   if(arg&&arg.file)fromFile(arg.file);
   return {open(a){if(a&&a.file)fromFile(a.file)}};
+}
+
+/* ---------- Ổ mềm: app con (giao diện HTML, logic Kotlin qua AndroidLauncher.omem) ---------- */
+const OM={cb:{},n:0,thumbs:new Map(),q:[],run:0};
+window.omemCb=function(id,json){
+  const f=OM.cb[id]; delete OM.cb[id]; if(!f)return;
+  let r; try{r=JSON.parse(json)}catch(e){r={ok:false,err:'Dữ liệu lỗi'}}
+  f(r);
+};
+function omCall(op,arg,fn){
+  const A=window.AndroidLauncher;
+  if(!A||!A.omem){if(fn)fn({ok:false,err:'Chỉ chạy trong ứng dụng Android'});return}
+  const id=++OM.n; OM.cb[id]=fn||function(){};
+  try{A.omem(op,JSON.stringify(arg||{}),id)}catch(e){delete OM.cb[id];if(fn)fn({ok:false,err:String(e)})}
+}
+const omFmt=n=>n>=1099511627776?(n/1099511627776).toFixed(1)+' TB':n>=1073741824?(n/1073741824).toFixed(2)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.round(n/1024)+' KB';
+function omThumb(kind,key,video,cb){
+  const ck=kind+key;
+  if(OM.thumbs.has(ck)){cb(OM.thumbs.get(ck));return}
+  OM.q.push({ck:ck,kind:kind,key:key,video:video,cb:cb}); omPump();
+}
+function omPump(){
+  while(OM.run<3&&OM.q.length){
+    const t=OM.q.shift(); OM.run++;
+    omCall(t.kind==='r'?'thumb':'lthumb',{id:t.key,video:t.video},r=>{
+      OM.run--;
+      if(r.ok&&r.img){
+        if(OM.thumbs.size>400)OM.thumbs.delete(OM.thumbs.keys().next().value);
+        OM.thumbs.set(t.ck,r.img); t.cb(r.img);
+      }
+      omPump();
+    });
+  }
+}
+function buildOmem(b,w){
+  b.innerHTML='<div class="app om"><div class="bar"><strong class="t">Ổ mềm</strong><span class="omst"></span><span class="omact"></span></div>'
+    +'<div class="omtabs"></div><div class="ombody"></div><div class="omov" hidden></div></div>';
+  const bar=$('.bar',b), stEl=$('.omst',b), act=$('.omact',b), tabsEl=$('.omtabs',b), body=$('.ombody',b), ov=$('.omov',b);
+  const TITLES=['Ảnh','Video','Tệp','Cài đặt'];
+  let S=null, tab=0, sel=new Set(), selMode=false, msg='', alive=true, timer=null, io=null;
+  const kindOf=g=>g.mime.indexOf('image/')===0?0:g.mime.indexOf('video/')===0?1:2;
+  const setMsg=m=>{msg=m;stEl.textContent=m};
+
+  /* nhấn: chạm = mở/chọn, giữ lâu = chọn */
+  function press(el,tap,long){
+    let t=null,lp=false,x0=0,y0=0;
+    const cancel=()=>clearTimeout(t);
+    el.addEventListener('pointerdown',e=>{lp=false;x0=e.clientX;y0=e.clientY;clearTimeout(t);t=setTimeout(()=>{lp=true;if(long)long()},450)});
+    el.addEventListener('pointermove',e=>{if(Math.abs(e.clientX-x0)+Math.abs(e.clientY-y0)>10)cancel()});
+    ['pointerup','pointercancel','pointerleave'].forEach(n=>el.addEventListener(n,cancel));
+    el.addEventListener('click',()=>{if(lp){lp=false;return}tap()});
+    el.addEventListener('contextmenu',e=>e.preventDefault());
+  }
+  function toggleSel(grp){
+    if(sel.has(grp))sel.delete(grp); else sel.add(grp);
+    selMode=sel.size>0||selMode; drawBar(); markSel();
+  }
+  function markSel(){$$('[data-g]',body).forEach(e=>{const on=sel.has(e.dataset.g);e.classList.toggle('on',on)})}
+  function exitSel(){sel.clear();selMode=false;drawBar();markSel()}
+
+  function dialog(text,okLabel,fn){
+    ov.hidden=false; ov.className='omov dlg';
+    ov.innerHTML='<div class="omd"><p>'+esc(text)+'</p><div class="omdb"><button class="btn" data-x="0">Huỷ</button><button class="btn pri" data-x="1">'+esc(okLabel)+'</button></div></div>';
+    ov.onclick=e=>{const x=e.target.closest('[data-x]'); if(!x&&e.target!==ov)return; ov.hidden=true; ov.innerHTML=''; if(x&&x.dataset.x==='1')fn()};
+  }
+
+  function drawBar(){
+    act.innerHTML='';
+    if(selMode){
+      const n=sel.size;
+      act.innerHTML='<span class="cn">Đã chọn '+n+'</span><button class="btn" data-a="dl"'+(n?'':' disabled')+'>⬇ Tải</button><button class="btn" data-a="del"'+(n?'':' disabled')+'>🗑 Xóa</button><button class="btn" data-a="done">Xong</button>';
+    }else if(tab<3){
+      act.innerHTML='<button class="btn" data-a="sel">Chọn</button>';
+    }
+  }
+  act.addEventListener('click',e=>{
+    const x=e.target.closest('[data-a]'); if(!x||x.disabled)return;
+    const k=x.dataset.a, gs=[...sel];
+    if(k==='sel'){selMode=true;drawBar();markSel()}
+    else if(k==='done')exitSel();
+    else if(k==='dl'){exitSel();setMsg('Đang tải '+gs.length+' tệp…');omCall('dl',{grps:gs},r=>{
+      if(!alive)return;
+      setMsg(!r.ok?'Lỗi: '+r.err:(r.err?'Đã lưu '+r.done+'/'+r.total+' tệp, lỗi: '+r.err:'Đã lưu '+r.done+' tệp vào Download/OMem'))})}
+    else if(k==='del')dialog((gs.length===1?'Tệp này':gs.length+' mục đã chọn')+' sẽ bị xóa vĩnh viễn khỏi Google Drive và thư viện Ổ mềm. Bản gốc trên máy không bị ảnh hưởng.','Xóa',()=>{
+      exitSel();setMsg('Đang xóa '+gs.length+' mục…');
+      omCall('del',{grps:gs},r=>{
+        if(!alive)return;
+        setMsg(!r.ok?'Lỗi: '+r.err:(r.err?'Đã xóa '+r.done+'/'+r.total+', lỗi: '+r.err:'Đã xóa '+r.done+' mục'));
+        load();
+      });
+    });
+  });
+
+  function drawTabs(){
+    tabsEl.innerHTML=TITLES.map((t,i)=>'<button class="omtab" data-t="'+i+'" aria-current="'+(i===tab)+'">'+t+'</button>').join('');
+  }
+  tabsEl.addEventListener('click',e=>{
+    const x=e.target.closest('[data-t]'); if(!x)return;
+    tab=+x.dataset.t; sel.clear(); selMode=false; drawTabs(); drawBar(); drawBody(true);
+  });
+
+  /* xem ảnh / mở video */
+  function openItem(kind,key,name,video){
+    if(video){
+      setMsg(kind==='r'?'Đang tải video về để mở…':'Đang mở video…');
+      omCall('video',{kind:kind,key:key},r=>{if(alive)setMsg(r.ok?'':'Lỗi: '+r.err)});
+      return;
+    }
+    ov.hidden=false; ov.className='omov view';
+    ov.innerHTML='<div class="omvh"><button class="btn" data-x="close">✕</button><span>'+esc(name)+'</span></div><div class="omvb"><div class="none" style="color:#fff">Đang mở…</div></div>';
+    ov.onclick=e=>{
+      if(e.target.closest('[data-x="close"]')){ov.hidden=true;ov.innerHTML='';return}
+      const im=e.target.closest('img'); if(im){const z=im.classList.toggle('z');if(z){const r=im.getBoundingClientRect();im.style.transformOrigin=(e.clientX-r.left)+'px '+(e.clientY-r.top)+'px'}}
+    };
+    omCall('view',{kind:kind,key:key},r=>{
+      const vb=$('.omvb',ov); if(!alive||!vb)return;
+      vb.innerHTML=r.ok?'<img alt="" src="'+r.img+'">':'<div class="none" style="color:#fff">Lỗi: '+esc(r.err||'không mở được')+'</div>';
+    });
+  }
+
+  /* lưới ảnh/video */
+  function cell(kind,key,video,name,grp,th,up){
+    const d=document.createElement('div'); d.className='omi'; d.title=name;
+    if(grp)d.dataset.g=grp;
+    d.innerHTML='<span class="omph">'+(video?'▶':'🖼')+'</span>'
+      +(video?'<i class="omv">▶</i>':'')
+      +(kind==='l'?'<i class="omb">'+(up?'⏳':'☁')+'</i>':'')
+      +(grp?'<i class="omck">✓</i>':'');
+    if(th!==false){
+      d._load=()=>omThumb(kind,key,video,src=>{
+        if(!d.isConnected)return;
+        const im=document.createElement('img'); im.alt=''; im.src=src; d.insertBefore(im,d.firstChild);
+      });
+      if(io)io.observe(d);
+    }
+    press(d,()=>{
+      if(grp&&selMode)toggleSel(grp); else openItem(kind,key,name,video);
+    },grp?()=>toggleSel(grp):null);
+    return d;
+  }
+
+  function drawBody(resetScroll){
+    const st=resetScroll?0:body.scrollTop;
+    if(io){io.disconnect();io=null}
+    body.innerHTML='';
+    if(!S){body.innerHTML='<div class="none">Đang tải…</div>';return}
+    if(tab<3){
+      io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);if(e.target._load)e.target._load()}}),{root:body,rootMargin:'160px'});
+      const list=S.lib.filter(g=>kindOf(g)===tab);
+      const pend=tab<2?S.local.filter(f=>tab===0?!f.video:f.video):[];
+      const head=document.createElement('div'); head.className='omh';
+      head.textContent=TITLES[tab]+' đã sao lưu ('+list.length+') • '+omFmt(list.reduce((s,g)=>s+g.size,0));
+      body.appendChild(head);
+      if(pend.length){
+        const n=pend.filter(f=>f.up).length, p=document.createElement('div'); p.className='omh sub';
+        p.textContent='☁ '+pend.length+' đang chờ sao lưu'+(n?' • đang tải lên '+n:'');
+        body.appendChild(p);
+      }
+      if(!list.length&&!pend.length){const nn=document.createElement('div');nn.className='none';nn.textContent='Chưa có '+TITLES[tab].toLowerCase()+' nào.';body.appendChild(nn)}
+      if(tab<2){
+        const grid=document.createElement('div'); grid.className='omg';
+        pend.forEach(f=>grid.appendChild(cell('l',f.id,f.video,f.name,null,true,f.up)));
+        list.forEach(g=>grid.appendChild(cell('r',g.g,tab===1,g.name,g.g,g.th,false)));
+        body.appendChild(grid);
+      }else{
+        list.forEach(g=>{
+          const r=document.createElement('div'); r.className='omr'; r.dataset.g=g.g;
+          r.innerHTML='<b>'+esc(g.name)+'</b><span>'+omFmt(g.size)+(g.parts>1?' • chia '+g.parts+' phần':'')+'</span>';
+          press(r,()=>{
+            if(selMode)toggleSel(g.g);
+            else dialog(g.name+' ('+omFmt(g.size)+'): tải về thư mục Download/OMem?','Tải về',()=>{
+              setMsg('Đang tải…');
+              omCall('dl',{grps:[g.g]},x=>{if(alive)setMsg(!x.ok?'Lỗi: '+x.err:(x.err?'Lỗi: '+x.err:'Đã lưu vào Download/OMem'))});
+            });
+          },()=>toggleSel(g.g));
+          body.appendChild(r);
+        });
+      }
+      markSel();
+    }else drawSettings();
+    body.scrollTop=st;
+  }
+
+  function drawSettings(){
+    const free=Math.max(0,S.total-S.used), pc=S.total>0?Math.min(100,S.used/S.total*100):0;
+    let h='<div class="omc"><b class="omt">Ổ mềm</b><div>Tổng dung lượng gộp: '+omFmt(S.total)+'</div><div>Còn trống '+omFmt(free)+'</div><div class="ompb"><i style="width:'+pc+'%"></i></div></div>'
+      +'<div class="omrow"><button class="btn pri" data-s="acc">Thêm tài khoản Google</button><button class="btn" data-s="now">Sao lưu ngay</button><button class="btn" data-s="re">Làm mới</button></div>'
+      +'<div class="omh sub">Lần sao lưu gần nhất: '+esc(S.last||'chưa chạy')+'</div>'
+      +'<div class="omh">Tài khoản (tự động bật hết)</div>';
+    S.accounts.forEach(a=>{
+      h+='<div class="omc sm"><div>'+esc(a.email)+'</div><div class="cn">'+(a.q?omFmt(a.usage)+' / '+omFmt(a.limit):'Không đọc được dung lượng')+(a.en?' • đang bật':' • chưa bật (tối đa 10 tài khoản)')+'</div></div>';
+    });
+    h+='<label class="omsw"><input type="checkbox" data-s="auto"'+(S.auto?' checked':'')+'> Tự sao lưu khi có mạng</label>'
+      +'<label class="omsw"><input type="checkbox" data-s="wifi"'+(S.wifi?' checked':'')+'> Chỉ dùng Wi-Fi</label>';
+    if(!S.battery)h+='<div class="omrow"><button class="btn" data-s="bat">Cho phép chạy nền (để tự sao lưu ổn định)</button></div>';
+    if(S.needAll)h+='<div class="omrow"><button class="btn" data-s="all">Cấp quyền truy cập mọi tệp (sao lưu cả tài liệu)</button></div>';
+    body.innerHTML=h;
+  }
+  body.addEventListener('click',e=>{
+    const x=e.target.closest('[data-s]'); if(!x)return;
+    const k=x.dataset.s;
+    if(k==='acc'){omCall('addacc');setMsg('Đăng nhập xong, quay lại đây, app sẽ tự bật tài khoản mới')}
+    else if(k==='now'){omCall('now');setMsg('Đang sao lưu nền…')}
+    else if(k==='re')load();
+    else if(k==='bat')omCall('battery');
+    else if(k==='all')omCall('allfiles');
+    else if(k==='auto'||k==='wifi'){S[k]=x.checked;omCall('set',{k:k,v:x.checked})}
+  });
+
+  /* tải dữ liệu, tự làm mới (nhanh hơn khi đang tải lên) */
+  function schedule(){clearTimeout(timer);if(alive)timer=setTimeout(load,S&&S.up>0?8000:30000)}
+  function load(){
+    omCall('state',{},r=>{
+      if(!alive)return;
+      if(!r.ok){if(!S)body.innerHTML='<div class="none">Lỗi: '+esc(r.err||'')+'</div>';setMsg('Lỗi: '+(r.err||''))}
+      else{S=r; if(msg.indexOf('Lỗi')===0)setMsg(''); if(!selMode&&ov.hidden)drawBody(false)}
+      schedule();
+    });
+  }
+  drawTabs(); drawBar(); drawBody(true);
+  omCall('init',{},()=>load());
+  return {destroy(){alive=false;clearTimeout(timer);if(io)io.disconnect()}};
 }
 
 /* ---------- Nhắc nhở ---------- */

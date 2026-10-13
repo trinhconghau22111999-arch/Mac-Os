@@ -51,8 +51,6 @@
             </intent-filter>
         </activity>
         <!-- App con "Ổ mềm" (gộp nhiều Google Drive) -->
-        <activity android:name="vn.omem.MainActivity" android:exported="false" android:label="Ổ mềm"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
         <service android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync" tools:node="merge" />
         <receiver android:name=".AdminReceiver" android:exported="true" android:permission="android.permission.BIND_DEVICE_ADMIN">
