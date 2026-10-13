@@ -717,10 +717,13 @@ a.btn.pri{color:#fff}
 
 /* Ảnh */
 .ph{display:grid;grid-template-columns:170px minmax(0,1fr);height:100%;position:relative}
-.pgd{padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px;overflow:auto;flex:1;align-content:start}
-.pgd .pt{aspect-ratio:1;border-radius:8px;overflow:hidden;position:relative;display:block}
+.pgs{flex:1;min-height:0;overflow:auto;padding:6px}
+.pgd{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:3px;align-content:start}
+.pgd .pt{position:relative;aspect-ratio:1;border:0;padding:0;background:var(--sel);overflow:hidden;border-radius:6px;cursor:pointer;display:block}
 .pgd .pt svg{width:100%;height:100%;display:block}
-.pgd .pt em{position:absolute;right:6px;bottom:4px;color:#fff;font-style:normal;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.pgd .pt img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .18s}
+.pgd .pt img.ld{opacity:1}
+.pgd .pt em{position:absolute;right:5px;bottom:3px;color:#fff;font-style:normal;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .pgd .none{grid-column:1/-1}
 .pv{position:absolute;inset:0;z-index:6;background:rgba(10,10,14,.94);color:#fff;display:flex;flex-direction:column}
 .pvh{display:flex;align-items:center;gap:10px;padding:12px 14px 12px 78px}
@@ -2759,6 +2762,7 @@ function buildRealFiles(b,w,arg,mode){
       wrap.addEventListener('click',e=>{
         const x=e.target.closest('[data-i]'); if(!x)return;
         const f=items[+x.dataset.i];
+        if(kind==='img'){openApp('photos',{pid:f.id,name:f.n});return}
         if(!A.openMedia(kind,f.id))notify({app:'Tệp',title:'Không mở được tệp',body:f.n||'',icon:'files'});
       });
     },20);
@@ -3130,20 +3134,53 @@ function scene(i){
 }
 function buildPhotos(b,w,arg){
   let fav=jget('dm-pfav',[]), tab='all', view=-1;
-  b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><span class="cn phc"></span></div><div class="pgd"></div></div><div class="pv" hidden></div></div>';
-  const side=$('.side',b), pgd=$('.pgd',b), pv=$('.pv',b), pht=$('.pht',b), phc=$('.phc',b);
+  b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><span class="cn phc"></span></div><div class="pgs"><div class="pgd"></div></div></div><div class="pv" hidden></div></div>';
+  const side=$('.side',b), pgs=$('.pgs',b), pgd=$('.pgd',b), pv=$('.pv',b), pht=$('.pht',b), phc=$('.phc',b);
+  let pio=null, ptq=[], ptb=false, pgShown=0;
   [['all','Tất cả ảnh'],['fav','Yêu thích'],['cam','Ảnh chụp'],['shot','Ảnh chụp màn hình']].forEach(x=>{
     const s=document.createElement('button'); s.className='si'; s.dataset.t=x[0]; s.innerHTML='<span>'+x[1]+'</span>';
-    s.addEventListener('click',()=>{tab=x[0];view=-1;render()}); side.appendChild(s);
+    s.addEventListener('click',()=>{tab=x[0];view=-1;pgShown=0;pgs.scrollTop=0;render()}); side.appendChild(s);
   });
   const TABN={all:'Tất cả ảnh',fav:'Yêu thích',cam:'Ảnh chụp',shot:'Ảnh chụp màn hình'}, TABE={all:'Chưa có ảnh nào',fav:'Chưa có ảnh yêu thích',cam:'Chưa có ảnh chụp',shot:'Chưa có ảnh chụp màn hình'};
   const ids=()=>PH.map((_,i)=>i).filter(i=>tab==='all'||(tab==='fav'?fav.indexOf(i)>=0:PH[i].k===tab));
+  /* Lưới ảnh dạng thư viện như app Tệp: ô vuông, ảnh nạp từng phần khi cuộn tới */
+  function ptPump(){
+    if(ptb)return; const j=ptq.shift(); if(!j)return; ptb=true;
+    setTimeout(()=>{
+      if(j.isConnected&&j.__vis){
+        let d=''; try{d=PHA().getPhotoData(+j.dataset.pid,240)}catch(e){}
+        if(d){j.src=d;j.classList.add('ld')}
+      }else j.__q=0;
+      ptb=false; ptPump();
+    },0);
+  }
   function renderGrid(){
     $$('.si',side).forEach(s=>s.setAttribute('aria-current',String(s.dataset.t===tab)));
     const l=ids(); pht.textContent=TABN[tab]||'Tất cả ảnh'; phc.textContent=l.length+' ảnh';
-    pgd.innerHTML=l.length?l.map(i=>'<button class="pt" data-i="'+i+'" aria-label="'+PH[i][5]+'">'+scene(i)+(fav.indexOf(i)>=0?'<em>♥</em>':'')+'</button>').join(''):'<div class="none">'+(TABE[tab]||TABE.all)+'</div>';
-    $$('.pt',pgd).forEach(x=>x.addEventListener('click',()=>{view=+x.dataset.i;renderViewer()}));
+    const st=pgs.scrollTop;
+    if(pio){pio.disconnect();pio=null} ptq.length=0; ptb=false; pgs.onscroll=null;
+    if(!l.length){pgd.innerHTML='<div class="none">'+(TABE[tab]||TABE.all)+'</div>';return}
+    pgd.innerHTML='';
+    const tile=i=>{
+      const p=PH[i], real=!!p.pid;
+      return '<button class="pt" data-i="'+i+'" aria-label="'+esc(String(p[5]||''))+'">'+(real?'<img alt="" data-pid="'+p.pid+'">':scene(i))+(fav.indexOf(i)>=0?'<em>♥</em>':'')+'</button>';
+    };
+    pio=new IntersectionObserver(es=>es.forEach(e=>{
+      const el=e.target; el.__vis=e.isIntersecting;
+      if(e.isIntersecting&&!el.__q&&!el.classList.contains('ld')){el.__q=1;ptq.push(el);ptPump()}
+    }),{root:pgs,rootMargin:'240px'});
+    let shown=0;
+    const addChunk=to=>{
+      const end=Math.min(l.length,to); let h='';
+      for(let k=shown;k<end;k++)h+=tile(l[k]);
+      pgd.insertAdjacentHTML('beforeend',h); shown=end; pgShown=Math.max(pgShown,shown);
+      if(pio)$$('img[data-pid]:not([data-o])',pgd).forEach(im=>{im.dataset.o='1';pio.observe(im)});
+    };
+    addChunk(Math.max(240,pgShown));
+    if(st)pgs.scrollTop=st;
+    pgs.onscroll=()=>{if(shown<l.length&&pgs.scrollTop+pgs.clientHeight>pgs.scrollHeight-700)addChunk(shown+240)};
   }
+  pgd.addEventListener('click',e=>{const x=e.target.closest('.pt');if(x){view=+x.dataset.i;renderViewer()}});
   function render(){renderGrid();renderViewer()}
 
   /* ---------- Trình xem + chỉnh sửa ảnh ---------- */
@@ -3363,10 +3400,15 @@ function buildPhotos(b,w,arg){
     else if(e.key==='Escape'){if(ED&&ED.mode){exitMode();syncBar()}else{view=-1;renderViewer()}}
   };
   document.addEventListener('keydown',kd);
+  function openPid(id,name){
+    id=+id; let k=PH.findIndex(p=>+p.pid===id);
+    if(k<0){const e=['','','','','',name||'Ảnh'];e.pid=id;PH.push(e);k=PH.length-1}
+    tab='all'; view=k; render();
+  }
   function openFile(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;tab='all';view=h%PH.length;render()}
   render();
-  if(arg&&arg.file)openFile(arg.file);
-  return {open(a){if(a&&a.file)openFile(a.file)},destroy(){document.removeEventListener('keydown',kd);window.removeEventListener('resize',onRs)}};
+  if(arg&&arg.pid)openPid(arg.pid,arg.name); else if(arg&&arg.file)openFile(arg.file);
+  return {open(a){if(a&&a.pid)openPid(a.pid,a.name); else if(a&&a.file)openFile(a.file)},destroy(){document.removeEventListener('keydown',kd);window.removeEventListener('resize',onRs);if(pio)pio.disconnect()}};
 }
 
 /* ---------- Nhạc ---------- */
