@@ -125,7 +125,6 @@ public class LockService extends AccessibilityService {
             setImmersivePolicy(true);
             if (strip == null) addStrip();
             if (topStrip == null) addTopStrip();
-            if (!policyApplied && navCover == null) addNavCover();
         } else { removeStrip(); hideTopBar(); }
     }
     private void addStrip() {
@@ -175,26 +174,11 @@ public class LockService extends AccessibilityService {
         int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
         return id > 0 ? getResources().getDimensionPixelSize(id) : dp(24);
     }
-    private final View.OnTouchListener eat = new View.OnTouchListener() {
-        @Override public boolean onTouch(View v, MotionEvent ev) { return true; }
-    };
-    /** Cách 2 (mọi máy): phủ tấm đen lên thanh nav 3 phím để che + chặn chạm. */
-    private void addNavCover() {
-        int nb = navBarH(); if (nb <= 0) return;
-        View v = new View(this); v.setBackgroundColor(Color.BLACK); v.setOnTouchListener(eat);
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, nb,
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.BOTTOM;
-        try { wm.addView(v, lp); navCover = v; } catch (Exception e) { navCover = null; }
-    }
-
     /* ---- Dải kích hoạt ở mép trên: vuốt xuống / rê chuột lên trên cùng -> hiện thanh 3 nút ---- */
     private void addTopStrip() {
         final View v = new View(this);
-        /* Nếu không ẩn thật được thanh trạng thái thì phủ đen đúng chiều cao của nó */
-        v.setBackgroundColor(policyApplied ? Color.TRANSPARENT : Color.BLACK);
+        /* Dải trong suốt: chỉ để bắt cử chỉ, không che nội dung của app */
+        v.setBackgroundColor(Color.TRANSPARENT);
         v.setOnHoverListener(new View.OnHoverListener() {
             @Override public boolean onHover(View view, MotionEvent ev) {
                 int a = ev.getActionMasked();
@@ -212,7 +196,7 @@ public class LockService extends AccessibilityService {
                 }
             }
         });
-        int th = policyApplied ? dp(10) : Math.max(statusBarH(), dp(16));
+        int th = dp(12);
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, th,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
