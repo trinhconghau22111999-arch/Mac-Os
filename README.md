@@ -22,3 +22,10 @@ Mỗi quyền đặc biệt chỉ hỏi một lần; xem lại và cấp sau tro
 - Nút ✕ (hoặc Back khi chỉ còn 1 tab) quay về màn hình Desktop Mini.
 - Không đăng ký làm trình duyệt mặc định của hệ thống.
 - Đã bật `usesCleartextTraffic` để mở được trang http.
+
+## YouTube (app riêng, chỉ mở YouTube)
+- Biểu tượng **YouTube** (đỏ) nằm cạnh Duyệt web; mở màn hình `YouTubeActivity.kt`, **không có thanh địa chỉ**.
+- Chỉ vào được `youtube.com`, `youtu.be` và trang đăng nhập/đồng ý của Google. Link ra ngoài (kể cả cổng `/redirect` của YouTube, cửa sổ mới, `intent:`) đều bị chặn và hiện thông báo.
+- Chặn quảng cáo như Duyệt web: chặn tên miền quảng cáo + script tự bấm "Bỏ qua", tua nhanh quảng cáo không bỏ qua được, ẩn banner.
+- Back: lùi trang; hết trang để lùi thì đóng app về Desktop Mini. Xem video toàn màn hình được.
+- Google có thể chặn đăng nhập trong WebView; app đã dùng UA như Chrome để giảm khả năng này, nhưng không đảm bảo. Xem YouTube không cần đăng nhập vẫn được.

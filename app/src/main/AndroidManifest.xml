@@ -57,6 +57,11 @@
             android:theme="@android:style/Theme.Material.Light.NoActionBar"
             android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode">
         </activity>
+        <!-- App con "YouTube": chỉ mở YouTube, không thanh địa chỉ, không mở link ngoài, chặn quảng cáo -->
+        <activity android:name=".YouTubeActivity" android:label="YouTube" android:exported="false"
+            android:launchMode="singleTask" android:windowSoftInputMode="adjustResize"
+            android:theme="@android:style/Theme.Material.NoActionBar"
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode" />
         <!-- App con "Ổ mềm" (gộp nhiều Google Drive) -->
         <service android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync" tools:node="merge" />

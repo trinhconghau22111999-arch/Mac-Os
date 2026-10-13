@@ -382,6 +382,13 @@ public class MainActivity extends Activity {
         try { startActivity(i); } catch (Exception e) { }
     }
 
+    /** Mở app con "YouTube". */
+    void openYt() {
+        Intent i = new Intent(this, YouTubeActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(i); } catch (Exception e) { }
+    }
+
     private void go(Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { startActivity(i); } catch (Exception e) { } }
 
     private WebView extGet(final String key, String url) {
@@ -1125,6 +1132,8 @@ public class MainActivity extends Activity {
         }
         /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */
         @JavascriptInterface public void openWebBrowser(String url) { openWeb(url); }
+        /** Mở app con "YouTube" (chỉ YouTube, không thanh địa chỉ). */
+        @JavascriptInterface public void openYouTube() { openYt(); }
         @JavascriptInterface public boolean hasPackage(String pkg) {
             try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
         }
