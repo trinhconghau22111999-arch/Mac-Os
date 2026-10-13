@@ -1116,6 +1116,9 @@ const MONTHS=['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
 const DAYS=['CN','T2','T3','T4','T5','T6','T7'];
 const DAYSL=['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
 const bus={l:{},on(e,f){(this.l[e]=this.l[e]||[]).push(f)},emit(e,a){(this.l[e]||[]).forEach(f=>f(a))}};
+/* Khung nội dung gốc (WebView/Gecko nhúng) bám theo cửa sổ: bình thường dò mỗi 90ms, còn khi đang kéo/đổi cỡ cửa sổ thì ép đồng bộ ngay mỗi khung hình để không bị trễ, giật */
+const NSYNC=new Set(); let nsRaf=0;
+function kickSync(){if(nsRaf)return;nsRaf=requestAnimationFrame(()=>{nsRaf=0;NSYNC.forEach(f=>{try{f()}catch(e){}})})}
 let P=jget('dm-prefs',{});
 const pref=(k,d)=>k in P?P[k]:d;
 const setPref=(k,v)=>{P[k]=v;jset('dm-prefs',P);bus.emit('ui')};
@@ -1540,7 +1543,7 @@ function wire(w,id,a){
       let x=ox+ev.clientX-sx, y=oy+ev.clientY-sy;
       x=Math.max(-w.offsetWidth+90,Math.min(sr.width-90,x));
       y=Math.max(28,Math.min(sr.height-50,y));
-      w.style.left=x+'px'; w.style.top=y+'px';
+      w.style.left=x+'px'; w.style.top=y+'px'; kickSync();
     };
     const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up)};
     window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
@@ -1561,6 +1564,7 @@ function wire(w,id,a){
         if(dir.indexOf('r')>=0)w.style.width=Math.max(minW,ow+dx)+'px';
         if(dir.indexOf('b')>=0)w.style.height=Math.max(minH,oh+dy)+'px';
         if(dir==='l'){const nw=Math.max(minW,ow-dx);w.style.width=nw+'px';w.style.left=(ox+ow-nw)+'px'}
+        kickSync();
       };
       const up=()=>{h.removeEventListener('pointermove',mv);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up)};
       h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);
@@ -3039,13 +3043,13 @@ function buildWebApp(b,w,key,url,title,opt){
     $('.whm',b).addEventListener('click',()=>go(url));
     bkb.disabled=true; fwb.disabled=true;
   }
-  timer=setInterval(sync,90);
+  timer=setInterval(sync,90); NSYNC.add(sync);
   if(bkb)bkb.addEventListener('click',()=>A.extBack(key));
   {const rl=$('.wrl',b); if(rl)rl.addEventListener('click',()=>{if(check())A.extReload(key)})}
   sync();
   return {
     open(arg){const u=typeof arg==='string'?arg:(arg&&arg.url); if(u)go(u)},
-    destroy(){clearInterval(timer);delete EXTERR[key];delete EXTNAV[key];if(opt.close&&A.extClose){A.extClose(key)}else{A.extHide(key)}}
+    destroy(){clearInterval(timer);NSYNC.delete(sync);delete EXTERR[key];delete EXTNAV[key];if(opt.close&&A.extClose){A.extClose(key)}else{A.extHide(key)}}
   };
 }
 
@@ -3108,9 +3112,9 @@ function buildGecko(b,w,arg){
   $('.ggo',b).addEventListener('click',go);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
   inp.addEventListener('focus',()=>inp.select());
-  GK.ui(); renderDl(); timer=setInterval(sync,90); sync();
+  GK.ui(); renderDl(); timer=setInterval(sync,90); NSYNC.add(sync); sync();
   if(typeof arg==='string'&&arg)A.gkGo(arg); else if(arg&&arg.url)A.gkGo(arg.url);
-  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){clearInterval(timer);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
+  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){clearInterval(timer);NSYNC.delete(sync);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
 }
 
 /* =========================================================
