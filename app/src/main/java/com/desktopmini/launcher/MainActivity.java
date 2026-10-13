@@ -399,7 +399,7 @@ public class MainActivity extends Activity {
 
 
     /* ================= Trình duyệt Gecko nhúng trong cửa sổ (chép từ repo dang-nhap-github) ================= */
-    private static final String GK_HOME = "https://github.com/";
+    private static final String GK_HOME = "https://www.google.com/";
     private static final String GK_SEARCH = "https://duckduckgo.com/?q=";
     private static org.mozilla.geckoview.GeckoRuntime gkRuntime;
     private org.mozilla.geckoview.GeckoSession gkSession;
@@ -426,26 +426,80 @@ public class MainActivity extends Activity {
         }
         return null;
     }
+    private int gkDlSeq = 0;
+    /** Báo tiến độ tải xuống cho giao diện (trang Tải xuống trong cửa sổ trình duyệt). */
+    private void gkDl(final int id, final String name, final String state, final long got, final long total, final String msg) {
+        runOnUiThread(new Runnable() { public void run() {
+            if (web == null) return;
+            try {
+                JSONObject o = new JSONObject();
+                o.put("id", id); o.put("name", name); o.put("state", state); o.put("got", got); o.put("total", total); o.put("msg", msg == null ? "" : msg);
+                web.evaluateJavascript("window.nativeGkDl&&window.nativeGkDl(" + o.toString() + ")", null);
+            } catch (Exception e) { }
+        } });
+    }
     private void gkDownload(final org.mozilla.geckoview.WebResponse r) {
-        final String name = android.webkit.URLUtil.guessFileName(r.uri, gkHeader(r, "content-disposition"), gkHeader(r, "content-type"));
-        gkToast("Đang tải: " + name);
+        final String name0 = android.webkit.URLUtil.guessFileName(r.uri, gkHeader(r, "content-disposition"), gkHeader(r, "content-type"));
+        String ct = gkHeader(r, "content-type");
+        if (ct != null) { int sc = ct.indexOf(';'); if (sc >= 0) ct = ct.substring(0, sc); ct = ct.trim(); }
+        final String mime = (ct == null || ct.length() == 0) ? "application/octet-stream" : ct;
+        long tl = -1;
+        try { String cl = gkHeader(r, "content-length"); if (cl != null) tl = Long.parseLong(cl.trim()); } catch (Exception e) { tl = -1; }
+        final long total = tl;
+        final int id = ++gkDlSeq;
+        gkDl(id, name0, "run", 0, total, "");
         new Thread(new Runnable() { public void run() {
+            Uri mu = null; OutputStream out = null; String finalName = name0, legacyPath = null;
             try {
                 InputStream in = r.body;
                 if (in == null) throw new java.io.IOException("không có dữ liệu");
-                File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                if (!(dir.exists() || dir.mkdirs()) || !dir.canWrite()) dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-                File f = new File(dir, name);
-                int i = 1; String base = name, ex = "";
-                int dot = name.lastIndexOf('.');
-                if (dot > 0) { base = name.substring(0, dot); ex = name.substring(dot); }
-                while (f.exists()) f = new File(dir, base + " (" + (i++) + ")" + ex);
-                OutputStream out = new FileOutputStream(f);
-                try { byte[] buf = new byte[16384]; int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n); } finally { out.close(); }
+                if (Build.VERSION.SDK_INT >= 29) {
+                    /* Android 10+: ghi vào Download qua MediaStore (không cần quyền riêng) */
+                    android.content.ContentValues v = new android.content.ContentValues();
+                    v.put(MediaStore.MediaColumns.DISPLAY_NAME, name0);
+                    v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+                    v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                    v.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                    mu = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                    if (mu == null) throw new java.io.IOException("không tạo được tệp");
+                    out = getContentResolver().openOutputStream(mu);
+                    Cursor c = getContentResolver().query(mu, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null);
+                    if (c != null) { try { if (c.moveToFirst() && c.getString(0) != null) finalName = c.getString(0); } finally { c.close(); } }
+                } else {
+                    File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                    if (!(dir.exists() || dir.mkdirs()) || !dir.canWrite()) dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    File f = new File(dir, name0);
+                    int i = 1; String base = name0, ex = "";
+                    int dot = name0.lastIndexOf('.');
+                    if (dot > 0) { base = name0.substring(0, dot); ex = name0.substring(dot); }
+                    while (f.exists()) f = new File(dir, base + " (" + (i++) + ")" + ex);
+                    finalName = f.getName();
+                    out = new FileOutputStream(f);
+                    legacyPath = f.getAbsolutePath();
+                }
+                if (out == null) throw new java.io.IOException("không ghi được tệp");
+                long got = 0, lastPush = 0;
+                try {
+                    byte[] buf = new byte[16384]; int n;
+                    while ((n = in.read(buf)) > 0) {
+                        out.write(buf, 0, n); got += n;
+                        long now = System.currentTimeMillis();
+                        if (now - lastPush > 250) { lastPush = now; gkDl(id, finalName, "run", got, total, ""); }
+                    }
+                } finally { out.close(); }
                 in.close();
-                android.media.MediaScannerConnection.scanFile(MainActivity.this, new String[]{f.getAbsolutePath()}, null, null);
-                gkToast("Đã tải xong: " + f.getAbsolutePath());
-            } catch (Exception e) { gkToast("Tải lỗi: " + e.getMessage()); }
+                if (mu != null) {
+                    android.content.ContentValues v2 = new android.content.ContentValues();
+                    v2.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                    getContentResolver().update(mu, v2, null, null);
+                } else if (legacyPath != null) {
+                    android.media.MediaScannerConnection.scanFile(MainActivity.this, new String[]{legacyPath}, null, null);
+                }
+                gkDl(id, finalName, "ok", got, got, "");
+            } catch (Exception e) {
+                if (mu != null) { try { getContentResolver().delete(mu, null, null); } catch (Exception x) { } }
+                gkDl(id, finalName, "err", 0, total, String.valueOf(e.getMessage()));
+            }
         } }).start();
     }
     private String gkToUrl(String text) {

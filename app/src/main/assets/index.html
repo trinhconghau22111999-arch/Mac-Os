@@ -906,6 +906,7 @@ a.btn.pri{color:#fff}
 .rfi .rn{display:flex;flex-direction:column;min-width:0}.rfi .rn b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rfi .rn small{color:var(--muted);font-size:11.5px}
 .rft{padding:6px;text-align:center;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
 @container (max-width:520px){.rf{grid-template-columns:minmax(0,1fr)}.rf .side{display:none}}
+.gk .gdl{position:relative}.gdot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#0a84ff}.gdp{position:absolute;inset:0;overflow:auto;padding:10px 14px}.gdp[hidden]{display:none}.gdh{display:flex;align-items:center;gap:8px;margin-bottom:4px}.gdh b{flex:1;font-size:15px}.gdn{opacity:.6;padding:34px 0;text-align:center;font-size:13px}.gdr{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.25);display:flex;flex-direction:column;gap:6px}.gdr>b{font-size:13px;word-break:break-all}.gdr small{opacity:.7;font-size:12px}.gdb{height:6px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden}.gdb i{display:block;height:100%;background:#0a84ff;width:0;transition:width .2s}.gdr.ok .gdb i{background:#30b455}.gdr.err .gdb i{background:#e5484d}.gdr .btn{align-self:flex-start}
 .gk .bar{gap:4px}.gku{flex:1;min-width:0;height:28px;padding:0 10px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.14);color:inherit;font-size:13px;outline:none}.gku:focus{border-color:#0a84ff}.gk .ib:disabled{opacity:.35}.gk .ggo{width:auto;padding:0 10px;font-size:13px}.gkp{height:3px;flex:none}.gkp i{display:block;height:100%;width:0;background:#0a84ff;transition:width .15s}
 .wa{display:flex;flex-direction:column;height:100%}.wa .bar{padding-left:78px;gap:4px}.wa .wab{flex:1;min-height:0;position:relative}
 body.native{padding:0;box-sizing:border-box;background:#000}
@@ -3055,8 +3056,22 @@ function buildRealFiles(b,w,arg,mode){
   list.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x)A.openSetup(x.dataset.setup)});
   $('.rbk',b).addEventListener('click',()=>{if(pos>0){pos--;path=hist[pos];render()}});
   live(w,'ui',()=>{});
+  /* Chọn sẵn (không mở) một tệp theo tên trong Tải xuống, dùng khi bấm "Mở trong Tải xuống" ở trình duyệt */
+  function selectByName(nm,tries){
+    const x=$$('.rfi',list).find(e=>{const t=$('b',e);return t&&t.textContent===nm});
+    if(x){
+      if(x.dataset.full){SEL.clear();toggleSel(x.dataset.full)}else x.classList.add('sel');
+      try{x.scrollIntoView({block:'center'})}catch(e){}
+      return;
+    }
+    if(tries>0)setTimeout(()=>{M={};render();selectByName(nm,tries-1)},700);
+  }
   render();
-  return {open(a){if(a&&a.path)go(a.path)}};
+  if(!files&&arg&&arg.select)selectByName(arg.select,3);
+  return {open(a){
+    if(a&&a.path)go(a.path);
+    if(!files&&a&&a.select){if(path!==home)go(home); selectByName(a.select,3)}
+  }};
 }
 const ZIPCB={};
 window.nativeZipDone=(t,j)=>{let r={};try{r=JSON.parse(j)}catch(e){r={error:'Lỗi giải nén'}}const f=ZIPCB[t];delete ZIPCB[t];if(f)f(r)};
@@ -3095,12 +3110,45 @@ function buildWebApp(b,w,key,url,title){
 }
 
 /* ---------- Trình duyệt Gecko (chép từ repo dang-nhap-github) nhúng trong cửa sổ ---------- */
-const GK={url:'',back:false,fwd:false,p:0,ui:null};
+const GK={url:'',back:false,fwd:false,p:0,ui:null,dlOpen:false,closeDl:null,dlui:null};
 window.nativeGk=s=>{Object.assign(GK,s);if(GK.ui)GK.ui()};
+/* Tải xuống từ trình duyệt: tiến độ gửi từ phần gốc */
+const GKDL=(()=>{try{return JSON.parse(lsGet('dm-gkdl')||'[]').filter(x=>x&&x.name).map(x=>Object.assign(x,{nid:-1,state:'ok',msg:''}))}catch(e){return[]}})();
+const gkdlSave=()=>lsSet('dm-gkdl',JSON.stringify(GKDL.filter(x=>x.state==='ok').slice(0,30).map(x=>({name:x.name,got:x.got,total:x.total,t:x.t}))));
+window.nativeGkDl=o=>{
+  let it=GKDL.find(x=>x.nid===o.id);
+  if(!it){it={nid:o.id,t:Date.now()};GKDL.unshift(it)}
+  const was=it.state;
+  it.name=o.name; it.state=o.state; it.got=o.got; it.total=o.total; it.msg=o.msg;
+  if(o.state!=='run')gkdlSave();
+  if(o.state==='ok'&&was!=='ok')notify({app:'Trình duyệt',title:'Đã tải xong',body:o.name,icon:'downloads'});
+  if(GK.dlui)GK.dlui();
+};
 function buildGecko(b,w,arg){
   const A=window.AndroidLauncher;
-  b.innerHTML='<div class="wa gk"><div class="bar"><button class="ib gbk" type="button" aria-label="Quay lại">‹</button><button class="ib gfw" type="button" aria-label="Tiến tới">›</button><button class="ib grl" type="button" aria-label="Tải lại">⟳</button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nhập địa chỉ hoặc tìm kiếm" aria-label="Địa chỉ"><button class="ib ggo" type="button">Đi</button></div><div class="gkp"><i></i></div><div class="wab"></div></div>';
-  const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b); let last='', timer=null;
+  b.innerHTML='<div class="wa gk"><div class="bar"><button class="ib gbk" type="button" aria-label="Quay lại">‹</button><button class="ib gfw" type="button" aria-label="Tiến tới">›</button><button class="ib grl" type="button" aria-label="Tải lại">⟳</button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nhập địa chỉ hoặc tìm kiếm" aria-label="Địa chỉ"><button class="ib ggo" type="button">Đi</button><button class="ib gdl" type="button" aria-label="Tải xuống"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" hidden></i></button></div><div class="gkp"><i></i></div><div class="wab"><div class="gdp" hidden></div></div></div>';
+  const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b), dlb=$('.gdl',b), dot=$('.gdot',b), dp=$('.gdp',b); let last='', timer=null;
+  const sz=n=>typeof fmtSize==='function'?fmtSize(n):Math.round(n/1024)+' KB';
+  function renderDl(){
+    dot.hidden=!GKDL.some(x=>x.state==='run');
+    if(!GK.dlOpen)return;
+    dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>Tải xuống</b></div>'+(GKDL.length?GKDL.map((x,i)=>{
+      const pct=x.total>0?Math.min(100,Math.round(x.got*100/x.total)):(x.state==='ok'?100:0);
+      const st=x.state==='run'?(x.total>0?sz(x.got)+' / '+sz(x.total)+' · '+pct+'%':sz(x.got)+' · đang tải…'):x.state==='ok'?'Đã tải xong · '+sz(x.got||0):'Lỗi: '+esc(x.msg||'không tải được');
+      return '<div class="gdr '+x.state+'"><b>'+esc(x.name)+'</b><div class="gdb"><i style="width:'+(x.state==='err'?100:pct)+'%"></i></div><small>'+st+'</small>'+(x.state==='ok'?'<button class="btn gdo" type="button" data-i="'+i+'">Mở trong Tải xuống</button>':'')+'</div>';
+    }).join(''):'<div class="gdn">Chưa có tệp nào được tải xuống</div>');
+  }
+  function setDl(on){
+    GK.dlOpen=on; dp.hidden=!on; last=''; if(on)renderDl(); sync();
+  }
+  GK.closeDl=()=>setDl(false);
+  GK.dlui=renderDl;
+  dlb.addEventListener('click',()=>setDl(!GK.dlOpen));
+  dp.addEventListener('click',e=>{
+    if(e.target.closest('.gdx')){setDl(false);return}
+    const o=e.target.closest('.gdo'); if(!o)return;
+    const it=GKDL[+o.dataset.i]; if(it)openApp('downloads',{select:it.name});
+  });
   GK.ui=()=>{
     bk.disabled=!GK.back; fw.disabled=!GK.fwd; bar.style.width=(GK.p||0)+'%';
     if(document.activeElement!==inp&&GK.url)inp.value=GK.url;
@@ -3108,21 +3156,21 @@ function buildGecko(b,w,arg){
   const blocked=()=>(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||['#spot','#nc','#cc','#ql','#lock','#off','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
   function sync(){
     if(!w.isConnected)return;
-    const vis=w.classList.contains('focus')&&!w.classList.contains('min')&&!w._leaving&&!blocked();
+    const vis=w.classList.contains('focus')&&!w.classList.contains('min')&&!w._leaving&&!blocked()&&!GK.dlOpen;
     if(!vis){if(last!=='hide'){A.gkHide();last='hide'}return}
     const r=area.getBoundingClientRect(), sig=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
     if(sig!==last){last=sig;A.gkShow(r.left,r.top,r.width,r.height)}
   }
-  function go(){const t=inp.value.trim(); if(!t)return; A.gkGo(t); inp.blur()}
+  function go(){const t=inp.value.trim(); if(!t)return; if(GK.dlOpen)setDl(false); A.gkGo(t); inp.blur()}
   bk.addEventListener('click',()=>A.gkBack());
   fw.addEventListener('click',()=>A.gkForward());
   $('.grl',b).addEventListener('click',()=>A.gkReload());
   $('.ggo',b).addEventListener('click',go);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
   inp.addEventListener('focus',()=>inp.select());
-  GK.ui(); timer=setInterval(sync,90); sync();
+  GK.ui(); renderDl(); timer=setInterval(sync,90); sync();
   if(typeof arg==='string'&&arg)A.gkGo(arg); else if(arg&&arg.url)A.gkGo(arg.url);
-  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){clearInterval(timer);GK.ui=null;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
+  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){clearInterval(timer);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
 }
 
 /* =========================================================
@@ -4577,6 +4625,7 @@ if(window.AndroidLauncher){(function(){
     try{
       if(overlaysOpen())return;
       const w=$('.win.focus',layer); if(!w)return;
+      if(w.dataset.app==='browser'&&GK.dlOpen&&GK.closeDl){GK.closeDl();return}
       if(w.dataset.app==='browser'&&GK.back&&window.AndroidLauncher&&window.AndroidLauncher.gkBack){window.AndroidLauncher.gkBack();return}
             closeWin(w);
     }catch(e){}

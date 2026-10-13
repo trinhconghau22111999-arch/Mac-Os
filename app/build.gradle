@@ -11,8 +11,8 @@ dependencies {
     implementation('com.google.api-client:google-api-client-android:2.2.0') { exclude group: 'org.apache.httpcomponents' }
     implementation('com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0') { exclude group: 'org.apache.httpcomponents' }
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
-    // ---- Trình duyệt Gecko (Firefox) đóng gói sẵn, chỉ bản x86_64 (chép từ repo dang-nhap-github) ----
-    implementation 'org.mozilla.geckoview:geckoview-x86_64:128.+'
+    // ---- Trình duyệt Gecko (Firefox) đóng gói sẵn, bản đủ mọi CPU: arm64, arm 32-bit, x86, x86_64 (Android 7+) ----
+    implementation 'org.mozilla.geckoview:geckoview-omni:128.+'
 }
 android {
     namespace 'com.desktopmini.launcher'
@@ -21,7 +21,6 @@ android {
         applicationId 'com.desktopmini.launcher'
         minSdk 24
         targetSdk 34
-        ndk { abiFilters 'x86_64' }
         // Mỗi lần build trên GitHub Actions số phiên bản tự tăng (run_number) để cài đè được bản cũ
         def run = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
         versionCode run
