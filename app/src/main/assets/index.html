@@ -1233,9 +1233,10 @@ const APPS={
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
 const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
-const DOCK_DEF=['launchpad','files','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
+const DOCK_DEF=['launchpad','files','webbrowser','youtube','mail','photos','camera','notes','omem','zalo','facebook','settings'];
 /* Dock và màn hình desktop do người dùng tự sắp xếp (lưu lại để mở app lần sau vẫn giữ) */
-const DOCK=(()=>{const s=jget('dm-dock',null);if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||APPS[id]);if(l.indexOf('launchpad')<0)l.unshift('launchpad');return l})();
+const DOCK_GONE=['browser','calendar','music','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','drive','downloads'];
+const DOCK=(()=>{let s=jget('dm-dock',null);if(Array.isArray(s)&&!jget('dm-dock-v2',false)){s=s.filter(id=>DOCK_GONE.indexOf(id)<0);jset('dm-dock',s);jset('dm-dock-v2',true)}if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||APPS[id]);if(l.indexOf('launchpad')<0)l.unshift('launchpad');return l})();
 const saveDock=()=>jset('dm-dock',DOCK);
 let DESKAPPS=jget('dm-deskapps',null);
 const deskApps=()=>(Array.isArray(DESKAPPS)?DESKAPPS:LP_APPS).filter(id=>APPS[id]);
