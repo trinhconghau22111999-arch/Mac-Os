@@ -908,6 +908,7 @@ a.btn.pri{color:#fff}
 @container (max-width:520px){.rf{grid-template-columns:minmax(0,1fr)}.rf .side{display:none}}
 .gk .gdl{position:relative}.gdot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#0a84ff}.gdp{position:absolute;inset:0;overflow:auto;padding:10px 14px}.gdp[hidden]{display:none}.gdh{display:flex;align-items:center;gap:8px;margin-bottom:4px}.gdh b{flex:1;font-size:15px}.gdn{opacity:.6;padding:34px 0;text-align:center;font-size:13px}.gdr{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.25);display:flex;flex-direction:column;gap:6px}.gdr>b{font-size:13px;word-break:break-all}.gdr small{opacity:.7;font-size:12px}.gdb{height:6px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden}.gdb i{display:block;height:100%;background:#0a84ff;width:0;transition:width .2s}.gdr.ok .gdb i{background:#30b455}.gdr.err .gdb i{background:#e5484d}.gdr .btn{align-self:flex-start}
 .gk .bar{gap:4px}.gku{flex:1;min-width:0;height:28px;padding:0 10px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.14);color:inherit;font-size:13px;outline:none}.gku:focus{border-color:#0a84ff}.gk .ib:disabled{opacity:.35}.gk .ggo{width:auto;padding:0 10px;font-size:13px}.gkp{height:3px;flex:none}.gkp i{display:block;height:100%;width:0;background:#0a84ff;transition:width .15s}
+.wad .bar{gap:4px}.wau{flex:1;min-width:0;height:28px;padding:0 10px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.14);color:inherit;font-size:13px;outline:none}.wau:focus{border-color:#0a84ff}.wad .ib:disabled{opacity:.35}.wpg{height:2px;flex:none;background:transparent}.wpg i{display:block;height:100%;width:0;background:#0a84ff;transition:width .2s}
 .wa{display:flex;flex-direction:column;height:100%}.wa .bar{padding-left:78px;gap:4px}.wa .wab{flex:1;min-height:0;position:relative}
 body.native{padding:0;box-sizing:border-box;background:#000}
 body.native .stage{border-radius:0;min-height:0}
@@ -1209,14 +1210,14 @@ const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
   browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.gkShow)?buildGecko(b,w,a):buildBrowser(b,w,a)},
-  webbrowser:{name:'Duyệt web',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>buildBrowser(b,w,a)},
-  youtube:{name:'YouTube',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>buildBrowser(b,w,a)},
+  webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,full:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
+  youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true}):buildBrowser(b,w,a)},
   mail:{name:'Thư',w:880,h:540,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail'):buildMail(b,w)},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
   photos:{name:'Ảnh',w:660,h:440,minW:340,minH:280,build:buildPhotos},
   music:{name:'Nhạc',w:620,h:470,minW:340,minH:300,build:buildMusic},
   notes:{name:'Ghi chú',w:560,h:380,minW:340,minH:240,build:buildNotes},
-  typing:{name:'Gõ văn bản',w:560,h:380,minW:340,minH:240,build:buildNotes},
+  typing:{name:'Gõ văn bản',w:980,h:620,minW:420,minH:320,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.wordBack)?buildWebApp(b,w,'word','https://appassets.androidplatform.net/assets/word/index.html','Gõ văn bản',{plain:true,local:true,close:true}):buildNotes(b,w,a)},
   reminders:{name:'Nhắc nhở',w:380,h:440,minW:300,minH:280,build:buildReminders},
   calc:{name:'Máy tính',w:256,h:392,minW:240,minH:200,build:buildCalc,dark:true},
   terminal:{name:'Terminal',w:560,h:340,minW:320,minH:200,build:buildTerminal,dark:true},
@@ -1385,22 +1386,7 @@ function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
   if(!APPS[id])return;
-  /* "Duyệt web" (Webandr) là app riêng, mở màn hình trình duyệt thật; app "Trình duyệt" cũ giữ nguyên */
-  /* "YouTube": app riêng chỉ mở YouTube (không thanh địa chỉ, không link ngoài) */
-  /* "Gõ văn bản": trình soạn thảo kiểu Word chạy ở màn hình riêng */
-  if(id==='typing'&&window.AndroidLauncher&&window.AndroidLauncher.openTyping){
-    try{window.AndroidLauncher.openTyping()}catch(e){}
-    return;
-  }
-  if(id==='youtube'&&window.AndroidLauncher&&window.AndroidLauncher.openYouTube){
-    try{window.AndroidLauncher.openYouTube()}catch(e){}
-    return;
-  }
-  if(id==='webbrowser'&&window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser){
-    const u=typeof arg==='string'?arg:(arg&&arg.url);
-    try{window.AndroidLauncher.openWebBrowser(u||'')}catch(e){}
-    return;
-  }
+  /* "Duyệt web", "YouTube", "Gõ văn bản" chạy trong cửa sổ như các app khác (WebView gốc nhúng) */
   const w=wins[id];
   if(w){
     if(w.classList.contains('min')){w.classList.remove('min');flyIn(w,id)}
@@ -3099,11 +3085,15 @@ const ZIPCB={};
 window.nativeZipDone=(t,j)=>{let r={};try{r=JSON.parse(j)}catch(e){r={error:'Lỗi giải nén'}}const f=ZIPCB[t];delete ZIPCB[t];if(f)f(r)};
 const EXTERR={};
 window.nativeExtError=k=>{if(EXTERR[k])EXTERR[k]()};
-function buildWebApp(b,w,key,url,title){
+const EXTNAV={};
+const EXTST={};
+window.nativeExtNav=(k,o)=>{EXTST[k]=o;if(EXTNAV[k])EXTNAV[k](o)};
+function buildWebApp(b,w,key,url,title,opt){
+  opt=opt||{};
   const A=window.AndroidLauncher;
   if(!A){b.innerHTML='<div class="app"><div class="bar"><strong class="t">'+title+'</strong></div>'+NATIVE_ONLY(title)+'</div>';return {}}
-  b.innerHTML='<div class="wa"><div class="bar"><button class="ib wbk" aria-label="Quay lại">‹</button><strong class="t">'+title+'</strong><span class="grow"></span><button class="ib wrl" aria-label="Tải lại">⟳</button></div><div class="wab"></div></div>';
-  const area=$('.wab',b); let last='', off=false, timer=null;
+  b.innerHTML='<div class="wa'+(opt.addr?' wad':'')+'"><div class="bar">'+(opt.plain?'':'<button class="ib wbk" aria-label="Quay lại">‹</button>')+(opt.addr?'<button class="ib wfw" aria-label="Tiến tới">›</button>':'')+(opt.addr?'<input class="wau" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Thanh địa chỉ">':'<strong class="t">'+title+'</strong><span class="grow"></span>')+(opt.plain?'':'<button class="ib wrl" aria-label="Tải lại">⟳</button>')+(opt.addr?'<button class="ib whm" aria-label="Trang chủ">⌂</button>':'')+(opt.full?'<button class="ib wfs" aria-label="Mở toàn màn hình" title="Mở toàn màn hình">⤢</button>':'')+'</div>'+(opt.addr?'<div class="wpg"><i></i></div>':'')+'<div class="wab"></div></div>';
+  const area=$('.wab',b), inp=$('.wau',b), fwb=$('.wfw',b), bkb=$('.wbk',b), pg=$('.wpg i',b); let last='', off=false, timer=null, firstUrl=opt.url||url;
   function offline(){
     off=true; area.innerHTML='<div class="rnote"><b>Cần kết nối mạng</b><span>'+esc(title)+' cần Internet. Hãy bật Wi-Fi hoặc dữ liệu di động rồi thử lại.</span><div class="ir"><button class="btn wf">Mở Wi-Fi</button><button class="btn wr">Thử lại</button></div></div>';
     $('.wf',area).addEventListener('click',()=>A.openPanel('wifi'));
@@ -3111,6 +3101,7 @@ function buildWebApp(b,w,key,url,title){
     A.extHide(key); last='';
   }
   function check(){
+    if(opt.local)return true;
     if(!A.isOnline()){if(!off)offline();return false}
     if(off){off=false;area.innerHTML='';A.extReload(key)}
     return true;
@@ -3122,13 +3113,33 @@ function buildWebApp(b,w,key,url,title){
     const vis=w.classList.contains('focus')&&!w.classList.contains('min')&&!w._leaving&&!blocked();
     if(!vis||!check()){if(last!=='hide'){A.extHide(key);last='hide'}return}
     const r=area.getBoundingClientRect(), sig=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
-    if(sig!==last){last=sig;A.extShow(key,url,r.left,r.top,r.width,r.height)}
+    if(sig!==last){last=sig;A.extShow(key,firstUrl,r.left,r.top,r.width,r.height)}
+  }
+  /* Thanh địa chỉ: có giao thức thì mở thẳng, có dấu chấm không khoảng trắng thì thêm https://, còn lại tìm Google */
+  const toUrl=t=>{t=(t||'').trim(); if(!t)return''; if(/^(https?:|file:|about:)/i.test(t))return t; if(!/\s/.test(t)&&/\.[a-z]{2,}(:\d+)?(\/|$|\?|#)/i.test(t)||/^localhost(:\d+)?(\/|$)/i.test(t))return (/^[\d.]+(:\d+)?(\/|$)/.test(t)?'http://':'https://')+t; return 'https://www.google.com/search?q='+encodeURIComponent(t)};
+  const go=t=>{const u=toUrl(t); if(!u)return; firstUrl=u; if(check())A.extGo(key,u)};
+  if(opt.addr){
+    EXTNAV[key]=o=>{
+      if(!w.isConnected)return;
+      if(document.activeElement!==inp)inp.value=(o.url&&o.url!=='about:blank')?o.url:'';
+      bkb.disabled=!o.back; fwb.disabled=!o.fwd;
+      if(pg){pg.style.width=(o.p>=100?0:Math.max(6,o.p))+'%'}
+    };
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go(inp.value);inp.blur()}});
+    inp.addEventListener('focus',()=>setTimeout(()=>{try{inp.select()}catch(e){}},0));
+    fwb.addEventListener('click',()=>A.extForward(key));
+    $('.whm',b).addEventListener('click',()=>go(url));
+    const fs=$('.wfs',b); if(fs)fs.addEventListener('click',()=>{let u='';try{u=A.extUrl(key)}catch(e){} try{A.openWebBrowser(/^https?:/i.test(u)?u:'')}catch(e){}});
+    bkb.disabled=true; fwb.disabled=true;
   }
   timer=setInterval(sync,90);
-  $('.wbk',b).addEventListener('click',()=>A.extBack(key));
-  $('.wrl',b).addEventListener('click',()=>{if(check())A.extReload(key)});
+  if(bkb)bkb.addEventListener('click',()=>A.extBack(key));
+  {const rl=$('.wrl',b); if(rl)rl.addEventListener('click',()=>{if(check())A.extReload(key)})}
   sync();
-  return {destroy(){clearInterval(timer);A.extHide(key);delete EXTERR[key]}};
+  return {
+    open(arg){const u=typeof arg==='string'?arg:(arg&&arg.url); if(u)go(u)},
+    destroy(){clearInterval(timer);delete EXTERR[key];delete EXTNAV[key];if(opt.close&&A.extClose){A.extClose(key)}else{A.extHide(key)}}
+  };
 }
 
 /* ---------- Trình duyệt Gecko (chép từ repo dang-nhap-github) nhúng trong cửa sổ ---------- */
@@ -4643,12 +4654,15 @@ if(window.AndroidLauncher){(function(){
     }catch(e){}
   }
   bus.on('ui',syncDockFloat); syncDockFloat();
+  window.nativeCloseApp=function(id){try{const w=wins[id];if(w)closeWin(w)}catch(e){}};
   window.nativeBack=function(){
     try{
       if(overlaysOpen())return;
       const w=$('.win.focus',layer); if(!w)return;
       if(w.dataset.app==='browser'&&GK.dlOpen&&GK.closeDl){GK.closeDl();return}
       if(w.dataset.app==='browser'&&GK.back&&window.AndroidLauncher&&window.AndroidLauncher.gkBack){window.AndroidLauncher.gkBack();return}
+      if(w.dataset.app==='typing'&&window.AndroidLauncher&&window.AndroidLauncher.wordBack){window.AndroidLauncher.wordBack();return}
+      {const ek={webbrowser:'web',youtube:'youtube'}[w.dataset.app]; if(ek&&EXTST[ek]&&EXTST[ek].back&&window.AndroidLauncher&&window.AndroidLauncher.extBack){window.AndroidLauncher.extBack(ek);return}}
             closeWin(w);
     }catch(e){}
   };

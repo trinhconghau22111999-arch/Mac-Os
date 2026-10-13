@@ -16,24 +16,20 @@ Mỗi quyền đặc biệt chỉ hỏi một lần; xem lại và cấp sau tro
 - Gmail và Lịch Google chạy trong trình duyệt nhúng; Google đôi khi chặn đăng nhập trong WebView. Nếu bị chặn, mở Chrome đăng nhập trước hoặc báo lại để đổi cách.
 - Khởi động lại/Tắt máy mở menu nguồn thật của Android (Android không cho app tự tắt máy).
 
-## Duyệt web (app riêng, chép từ repo Webandr)
-- **Duyệt web** là app mới nằm cạnh app **Trình duyệt** cũ (GeckoView), app cũ giữ nguyên, không bị thay.
-- Bấm Duyệt web mở màn hình trình duyệt thật (`WebBrowserActivity.kt`): nhiều tab, dấu trang, lịch sử, tải xuống, mật khẩu đã lưu, chặn quảng cáo/web đen, chia đôi màn hình, QR Remote Input, Truyền tệp.
-- Nút ✕ (hoặc Back khi chỉ còn 1 tab) quay về màn hình Desktop Mini.
-- Không đăng ký làm trình duyệt mặc định của hệ thống.
-- Đã bật `usesCleartextTraffic` để mở được trang http.
-
-## YouTube (app riêng, chỉ mở YouTube)
-- Biểu tượng **YouTube** (đỏ) nằm cạnh Duyệt web; mở màn hình `YouTubeActivity.kt`, **không có thanh địa chỉ**.
-- Chỉ vào được `youtube.com`, `youtu.be` và trang đăng nhập/đồng ý của Google. Link ra ngoài (kể cả cổng `/redirect` của YouTube, cửa sổ mới, `intent:`) đều bị chặn và hiện thông báo.
-- Chặn quảng cáo như Duyệt web: chặn tên miền quảng cáo + script tự bấm "Bỏ qua", tua nhanh quảng cáo không bỏ qua được, ẩn banner.
-- Back: lùi trang; hết trang để lùi thì đóng app về Desktop Mini. Xem video toàn màn hình được.
-- Google có thể chặn đăng nhập trong WebView; app đã dùng UA như Chrome để giảm khả năng này, nhưng không đảm bảo. Xem YouTube không cần đăng nhập vẫn được.
+## Duyệt web và YouTube (dạng cửa sổ)
+- **Duyệt web** và **YouTube** giờ mở **trong cửa sổ** của Desktop Mini như Ghi chú, Zalo, Drive (kéo, đổi cỡ, thu nhỏ, đóng), không còn nhảy sang màn hình riêng.
+- Cả hai dùng WebView gốc nhúng vào cửa sổ (`extGet` trong `MainActivity.java`), có chặn quảng cáo (chặn tên miền quảng cáo + script tự bấm "Bỏ qua" cho YouTube).
+- **Duyệt web**: thanh địa chỉ (gõ địa chỉ hoặc từ khóa tìm Google), nút Lùi/Tiến/Tải lại/Trang chủ, thanh tiến độ, tải tệp qua trình quản lý tải xuống của máy, nút ⤢ mở trang hiện tại ở trình duyệt toàn màn hình cũ (`WebBrowserActivity`, đủ tab/dấu trang/lịch sử).
+- **YouTube**: không có thanh địa chỉ, chỉ vào được `youtube.com`, `youtu.be` và trang đăng nhập/đồng ý của Google; link ra ngoài bị chặn. Xem video toàn màn hình được; Back thoát toàn màn hình trước.
+- Back: lùi trang nếu còn, hết trang thì đóng cửa sổ. Đóng cửa sổ là dừng hẳn video/âm thanh.
+- Các Activity cũ `WebBrowserActivity` và `YouTubeActivity` vẫn còn trong mã (Duyệt web toàn màn hình vẫn mở được từ nút ⤢ và từ app khác), chỉ là Desktop Mini không còn mở chúng trực tiếp từ biểu tượng.
+- Google có thể chặn đăng nhập trong WebView; xem YouTube không cần đăng nhập vẫn được.
 
 ## Gõ văn bản (trình soạn thảo kiểu Word, chép từ repo Word)
-- Biểu tượng **Gõ văn bản** nằm ngay sau Ghi chú; mở màn hình riêng `TypingActivity.kt` + trang `assets/word/index.html`. Chạy offline.
+- Biểu tượng **Gõ văn bản** nằm ngay sau Ghi chú; mở **trong cửa sổ** của Desktop Mini (kéo, đổi cỡ, thu nhỏ, đóng) như Duyệt web và YouTube. Trang `assets/word/index.html` chạy offline trong WebView gốc nhúng vào cửa sổ; phần lõi (cầu nối lưu tệp, PDF, chia sẻ, clipboard, đọc thành tiếng, in) ở `WordHost.kt`, dùng chung với `TypingActivity.kt` (màn hình riêng cũ, vẫn còn trong mã).
+- Nút ✕ trong trang hoặc Back (sau khi đóng hộp thoại/màn hình Tệp của trang) đóng cửa sổ; nội dung được lưu trước khi đóng.
 - Mở/lưu .docx, .html, .txt, xuất PDF (lưu vào **Tải xuống/GoVanBan**), chia sẻ qua Gmail/Drive/Zalo, đọc văn bản thành tiếng, tự lưu.
 - Thư viện (Font Awesome, mammoth, JSZip) chép sẵn vào `assets/word/lib` từ npm, không cần tải lúc build.
 - Tối ưu so với repo gốc: nạp trang qua WebViewAssetLoader (không dùng file://); mammoth/JSZip chỉ nạp khi mở/lưu .docx (khởi động nhanh hơn);
   bỏ font brands và các font thừa (~120 KB); chặn scheme lạ khi mở link; giải mã/ghi tệp/đọc PDF ở luồng nền;
-  tự lưu khi rời app; nút ✕ / Back về Desktop Mini.
+  tự lưu khi rời app hoặc đóng cửa sổ.

@@ -205,7 +205,7 @@ class YouTubeActivity : Activity() {
 
 // Chép từ app "Duyệt web" (Webandr): tự bấm "Bỏ qua" quảng cáo YouTube, tua nhanh quảng cáo không bỏ qua được
 // (tắt tiếng rồi nhảy đến cuối), ẩn banner/quảng cáo hiển thị.
-private val YT_ONLY_AD_JS = """
+const val YT_ONLY_AD_JS = """
 (function(){
  if(window.__wbYtInstalled)return; window.__wbYtInstalled=true;
  if(typeof window.__wbAdSkip==='undefined')window.__wbAdSkip=true;

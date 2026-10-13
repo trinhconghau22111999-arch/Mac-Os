@@ -170,6 +170,11 @@ public class MainActivity extends Activity {
         askPermissions();
     }
 
+    @Override protected void onPause() {
+        super.onPause();
+        if (wordHost != null) wordHost.save();
+    }
+
     @Override protected void onDestroy() {
         try { unregisterReceiver(media); } catch (Exception e) { }
         try { unregisterReceiver(scr); } catch (Exception e) { }
@@ -352,6 +357,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (wordHost != null && wordHost.handleResult(req, res, data)) return;
         if (req == 91) push("nativeDelResult", res == RESULT_OK ? "1" : "0");
     }
     /** Ẩn thanh điều hướng ngay và thêm một lần sau 0,4 giây (một số máy tự hiện lại thanh khi app vừa quay về). */
@@ -372,7 +378,7 @@ public class MainActivity extends Activity {
         if (oa != null) web.evaluateJavascript("window.nativeOpenApp&&window.nativeOpenApp(" + JSONObject.quote(oa) + ")", null);
         else web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null);
     }
-    @Override public void onBackPressed() { web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
+    @Override public void onBackPressed() { if (extFullView != null) { extHideFull(); return; } web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
 
     /** Mở trình duyệt mặc định của app ("Duyệt web"); có url thì mở thẳng trang đó trong thẻ mới. */
     void openWeb(String url) {
@@ -398,19 +404,173 @@ public class MainActivity extends Activity {
 
     private void go(Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { startActivity(i); } catch (Exception e) { } }
 
+    /* ================= Trình duyệt nhúng trong cửa sổ: YouTube, Duyệt web, Gmail, Drive, Zalo, Facebook ================= */
+    private static final String[] AD_HOSTS = {
+        "doubleclick.net", "googlesyndication.com", "googleadservices.com", "adservice.google.com",
+        "google-analytics.com", "adnxs.com", "taboola.com", "outbrain.com", "popads.net",
+        "propellerads.com", "adsterra.com", "exoclick.com", "pubmatic.com", "rubiconproject.com",
+        "criteo.com", "scorecardresearch.com", "moatads.com", "amazon-adsystem.com"
+    };
+    private WordHost wordHost;
+    private static final int REQ_WORD = 1002;
+    private View extFullView;
+    private android.webkit.WebChromeClient.CustomViewCallback extFullCb;
+
+    private static boolean hostIs(String h, String d) { return h.equals(d) || h.endsWith("." + d); }
+    private static boolean isAdHost(String h) { for (String d : AD_HOSTS) if (hostIs(h, d)) return true; return false; }
+    /** Khóa "youtube": chỉ cho vào youtube.com / youtu.be và trang đăng nhập/đồng ý của Google. */
+    private static boolean ytAllowed(Uri u) {
+        String sc = u.getScheme() == null ? "" : u.getScheme().toLowerCase();
+        if (sc.equals("about")) return true;
+        if (!sc.equals("https") && !sc.equals("http")) return false;
+        String h = u.getHost() == null ? "" : u.getHost().toLowerCase();
+        if (h.length() == 0) return false;
+        if (hostIs(h, "youtube.com") || h.equals("youtu.be") || hostIs(h, "youtube-nocookie.com")) {
+            String p = u.getPath() == null ? "" : u.getPath();
+            return !p.startsWith("/redirect");   // cổng đưa người xem ra web ngoài
+        }
+        return h.startsWith("accounts.google.") || h.startsWith("consent.google.");
+    }
+    private long extToastAt = 0;
+    private void extToast(String m) {
+        long now = System.currentTimeMillis();
+        if (now - extToastAt < 1500) return;
+        extToastAt = now;
+        android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show();
+    }
+    /** Báo cho giao diện HTML địa chỉ/trạng thái hiện tại của WebView nhúng (thanh địa chỉ, nút lùi/tiến). */
+    private void extNav(String key, WebView v, int progress) {
+        if (web == null || v == null) return;
+        try {
+            JSONObject o = new JSONObject();
+            o.put("url", v.getUrl() == null ? "" : v.getUrl()); o.put("back", v.canGoBack()); o.put("fwd", v.canGoForward()); o.put("p", progress);
+            web.evaluateJavascript("window.nativeExtNav&&window.nativeExtNav(" + JSONObject.quote(key) + "," + o.toString() + ")", null);
+        } catch (Exception e) { }
+    }
+    private void extHideFull() {
+        if (extFullView == null) return;
+        try { root.removeView(extFullView); } catch (Exception e) { }
+        extFullView = null;
+        if (extFullCb != null) { try { extFullCb.onCustomViewHidden(); } catch (Exception e) { } extFullCb = null; }
+    }
+
     private WebView extGet(final String key, String url) {
         WebView v = ext.get(key);
-        if (v == null) {
+        if (v == null && "word".equals(key)) {
+            /* "Gõ văn bản": trình soạn thảo kiểu Word chạy offline trong cửa sổ (phần lõi dùng chung ở WordHost) */
             v = new WebView(this);
+            wordHost = new WordHost(this, v, REQ_WORD, new kotlin.jvm.functions.Function0<kotlin.Unit>() {
+                @Override public kotlin.Unit invoke() {
+                    if (web != null) web.evaluateJavascript("window.nativeCloseApp&&window.nativeCloseApp('typing')", null);
+                    return kotlin.Unit.INSTANCE;
+                }
+            });
+            wordHost.setup();
+            v.setVisibility(View.GONE);
+            root.addView(v, new FrameLayout.LayoutParams(1, 1));
+            v.loadUrl(url);
+            ext.put(key, v);
+            return v;
+        }
+        if (v == null) {
+            final boolean yt = "youtube".equals(key), br = "web".equals(key);
+            v = new WebView(this);
+            final WebView wv = v;
             WebSettings s = v.getSettings();
             s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
-            s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key)) ? UA_DESK : UA);
+            if (yt || br) {
+                s.setDatabaseEnabled(true);
+                s.setMediaPlaybackRequiresUserGesture(false);
+                s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
+                s.setBuiltInZoomControls(true); s.setDisplayZoomControls(false);
+                s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+            }
+            if (yt) {
+                /* UA như Chrome thật (bỏ "; wv" và "Version/4.0") + không gửi X-Requested-With: đăng nhập Google dễ hơn */
+                s.setUserAgentString(WebSettings.getDefaultUserAgent(this).replace("; wv)", ")").replace(" Version/4.0", ""));
+                try {
+                    if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST))
+                        androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, new java.util.HashSet<String>());
+                } catch (Exception e) { }
+                try {
+                    if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                        java.util.HashSet<String> origins = new java.util.HashSet<String>();
+                        origins.add("https://*.youtube.com"); origins.add("https://youtube.com");
+                        androidx.webkit.WebViewCompat.addDocumentStartJavaScript(v, "window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, origins);
+                    }
+                } catch (Exception e) { }
+            } else {
+                s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br) ? UA_DESK : UA);
+            }
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(v, true);
             v.setWebViewClient(new WebViewClient() {
+                @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                    if (!(yt || br) || !req.isForMainFrame()) return false;
+                    Uri u = req.getUrl();
+                    if (yt) {
+                        if (ytAllowed(u)) return false;
+                        extToast("Ứng dụng này chỉ mở được YouTube"); return true;   // không mở link ngoài
+                    }
+                    String sc = u.getScheme() == null ? "" : u.getScheme().toLowerCase();
+                    if (sc.equals("http") || sc.equals("https") || sc.equals("about") || sc.equals("file")) return false;
+                    if (sc.equals("intent") || sc.equals("market")) { extToast("Đã chặn liên kết mở ứng dụng khác"); return true; }
+                    return false;
+                }
+                @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                    if (!(yt || br) || req.getUrl() == null || req.getUrl().getHost() == null) return null;
+                    String h = req.getUrl().getHost().toLowerCase();
+                    if (isAdHost(h)) return new android.webkit.WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0]));
+                    if (yt && req.isForMainFrame() && !ytAllowed(req.getUrl())) {   // chuyển hướng từ máy chủ ra ngoài YouTube
+                        runOnUiThread(new Runnable() { public void run() { extToast("Ứng dụng này chỉ mở được YouTube"); } });
+                        String html = "<meta name=viewport content='width=device-width,initial-scale=1'><body style='background:#111;color:#eee;font:16px sans-serif;text-align:center;padding:48px 20px'>Ứng dụng này chỉ mở được YouTube.<br><br>Bấm Quay lại để trở về.</body>";
+                        try { return new android.webkit.WebResourceResponse("text/html", "utf-8", new java.io.ByteArrayInputStream(html.getBytes("UTF-8"))); } catch (Exception e) { return null; }
+                    }
+                    return null;
+                }
+                @Override public void onPageStarted(WebView view, String u, android.graphics.Bitmap f) { if (yt || br) extNav(key, view, 10); }
+                @Override public void doUpdateVisitedHistory(WebView view, String u, boolean r) { if (yt || br) extNav(key, view, 50); }
+                @Override public void onPageFinished(WebView view, String u) {
+                    if (yt || br) {
+                        /* WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần) */
+                        try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
+                        extNav(key, view, 100);
+                    }
+                    CookieManager.getInstance().flush();
+                }
                 @Override public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
                     if (req.isForMainFrame() && web != null) web.evaluateJavascript("window.nativeExtError&&window.nativeExtError(" + JSONObject.quote(key) + ")", null);
                 }
             });
+            if (yt || br) {
+                v.setWebChromeClient(new android.webkit.WebChromeClient() {
+                    @Override public void onProgressChanged(WebView view, int p) { extNav(key, view, p); }
+                    /* xem video toàn màn hình */
+                    @Override public void onShowCustomView(View view, CustomViewCallback cb) {
+                        if (view == null) return;
+                        if (extFullView != null) { cb.onCustomViewHidden(); return; }
+                        extFullView = view; extFullCb = cb;
+                        view.setBackgroundColor(0xFF000000);
+                        root.addView(view, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+                    }
+                    @Override public void onHideCustomView() { extHideFull(); }
+                });
+            }
+            if (br) {
+                v.setDownloadListener(new android.webkit.DownloadListener() {
+                    @Override public void onDownloadStart(String dUrl, String ua, String cd, String mime, long len) {
+                        try {
+                            android.app.DownloadManager.Request rq = new android.app.DownloadManager.Request(Uri.parse(dUrl));
+                            String nm = android.webkit.URLUtil.guessFileName(dUrl, cd, mime);
+                            rq.setMimeType(mime); rq.addRequestHeader("User-Agent", ua);
+                            String ck = CookieManager.getInstance().getCookie(dUrl); if (ck != null) rq.addRequestHeader("Cookie", ck);
+                            rq.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                            rq.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nm);
+                            ((android.app.DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(rq);
+                            android.widget.Toast.makeText(MainActivity.this, "Đang tải: " + nm, android.widget.Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) { android.widget.Toast.makeText(MainActivity.this, "Không tải được tệp", android.widget.Toast.LENGTH_SHORT).show(); }
+                    }
+                });
+            }
             v.setVisibility(View.GONE);
             root.addView(v, new FrameLayout.LayoutParams(1, 1));
             v.loadUrl(url);
@@ -1689,6 +1849,33 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void extGo(final String key, final String url) {
             runOnUiThread(new Runnable() { public void run() { WebView v = extGet(key, url); v.loadUrl(url); } });
+        }
+        /** Back trong cửa sổ Gõ văn bản: đóng hộp thoại/màn hình Tệp của trang trước, hết thì đóng cửa sổ. */
+        @JavascriptInterface public void wordBack() {
+            runOnUiThread(new Runnable() { public void run() { if (wordHost != null) wordHost.back(); } });
+        }
+        @JavascriptInterface public void extForward(final String key) {
+            runOnUiThread(new Runnable() { public void run() { WebView v = ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
+        }
+        /** Đóng hẳn WebView nhúng (dừng phát video/âm thanh khi đóng cửa sổ). */
+        @JavascriptInterface public void extClose(final String key) {
+            runOnUiThread(new Runnable() { public void run() {
+                extHideFull();
+                final WebView v = ext.remove(key);
+                if (v == null) return;
+                if ("word".equals(key) && wordHost != null) {
+                    /* lưu nội dung đang gõ rồi mới hủy trang (lệnh lưu chạy bất đồng bộ) */
+                    final WordHost h = wordHost; wordHost = null;
+                    h.save();
+                    v.setVisibility(View.GONE);
+                    root.postDelayed(new Runnable() { public void run() { h.destroy(); try { root.removeView(v); v.destroy(); } catch (Exception e) { } } }, 500);
+                    return;
+                }
+                try { v.loadUrl("about:blank"); root.removeView(v); v.destroy(); } catch (Exception e) { }
+            }});
+        }
+        @JavascriptInterface public String extUrl(final String key) {
+            WebView v = ext.get(key); return v == null || v.getUrl() == null ? "" : v.getUrl();
         }
         @JavascriptInterface public void extBack(final String key) {
             runOnUiThread(new Runnable() { public void run() { WebView v = ext.get(key); if (v != null && v.canGoBack()) v.goBack(); } });
