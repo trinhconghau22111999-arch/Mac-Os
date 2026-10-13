@@ -4359,8 +4359,17 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&msOn)closeMS()});
 desk.addEventListener('pointerdown',()=>{
   popAtDown=msOn||mcOn||lpOn||Object.keys(pops).some(k=>!pops[k].hidden); lpFired=false;
 },true);
+/* Đa nhiệm: chạm 2 lần liên tiếp vào chỗ trống trên màn hình nền (cách nhau < 0,5 giây, gần cùng một chỗ).
+   Chạm 1 lần chỉ ghi nhận, không làm gì -> không bị bật nhầm khi máy lag. */
+const deskTap={t:0,x:0,y:0};
+function isDoubleTap(n,x,y){
+  const dx=x-deskTap.x, dy=y-deskTap.y;
+  if(deskTap.t&&n-deskTap.t<500&&dx*dx+dy*dy<48*48){deskTap.t=0;return true}
+  deskTap.t=n; deskTap.x=x; deskTap.y=y; return false;
+}
 desk.addEventListener('click',e=>{
-  if(popAtDown||lpFired||Date.now()-lastSheet<900||e.target.closest('.di,.rn'))return;
+  if(popAtDown||lpFired||Date.now()-lastSheet<900||e.target.closest('.di,.rn,.da')){deskTap.t=0;return}
+  if(!isDoubleTap(Date.now(),e.clientX,e.clientY))return;
   if(Object.keys(wins).length<2)return;
   if($$('.win',layer).some(w=>!w.classList.contains('min')&&!w._leaving))return;
   openMS();
