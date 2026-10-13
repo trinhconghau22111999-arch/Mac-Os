@@ -840,7 +840,7 @@ a.btn.pri{color:#fff}
 @media (max-width:560px){.dock{touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}}
 .dk{position:relative;flex:none;width:var(--base);height:var(--base);}
 .dk .ic{display:grid;width:100%;height:100%;transform-origin:50% 100%}
-.dock:not(.mg) .dk,.dock:not(.mg) .dk .ic{transition:transform .14s ease-out}
+.dock:not(.dmag) .dk,.dock:not(.dmag) .dk .ic{transition:transform .14s ease-out}
 .dk::after{margin-bottom:var(--lift,0px)}
 .dk.bounce .ic{animation:bounce .56s cubic-bezier(.3,.6,.4,1)}
 .dk.pop .ic{animation:dkpop .3s cubic-bezier(.22,.9,.28,1)}
@@ -1452,12 +1452,12 @@ const magnify=e=>{
   if(!pref('magnify',true)||narrowDock())return; /* màn hẹp: dock là thanh cuộn ngang, không phóng đại để lướt mượt */
   if(!centers.length)calcCenters();
   if(!centers.length)return;
-  dock.classList.add('mg'); mgX=e.clientX;
+  dock.classList.add('dmag'); mgX=e.clientX; /* không dùng tên 'mg': trùng với .mg (lưới 92px) làm dock giãn ra hai bên */
   if(!mgRaf)mgRaf=requestAnimationFrame(applyMag);
 };
 const unmagnify=()=>{
   if(mgRaf){cancelAnimationFrame(mgRaf);mgRaf=0}
-  dock.classList.remove('mg');
+  dock.classList.remove('dmag');
   mgEls.forEach(d=>{d.style.removeProperty('transform');d.style.removeProperty('--lift');const ic=d.firstElementChild;if(ic)ic.style.removeProperty('transform')});
   centers=[];
 };
