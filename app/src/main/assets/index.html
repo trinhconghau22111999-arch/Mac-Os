@@ -1208,7 +1208,7 @@ const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
   browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.gkShow)?buildGecko(b,w,a):buildBrowser(b,w,a)},
-  webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,full:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
+  webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
   youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true}):buildBrowser(b,w,a)},
   mail:{name:'Thư',w:880,h:540,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail'):buildMail(b,w)},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
@@ -2945,7 +2945,7 @@ function buildWebApp(b,w,key,url,title,opt){
   opt=opt||{};
   const A=window.AndroidLauncher;
   if(!A){b.innerHTML='<div class="app"><div class="bar"><strong class="t">'+title+'</strong></div>'+NATIVE_ONLY(title)+'</div>';return {}}
-  b.innerHTML='<div class="wa'+(opt.addr?' wad':'')+'"><div class="bar">'+(opt.plain?'':'<button class="ib wbk" aria-label="Quay lại">‹</button>')+(opt.addr?'<button class="ib wfw" aria-label="Tiến tới">›</button>':'')+(opt.addr?'<input class="wau" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Thanh địa chỉ">':'<strong class="t">'+title+'</strong><span class="grow"></span>')+(opt.plain?'':'<button class="ib wrl" aria-label="Tải lại">⟳</button>')+(opt.addr?'<button class="ib whm" aria-label="Trang chủ">⌂</button>':'')+(opt.full?'<button class="ib wfs" aria-label="Mở toàn màn hình" title="Mở toàn màn hình">⤢</button>':'')+'</div>'+(opt.addr?'<div class="wpg"><i></i></div>':'')+'<div class="wab"></div></div>';
+  b.innerHTML='<div class="wa'+(opt.addr?' wad':'')+'"><div class="bar">'+(opt.plain?'':'<button class="ib wbk" aria-label="Quay lại">‹</button>')+(opt.addr?'<button class="ib wfw" aria-label="Tiến tới">›</button>':'')+(opt.addr?'<input class="wau" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Thanh địa chỉ">':'<strong class="t">'+title+'</strong><span class="grow"></span>')+(opt.plain?'':'<button class="ib wrl" aria-label="Tải lại">⟳</button>')+(opt.addr?'<button class="ib whm" aria-label="Trang chủ">⌂</button>':'')+'</div>'+(opt.addr?'<div class="wpg"><i></i></div>':'')+'<div class="wab"></div></div>';
   const area=$('.wab',b), inp=$('.wau',b), fwb=$('.wfw',b), bkb=$('.wbk',b), pg=$('.wpg i',b); let last='', off=false, timer=null, firstUrl=opt.url||url;
   function offline(){
     off=true; area.innerHTML='<div class="rnote"><b>Cần kết nối mạng</b><span>'+esc(title)+' cần Internet. Hãy bật Wi-Fi hoặc dữ liệu di động rồi thử lại.</span><div class="ir"><button class="btn wf">Mở Wi-Fi</button><button class="btn wr">Thử lại</button></div></div>';
@@ -2982,7 +2982,6 @@ function buildWebApp(b,w,key,url,title,opt){
     inp.addEventListener('focus',()=>setTimeout(()=>{try{inp.select()}catch(e){}},0));
     fwb.addEventListener('click',()=>A.extForward(key));
     $('.whm',b).addEventListener('click',()=>go(url));
-    const fs=$('.wfs',b); if(fs)fs.addEventListener('click',()=>{let u='';try{u=A.extUrl(key)}catch(e){} try{A.openWebBrowser(/^https?:/i.test(u)?u:'')}catch(e){}});
     bkb.disabled=true; fwb.disabled=true;
   }
   timer=setInterval(sync,90);
