@@ -249,6 +249,7 @@ window.__loadLib = (function(){
     position: sticky; top: 0; z-index: 20;
     background: #d4d4d4; height: 20px; display: flex; justify-content: center;
     border-bottom: 1px solid #b0b0b0;
+    flex: none; margin: 0 auto; /* căn giữa đúng như trang (#zoomSizer), không dồn sang trái */
   }
   .ruler-track {
     position: relative; height: 100%; background: #d4d4d4; cursor: default;
@@ -4050,20 +4051,24 @@ const rulerTrack = document.getElementById('rulerTrack');
 const PX_PER_CM = 794 / 21; // A4 rộng 21cm = 794px
 let rulerDragState = null; // { side: 'left'|'right', startX, startLeft, startRight, wPx }
 
+let lastRulerZ = 1;
+function rulerZoom() { try { return (zoomLevel || 100) / 100; } catch (e) { return 1; } }
 function renderRuler() {
   const dims = PAGE_SIZES[pageState.size];
   const wPx = pageState.orientation === 'portrait' ? dims.w : dims.h;
   const m = MARGIN_PRESETS[pageState.margin] || MARGIN_PRESETS.normal;
-  rulerTrack.style.width = wPx + 'px';
+  const z = rulerZoom();
+  rulerTrack.style.width = (wPx * z) + 'px';
   rulerTrack.innerHTML = '';
+  lastRulerZ = z;
 
   const leftPx = m.left, rightBoundaryPx = wPx - m.right;
 
   // Vùng gõ (trắng) ở giữa, phần còn lại của track vốn đã là màu xám (nền .ruler-track)
   const textZone = document.createElement('div');
   textZone.className = 'ruler-textzone';
-  textZone.style.left = leftPx + 'px';
-  textZone.style.width = (rightBoundaryPx - leftPx) + 'px';
+  textZone.style.left = (leftPx * z) + 'px';
+  textZone.style.width = ((rightBoundaryPx - leftPx) * z) + 'px';
   rulerTrack.appendChild(textZone);
 
   // Vạch chia: đặt liên tục theo hệ tọa độ neo tại mép lề trái (0 = mép lề trái)
@@ -4077,13 +4082,13 @@ function renderRuler() {
     const isMajor = Number.isInteger(cmVal);
     const tick = document.createElement('div');
     tick.className = 'ruler-tick' + (isMajor ? ' major' : '');
-    tick.style.left = absPos + 'px';
+    tick.style.left = (absPos * z) + 'px';
     rulerTrack.appendChild(tick);
     // Chỉ đánh số trong vùng gõ (giữa 2 lề), giống Word thật - không đánh số "0" tại mép lề
     if (isMajor && cmVal !== 0 && absPos >= leftPx && absPos <= rightBoundaryPx) {
       const num = document.createElement('div');
       num.className = 'ruler-num';
-      num.style.left = absPos + 'px';
+      num.style.left = (absPos * z) + 'px';
       num.textContent = Math.abs(cmVal);
       rulerTrack.appendChild(num);
     }
@@ -4092,14 +4097,14 @@ function renderRuler() {
   // Handle kéo lề trái/phải
   const leftHandle = document.createElement('div');
   leftHandle.className = 'ruler-handle left-handle';
-  leftHandle.style.left = leftPx + 'px';
+  leftHandle.style.left = (leftPx * z) + 'px';
   leftHandle.title = 'Kéo để đổi lề trái';
   leftHandle.addEventListener('pointerdown', (e) => startRulerDrag(e, 'left', wPx));
   rulerTrack.appendChild(leftHandle);
 
   const rightHandle = document.createElement('div');
   rightHandle.className = 'ruler-handle right-handle';
-  rightHandle.style.left = rightBoundaryPx + 'px';
+  rightHandle.style.left = (rightBoundaryPx * z) + 'px';
   rightHandle.title = 'Kéo để đổi lề phải';
   rightHandle.addEventListener('pointerdown', (e) => startRulerDrag(e, 'right', wPx));
   rulerTrack.appendChild(rightHandle);
@@ -4116,7 +4121,7 @@ function startRulerDrag(e, side, wPx) {
 }
 function onRulerDragMove(e) {
   if (!rulerDragState) return;
-  const delta = e.clientX - rulerDragState.startX;
+  const delta = (e.clientX - rulerDragState.startX) / rulerZoom();
   const MIN_MARGIN = 20, MIN_TEXT_WIDTH = 100;
   let newLeft = MARGIN_PRESETS[pageState.margin]?.left ?? rulerDragState.startLeft;
   let newRight = MARGIN_PRESETS[pageState.margin]?.right ?? rulerDragState.startRight;
@@ -5949,6 +5954,7 @@ function applyZoom() {
   }
   zoomPct.textContent = zoomLevel + '%';
   zoomSlider.value = zoomLevel;
+  if (typeof renderRuler === 'function' && Math.abs(rulerZoom() - lastRulerZ) > 0.001) renderRuler();
 }
 if (window.ResizeObserver) new ResizeObserver(function () { applyZoom(); }).observe(zoomContainer);
 applyZoom();
