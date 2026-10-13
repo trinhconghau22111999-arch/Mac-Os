@@ -156,6 +156,7 @@ public class MainActivity extends Activity {
         });
         web.addJavascriptInterface(new Bridge(), "AndroidLauncher");
         web.loadUrl("file:///android_asset/index.html");
+        prefetchApps();
         if (Build.VERSION.SDK_INT >= 28) {
             WindowManager.LayoutParams lp = getWindow().getAttributes();
             lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
@@ -372,7 +373,7 @@ public class MainActivity extends Activity {
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
     @Override protected void onResume() {
         super.onResume();
-        imeUp = false; hideBars();
+        imeUp = false; hideBars(); prefetchApps();
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
     }
@@ -768,6 +769,18 @@ public class MainActivity extends Activity {
         se.loadUri(GK_HOME);
     }
     private void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
+
+    private volatile String appsCache;
+    /** Dựng sẵn danh sách app cài đặt (kèm icon) ở luồng nền để Launchpad mở ngay, không khựng. */
+    private long appsAt;
+    private void prefetchApps() {
+        long now = System.currentTimeMillis();
+        if (appsCache != null && now - appsAt < 30000) return;
+        appsAt = now;
+        new Thread(new Runnable() { public void run() {
+            try { Bridge b = new Bridge(); String r = b.buildAppsNow(); appsCache = r; } catch (Throwable e) { }
+        } }, "apps-prefetch").start();
+    }
 
     private static String icon(Drawable d, int n) {
         Bitmap bm = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
@@ -1297,6 +1310,14 @@ public class MainActivity extends Activity {
 
         /* ---- Ứng dụng đã cài ---- */
         @JavascriptInterface public String getApps() {
+            String c = appsCache; if (c != null) return c;
+            return buildApps();
+        }
+        private synchronized String buildApps() {
+            if (appsCache != null) return appsCache;
+            String r = buildAppsNow(); appsCache = r; return r;
+        }
+        private String buildAppsNow() {
             PackageManager pm = getPackageManager();
             Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
             List<ResolveInfo> l = pm.queryIntentActivities(q, 0);

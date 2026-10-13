@@ -218,15 +218,15 @@ ul,ol{margin:0;padding:0;list-style:none}
 .nores{color:var(--muted);justify-content:center}
 
 /* Launchpad */
-.lp{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;padding:56px 24px 28px;background:rgba(10,14,30,.42);backdrop-filter:blur(46px) saturate(1.5);-webkit-backdrop-filter:blur(46px) saturate(1.5);animation:lpin .28s ease-out}
-.lp.out{opacity:0;transform:scale(1.06);transition:opacity .2s,transform .2s}
-@keyframes lpin{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:none}}
+.lp{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;padding:56px 24px 28px;background:rgba(10,14,30,.42);backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);animation:lpin .18s ease-out;will-change:opacity}
+.lp.out{opacity:0;transition:opacity .16s}
+@keyframes lpin{from{opacity:0}to{opacity:1}}
 .lpq{display:flex;align-items:center;gap:8px;width:min(260px,100%);height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.2);color:#fff}
 .lpq svg{width:14px;height:14px;flex:none}
 .lpq input{flex:1;min-width:0;background:none;border:0;outline:0;color:#fff}
 .lpq input::placeholder{color:rgba(255,255,255,.7)}
-.lpg{flex:1;width:min(860px,100%);display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));align-content:start;justify-items:center;gap:26px 10px;overflow:auto;min-height:0;padding:24px 0 36px;-webkit-overflow-scrolling:touch}
-.lpi{display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);font-size:12.5px;padding:6px;border-radius:14px}
+.lpg{overscroll-behavior:contain;flex:1;width:min(860px,100%);display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));align-content:start;justify-items:center;gap:26px 10px;overflow:auto;min-height:0;padding:24px 0 36px;-webkit-overflow-scrolling:touch}
+.lpi{content-visibility:auto;contain-intrinsic-size:96px 100px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);font-size:12.5px;padding:6px;border-radius:14px}
 .lpi .ic{width:64px;height:64px}
 .lpd{display:flex;gap:8px;height:10px}
 .lpd i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4)}
@@ -835,8 +835,11 @@ a.btn.pri{color:#fff}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
 @media (min-width:561px){.dock{touch-action:none}}
-.dk{position:relative;flex:none;width:calc(var(--base)*var(--s,1));height:calc(var(--base)*var(--s,1));transition:width .09s linear,height .09s linear}
-.dk .ic{display:grid;width:100%;height:100%}
+@media (max-width:560px){.dock{touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}}
+.dk{position:relative;flex:none;width:var(--base);height:var(--base);}
+.dk .ic{display:grid;width:100%;height:100%;transform-origin:50% 100%}
+.dock:not(.mg) .dk,.dock:not(.mg) .dk .ic{transition:transform .14s ease-out}
+.dk::after{margin-bottom:var(--lift,0px)}
 .dk.bounce .ic{animation:bounce .56s cubic-bezier(.3,.6,.4,1)}
 @keyframes bounce{0%{transform:translateY(0)}25%{transform:translateY(-24px)}50%{transform:translateY(0)}75%{transform:translateY(-12px)}100%{transform:translateY(0)}}
 .dk::after{content:attr(data-label);position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);padding:4px 11px;border-radius:9px;background:var(--glass);color:var(--fg);
@@ -1311,23 +1314,45 @@ function fitCalc(w){
   w.style.top=Math.max(40,Math.min(w.offsetTop,sr.height-bh-110))+'px';
 }
 window.addEventListener('resize',()=>{fitDock();$$('.win.max',layer).forEach(fitMax);$$('.win[data-app="calc"]:not(.max)',layer).forEach(fitCalc)});
-let centers=[];
-const calcCenters=()=>{centers=$$('.dk',dock).map(d=>{const r=d.getBoundingClientRect();return r.left+r.width/2})};
-const magnify=e=>{
-  if(!pref('magnify',true))return;
-  if(!centers.length)calcCenters(); /* không phụ thuộc sự kiện pointerenter (WebView Android đôi khi không gửi) */
-  if(!centers.length)return;
-  $$('.dk',dock).forEach((d,i)=>{
-    const dist=Math.abs(e.clientX-centers[i]);
-    d.style.setProperty('--s',(1+.62*Math.exp(-(dist*dist)/(2*58*58))).toFixed(3));
+let centers=[], mgBase=54, mgRaf=0, mgX=0, mgEls=[];
+const narrowDock=()=>window.matchMedia('(max-width:560px)').matches;
+/* Tâm icon tính theo offsetLeft nên không bị ảnh hưởng bởi transform đang phóng đại */
+const calcCenters=()=>{
+  mgEls=$$('.dk',dock); const dl=dock.getBoundingClientRect().left;
+  mgBase=parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||54;
+  centers=mgEls.map(d=>dl+d.offsetLeft+d.offsetWidth/2);
+};
+/* Phóng đại bằng transform (không gây reflow), gộp mỗi khung hình một lần */
+const applyMag=()=>{
+  mgRaf=0; if(!centers.length)return;
+  const sc=centers.map(c=>{const d=mgX-c;return 1+.62*Math.exp(-(d*d)/(2*58*58))});
+  const total=sc.reduce((a,v)=>a+(v-1)*mgBase,0);
+  let acc=0;
+  mgEls.forEach((d,i)=>{
+    const ext=(sc[i]-1)*mgBase, dx=acc+ext/2-total/2; acc+=ext;
+    d.style.transform='translateX('+dx.toFixed(1)+'px)';
+    d.style.setProperty('--lift',ext.toFixed(1)+'px');
+    const ic=d.firstElementChild; if(ic)ic.style.transform='scale('+sc[i].toFixed(3)+')';
   });
 };
-const unmagnify=()=>{centers=[];$$('.dk',dock).forEach(d=>d.style.removeProperty('--s'))};
-/* Chuột: rê qua dock. Màn cảm ứng: chạm giữ rồi trượt ngón tay dọc dock, nhả ra thì thu lại */
+const magnify=e=>{
+  if(!pref('magnify',true)||narrowDock())return; /* màn hẹp: dock là thanh cuộn ngang, không phóng đại để lướt mượt */
+  if(!centers.length)calcCenters();
+  if(!centers.length)return;
+  dock.classList.add('mg'); mgX=e.clientX;
+  if(!mgRaf)mgRaf=requestAnimationFrame(applyMag);
+};
+const unmagnify=()=>{
+  if(mgRaf){cancelAnimationFrame(mgRaf);mgRaf=0}
+  dock.classList.remove('mg');
+  mgEls.forEach(d=>{d.style.removeProperty('transform');d.style.removeProperty('--lift');const ic=d.firstElementChild;if(ic)ic.style.removeProperty('transform')});
+  centers=[];
+};
+/* Chuột: rê qua dock. Màn cảm ứng rộng: chạm giữ rồi trượt ngón tay dọc dock, nhả ra thì thu lại */
 dock.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')calcCenters()});
 dock.addEventListener('pointerover',e=>{if(e.pointerType!=='touch'&&!centers.length)calcCenters()});
-dock.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){calcCenters();magnify(e)}});
-dock.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&!(e.buttons&1))return;magnify(e)});
+dock.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!narrowDock()){calcCenters();magnify(e)}});
+dock.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&!(e.buttons&1))return;magnify(e)},{passive:true});
 ['pointerup','pointercancel'].forEach(t=>dock.addEventListener(t,e=>{if(e.pointerType==='touch')unmagnify()}));
 dock.addEventListener('pointerleave',()=>{unmagnify();if(pref('hideDock',false))dock.classList.remove('peek')});
 $('#hotz').addEventListener('pointerenter',()=>{if(pref('hideDock',false))dock.classList.add('peek')});
@@ -4710,16 +4735,27 @@ if(window.AndroidLauncher){(function(){
   /* Launchpad: thêm ứng dụng thật đã cài trên máy */
   let REAL=null;
   const loadApps=()=>{if(REAL===null)REAL=safe(()=>JSON.parse(A.getApps()),[])};
+  /* Nạp sẵn danh sách app thật lúc rảnh (native đã cache), để lần đầu mở Launchpad không bị khựng */
+  (window.requestIdleCallback||(f=>setTimeout(f,900)))(()=>{loadApps()},{timeout:2500});
   const _rl=renderLP;
   renderLP=function(){
     _rl(); loadApps();
     const term=norm($('#lpq').value.trim()), g=$('#lpg');
-    REAL.filter(a=>!term||norm(a.label).indexOf(term)>=0).forEach(a=>{
-      const b=document.createElement('button'); b.className='lpi';
-      b.innerHTML='<img src="'+a.icon+'" alt="" style="width:var(--lpic,64px);height:var(--lpic,64px);border-radius:22%;object-fit:cover"><span>'+esc(a.label)+'</span>';
-      b.addEventListener('click',e=>{e.stopPropagation();closeLP();extLaunch(a.pkg)});
-      g.appendChild(b);
-    });
+    const list=REAL.filter(a=>!term||norm(a.label).indexOf(term)>=0), tok=(renderLP._t=(renderLP._t||0)+1);
+    let i=0;
+    const step=()=>{
+      if(tok!==renderLP._t||!lpOn)return;
+      const frag=document.createDocumentFragment();
+      for(const end=Math.min(i+16,list.length);i<end;i++){
+        const a=list[i], b=document.createElement('button'); b.className='lpi';
+        b.innerHTML='<img src="'+a.icon+'" alt="" decoding="async" style="width:var(--lpic,64px);height:var(--lpic,64px);border-radius:22%;object-fit:cover"><span>'+esc(a.label)+'</span>';
+        b.addEventListener('click',e=>{e.stopPropagation();closeLP();extLaunch(a.pkg)});
+        frag.appendChild(b);
+      }
+      g.appendChild(frag);
+      if(i<list.length)requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   };
   /* Pin thật */
   function realBatt(){const o=safe(()=>JSON.parse(A.getBattery()),{});if(o.level!=null){BAT.level=o.level;BAT.charging=!!o.charging;BAT.real=true;battUpdate()}}
