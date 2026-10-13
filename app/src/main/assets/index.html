@@ -4745,7 +4745,7 @@ if(window.AndroidLauncher){(function(){
     safe(()=>A.openPanel(kind));
   },true);
   /* Launchpad: thêm ứng dụng thật đã cài trên máy */
-  let REAL=null;
+  let REAL=null, lpTok=0;
   const loadApps=()=>{if(REAL===null)REAL=safe(()=>JSON.parse(A.getApps()),[])};
   /* Nạp sẵn danh sách app thật lúc rảnh (native đã cache), để lần đầu mở Launchpad không bị khựng */
   (window.requestIdleCallback||(f=>setTimeout(f,900)))(()=>{loadApps()},{timeout:2500});
@@ -4753,10 +4753,10 @@ if(window.AndroidLauncher){(function(){
   renderLP=function(){
     _rl(); loadApps();
     const term=norm($('#lpq').value.trim()), g=$('#lpg');
-    const list=REAL.filter(a=>!term||norm(a.label).indexOf(term)>=0), tok=(renderLP._t=(renderLP._t||0)+1);
+    const list=REAL.filter(a=>!term||norm(a.label).indexOf(term)>=0), tok=(lpTok=lpTok+1);
     let i=0;
     const step=()=>{
-      if(tok!==renderLP._t||!lpOn)return;
+      if(tok!==lpTok||!lpOn)return;
       const frag=document.createDocumentFragment();
       for(const end=Math.min(i+16,list.length);i<end;i++){
         const a=list[i], b=document.createElement('button'); b.className='lpi';
