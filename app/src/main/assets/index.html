@@ -1877,12 +1877,12 @@ function omThumb(kind,key,video,cb){
   OM.q.push({ck:ck,kind:kind,key:key,video:video,cb:cb}); omPump();
 }
 function omPump(){
-  while(OM.run<3&&OM.q.length){
+  while(OM.run<6&&OM.q.length){
     const t=OM.q.shift(); OM.run++;
     omCall(t.kind==='r'?'thumb':'lthumb',{id:t.key,video:t.video},r=>{
       OM.run--;
       if(r.ok&&r.img){
-        if(OM.thumbs.size>400)OM.thumbs.delete(OM.thumbs.keys().next().value);
+        if(OM.thumbs.size>1500)OM.thumbs.delete(OM.thumbs.keys().next().value);
         OM.thumbs.set(t.ck,r.img); t.cb(r.img);
       }
       omPump();
@@ -2078,6 +2078,10 @@ function buildOmem(b,w){
     });
     h+='<label class="omsw"><input type="checkbox" data-s="auto"'+(S.auto?' checked':'')+'> Tự sao lưu khi có mạng</label>'
       +'<label class="omsw"><input type="checkbox" data-s="wifi"'+(S.wifi?' checked':'')+'> Chỉ dùng Wi-Fi</label>';
+    h+='<div class="omh">Bộ nhớ đệm ảnh</div>'
+      +'<label class="omsw"><input type="checkbox" data-s="lock"'+(S.lock?' checked':'')+'> Khoá bộ nhớ đệm ảnh (luôn tải nhanh, không bị hệ thống dọn mất)</label>'
+      +'<div class="omh sub">Đã lưu sẵn '+(S.thc||0)+' ảnh xem trước • '+omFmt(S.thb||0)+(S.warm?' • đang tải sẵn '+S.wd+'/'+S.wt:'')+'</div>'
+      +'<div class="omrow">'+(S.warm?'<button class="btn" data-s="warmstop">Dừng tải sẵn</button>':'<button class="btn" data-s="warm">Tải sẵn mọi ảnh xem trước (dùng mạng)</button>')+'<button class="btn" data-s="thclear">Xoá bộ nhớ đệm ảnh</button></div>';
     if(!S.battery)h+='<div class="omrow"><button class="btn" data-s="bat">Cho phép chạy nền (để tự sao lưu ổn định)</button></div>';
     if(S.needAll)h+='<div class="omrow"><button class="btn" data-s="all">Cấp quyền truy cập mọi tệp (sao lưu cả tài liệu)</button></div>';
     body.innerHTML=h;
@@ -2090,11 +2094,14 @@ function buildOmem(b,w){
     else if(k==='re')load();
     else if(k==='bat')omCall('battery');
     else if(k==='all')omCall('allfiles');
-    else if(k==='auto'||k==='wifi'){S[k]=x.checked;omCall('set',{k:k,v:x.checked})}
+    else if(k==='auto'||k==='wifi'||k==='lock'){S[k]=x.checked;omCall('set',{k:k,v:x.checked},()=>load())}
+    else if(k==='warm'){setMsg('Đang tải sẵn ảnh xem trước…');omCall('warm',{},()=>load())}
+    else if(k==='warmstop'){omCall('warmstop',{},()=>{setMsg('');load()})}
+    else if(k==='thclear'){OM.thumbs.clear();omCall('thclear',{},()=>{setMsg('Đã xoá bộ nhớ đệm ảnh');load()})}
   });
 
   /* tải dữ liệu, tự làm mới (nhanh hơn khi đang tải lên) */
-  function schedule(){clearTimeout(timer);if(alive)timer=setTimeout(load,S&&S.up>0?8000:30000)}
+  function schedule(){clearTimeout(timer);if(alive)timer=setTimeout(load,S&&S.warm?3000:S&&S.up>0?8000:30000)}
   function load(){
     omCall('state',{},r=>{
       if(!alive)return;

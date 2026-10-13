@@ -84,9 +84,16 @@ object OmemApi {
             ok().put("done", n).put("total", gs.length()).put("err", err)
         }
         "now" -> { Scheduler.now(ctx); ok() }
+        "warm" -> { startWarm(ctx); ok() }
+        "warmstop" -> { warmRun = false; ok() }
+        "thclear" -> { thumbDir(ctx).listFiles()?.forEach { it.delete() }; ok() }
         "set" -> {
             val v = a.getBoolean("v")
-            if (a.getString("k") == "auto") Store.setAuto(ctx, v) else Store.setWifiOnly(ctx, v)
+            when (a.getString("k")) {
+                "auto" -> Store.setAuto(ctx, v)
+                "lock" -> { val old = thumbDir(ctx); Store.setLockCache(ctx, v); moveThumbs(old, thumbDir(ctx)) }
+                else -> Store.setWifiOnly(ctx, v)
+            }
             Scheduler.apply(ctx, true); ok()
         }
         "addacc" -> {
@@ -104,10 +111,41 @@ object OmemApi {
         else -> throw Exception("Lệnh không hợp lệ: $op")
     }
 
+    /** Thư mục ảnh xem trước: khi “khoá” thì nằm trong bộ nhớ riêng của app (bền), ngược lại nằm trong bộ nhớ đệm (hệ thống có thể dọn). */
+    private fun thumbDir(ctx: Context): java.io.File =
+        if (Store.lockCache(ctx)) java.io.File(ctx.filesDir, "omem_thumbs").apply { mkdirs() }
+        else java.io.File(ctx.cacheDir, "thumbs").apply { mkdirs() }
+
+    private fun moveThumbs(from: java.io.File, to: java.io.File) {
+        if (from.absolutePath == to.absolutePath) return
+        to.mkdirs()
+        from.listFiles()?.forEach { f ->
+            runCatching { val t = java.io.File(to, f.name); if (!f.renameTo(t)) { f.copyTo(t, true); f.delete() } }
+        }
+    }
+
+    @Volatile private var warmRun = false
+    @Volatile private var warmDone = 0
+    @Volatile private var warmTotal = 0
+    /** Tạo sẵn ảnh xem trước cho mọi ảnh đã sao lưu để cuộn thư viện luôn nhanh. */
+    private fun startWarm(ctx: Context) {
+        if (warmRun) return
+        val gs = lastLib.filter { it.head.mime.startsWith("image/") }
+        warmRun = true; warmDone = 0; warmTotal = gs.size
+        Thread {
+            try {
+                for (g in gs) {
+                    if (!warmRun) break
+                    runCatching { remoteThumb(ctx, g.head.grp, false, true) }
+                    warmDone++
+                }
+            } finally { warmRun = false }
+        }.apply { priority = Thread.MIN_PRIORITY; start() }
+    }
+
     /** Bản xem trước của mục trên Drive: lấy từ bộ nhớ đệm, rồi từ máy chủ; nếu không có thì tự tạo từ ảnh gốc (chỉ với ảnh). */
-    private fun remoteThumb(ctx: Context, key: String, video: Boolean): JSONObject {
-        val dir = java.io.File(ctx.cacheDir, "thumbs").apply { mkdirs() }
-        val cf = java.io.File(dir, key.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".jpg")
+    private fun remoteThumb(ctx: Context, key: String, video: Boolean, tmp: Boolean = false): JSONObject {
+        val cf = java.io.File(thumbDir(ctx), key.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".jpg")
         if (cf.exists() && cf.length() > 0) {
             val b = cf.readBytes()
             return img(Base64.encodeToString(b, Base64.NO_WRAP), sniff(b))
@@ -119,6 +157,7 @@ object OmemApi {
                 val f = Restore.toCache(ctx, group(key))
                 val bm = Compat.decodeImage(ctx, Uri.fromFile(f), 320)
                 if (bm != null) { val o = ByteArrayOutputStream(); bm.compress(Bitmap.CompressFormat.JPEG, 78, o); raw = o.toByteArray() }
+                if (tmp) f.delete()
             }
         }
         val r = raw ?: return img(null, "image/jpeg")
@@ -202,6 +241,9 @@ object OmemApi {
             })
             .put("nlocal", local.size).put("up", up.size)
             .put("auto", Store.auto(ctx)).put("wifi", Store.wifiOnly(ctx)).put("last", Store.lastRun(ctx))
+            .put("lock", Store.lockCache(ctx))
+            .put("thc", thumbDir(ctx).listFiles()?.size ?: 0).put("thb", thumbDir(ctx).listFiles()?.sumOf { it.length() } ?: 0L)
+            .put("warm", warmRun).put("wd", warmDone).put("wt", warmTotal)
             .put("battery", pm?.isIgnoringBatteryOptimizations(ctx.packageName) ?: true)
             .put("needAll", Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager())
     }

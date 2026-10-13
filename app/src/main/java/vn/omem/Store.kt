@@ -20,6 +20,9 @@ object Store {
     fun setWifiOnly(c: Context, v: Boolean) = p(c).edit().putBoolean("wifi", v).apply()
     fun auto(c: Context) = p(c).getBoolean("auto", true)
     fun setAuto(c: Context, v: Boolean) = p(c).edit().putBoolean("auto", v).apply()
+    /** Khoá bộ nhớ đệm ảnh xem trước: lưu ở bộ nhớ riêng của app (không bị hệ thống/“Xóa bộ nhớ đệm” dọn mất) */
+    fun lockCache(c: Context) = p(c).getBoolean("lockcache", true)
+    fun setLockCache(c: Context, v: Boolean) = p(c).edit().putBoolean("lockcache", v).apply()
     fun lastRun(c: Context): String = p(c).getString("last_run", "") ?: ""
     fun setLastRun(c: Context, text: String) {
         val t = java.text.SimpleDateFormat("HH:mm dd/MM", java.util.Locale.getDefault()).format(java.util.Date())
