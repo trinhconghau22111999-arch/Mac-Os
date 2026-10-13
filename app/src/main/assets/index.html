@@ -888,15 +888,6 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 </style>
 
 <style>
-#stk{position:absolute;bottom:calc(var(--base,56px) + 34px);z-index:60;width:300px;max-height:60%;overflow:auto;padding:12px;border-radius:22px;background:var(--glass);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.35);color:var(--fg);transform-origin:bottom center;animation:stkIn .22s cubic-bezier(.2,.8,.3,1)}
-@keyframes stkIn{from{opacity:0;transform:translateY(14px) scale(.9)}}
-#stk h4{margin:0 4px 8px;font-size:13px;font-weight:600}
-#stk .g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-#stk .it{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:12px;border:0;background:none;color:inherit;font:inherit;font-size:11px;cursor:pointer;min-width:0}
-#stk .it:hover{background:rgba(127,127,127,.2)}
-#stk .it svg,#stk .it .fi{width:44px;height:44px}
-#stk .it span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#stk .op{display:block;width:100%;margin-top:8px;padding:7px;border:0;border-radius:10px;background:rgba(127,127,127,.18);color:inherit;font:inherit;font-size:12px;cursor:pointer}
 </style>
 
 <style>
@@ -1179,7 +1170,6 @@ const FS0={
 };
 let FS=jget('dm-fs2',null)||JSON.parse(JSON.stringify(FS0));
 const saveFS=()=>{jset('dm-fs2',FS);bus.emit('fs')};
-const ROOTNAME={desk:'Màn hình nền',docs:'Tài liệu',down:'Tải xuống',pics:'Ảnh',trash:'Thùng rác',recent:'Gần đây',apps:'Ứng dụng'};
 const tstamp=()=>'Hôm nay '+pad(new Date().getHours())+':'+pad(new Date().getMinutes());
 function fsList(rootKey,path){
   let l=FS[rootKey]||[];
@@ -1195,11 +1185,6 @@ function uniqueName(l,base){
   let n=base,i=2; while(l.some(x=>x.n===n)){n=base+' '+i;i++}
   return n;
 }
-function addFolder(rootKey,path,base){
-  const l=fsList(rootKey,path), n=uniqueName(l,base||'Thư mục không có tiêu đề');
-  l.push({n:n,d:tstamp(),s:'--',x:'folder',items:[]}); saveFS();
-  return l.length-1;
-}
 function moveItem(srcRoot,srcPath,idx,dstRoot){
   const sl=fsList(srcRoot,srcPath), it=sl[idx]; if(!it)return;
   if(srcRoot===dstRoot&&!(srcPath&&srcPath.length))return;
@@ -1212,12 +1197,6 @@ function restoreItem(idx){
   it.n=uniqueName(FS[to],it.n); FS[to].push(it); saveFS();
 }
 function emptyTrash(){FS.trash=[];saveFS()}
-function allFiles(){
-  const out=[];
-  const walk=(l,rk,path)=>l.forEach((it,i)=>{out.push({it:it,root:rk,path:path.slice(),idx:i});if(it.items)walk(it.items,rk,path.concat(i))});
-  ['desk','docs','down','pics'].forEach(rk=>walk(FS[rk],rk,[]));
-  return out;
-}
 bus.on('fs',()=>{
   const b=dockBtn('trash'); if(!b)return;
   $('.ic',b).innerHTML=trashGlyph(FS.trash.length>0);
@@ -1406,27 +1385,6 @@ function flyOut(w,id,done){
   a.onfinish=()=>{done();a.cancel()};
 }
 /* Trình duyệt thật: lần đầu chọn, các lần sau mở thẳng trình duyệt đã chọn */
-const BK='dm-browser';
-function showBrowserPicker(){
-  const A=window.AndroidLauncher; if(!A||!A.getBrowsers)return false;
-  let list=[]; try{list=JSON.parse(A.getBrowsers())}catch(e){}
-  if(!list.length)return false;
-  const o=document.createElement('div'); o.className='bpk';
-  o.innerHTML='<div class="bps"><b>Chọn trình duyệt</b><small>Lần sau bấm biểu tượng Trình duyệt sẽ mở thẳng trình duyệt này</small><div class="bpl">'+list.map((x,i)=>'<button class="bpi" type="button" data-i="'+i+'"><img src="'+x.icon+'" alt=""><span>'+esc(x.label)+'</span></button>').join('')+'</div></div>';
-  stage.appendChild(o);
-  o.addEventListener('click',e=>{
-    const x=e.target.closest('.bpi');
-    if(x){const bw=list[+x.dataset.i]; lsSet(BK,bw.pkg); o.remove(); extLaunch(bw.pkg); return}
-    if(!e.target.closest('.bps'))o.remove();
-  });
-  return true;
-}
-function openRealBrowser(){
-  const A=window.AndroidLauncher; if(!A||!A.getBrowsers)return false;
-  const pkg=lsGet(BK);
-  if(pkg){let ok=false;try{ok=A.hasPackage(pkg)}catch(e){} if(ok){extLaunch(pkg); return true}}
-  return showBrowserPicker();
-}
 function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
@@ -1610,157 +1568,12 @@ const REM0=[{id:1,t:'Gửi báo cáo tháng 10',done:false},{id:2,t:'Mua cà ph�
 let REM=jget('dm-rem',null)||REM0;
 const saveRem=()=>{jset('dm-rem',REM);bus.emit('rem')};
 
-function toggleStack(){
-  const old=document.getElementById('stk');
-  if(old){old.remove();return}
-  const btn=dockBtn('downloads'), r=btn.getBoundingClientRect(), sr=stage.getBoundingClientRect();
-  const st=document.createElement('div'); st.id='stk';
-  const items=fsList('down',[]);
-  st.innerHTML='<h4>Tải xuống</h4><div class="g">'+(items.length?items.map((it,i)=>'<button class="it" data-i="'+i+'"><div class="fi">'+fileIcon(it.x)+'</div><span>'+esc(it.n)+'</span></button>').join(''):'<small style="grid-column:1/-1;padding:10px;opacity:.7">Thư mục trống</small>')+'</div><button class="op">Mở trong Tệp</button>';
-  stage.appendChild(st);
-  const left=Math.max(8,Math.min(sr.width-308,r.left-sr.left+r.width/2-150));
-  st.style.left=left+'px'; st.style.bottom=(sr.bottom-r.top+44)+'px';
-  st.addEventListener('click',e=>{
-    const it=e.target.closest('.it');
-    if(it){st.remove();quickLook(items[+it.dataset.i]);return}
-    if(e.target.closest('.op')){st.remove();openApp('files',{root:'down'})}
-  });
-  const away=e=>{if(!e.target.closest('#stk')&&!e.target.closest('.dk[data-id="downloads"]')){st.remove();document.removeEventListener('pointerdown',away,true)}};
-  setTimeout(()=>document.addEventListener('pointerdown',away,true),0);
-}
-
 /* =========================================================
    Ứng dụng nhóm 1: Tệp, Lịch, Ghi chú, Nhắc nhở, Máy tính,
    Cài đặt, Thùng rác, Giới thiệu, Buộc thoát
    ========================================================= */
 const live=(w,ev,fn)=>bus.on(ev,a=>{if(w.isConnected)fn(a)});
 const BAT={level:.87,charging:false,real:false};
-
-/* ---------- Tệp ---------- */
-function buildFiles(b,w,arg){
-  const G={
-    clock:'<circle cx="8" cy="8" r="6"/><path d="M8 4.6V8l2.2 1.4"/>',
-    apps:'<rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/>',
-    desk:'<rect x="1.8" y="2.5" width="12.4" height="8.4" rx="1.4"/><path d="M5.5 13.6h5M8 11v2.6"/>',
-    doc:'<path d="M4 1.8h5.2L12.4 5v9.2H4z"/><path d="M9 1.8V5h3.4"/>',
-    down:'<circle cx="8" cy="8" r="6.2"/><path d="M8 4.8v5.2M5.7 8l2.3 2.3L10.3 8"/>',
-    pics:'<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 11l3.5-3.5 3 3L10.5 8.5 14 12"/>'
-  };
-  const SIDE=['recent','apps','desk','docs','down','pics'];
-  const WRITABLE=r=>r==='desk'||r==='docs'||r==='down'||r==='pics';
-  let cur={root:(arg&&arg.root)||'recent',path:[]}, hist=[JSON.stringify(cur)], pos=0, sel=-1, ren=-1, view=pref('fview','list'), cache=[];
-  b.innerHTML='<div class="fin"><nav class="side"><h4>Yêu thích</h4></nav><div class="main"><div class="bar"><div class="nv"><button class="bk" aria-label="Quay lại"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg></button><button class="fw" aria-label="Tiến tới"><svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></svg></button></div><strong class="t ft"></strong><span class="grow"></span><div class="nv vw"><button data-v="list" aria-label="Dạng danh sách"><svg viewBox="0 0 16 16"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg></button><button data-v="icons" aria-label="Dạng biểu tượng"><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.2" height="4.2" rx="1"/><rect x="9.3" y="2.5" width="4.2" height="4.2" rx="1"/><rect x="2.5" y="9.3" width="4.2" height="4.2" rx="1"/><rect x="9.3" y="9.3" width="4.2" height="4.2" rx="1"/></svg></button></div><button class="nv nf" aria-label="Thư mục mới"><span><svg viewBox="0 0 16 16"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.8l1.4 1.5h4.8A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5zM8 7v3.5M6.3 8.8h3.4"/></svg></span></button><label class="sf"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5L14 14"/></svg><input type="text" placeholder="Tìm kiếm" aria-label="Tìm kiếm tệp"></label></div><div class="fl"></div><div class="foot"></div></div></div>';
-  const side=$('.side',b), fl=$('.fl',b), ft=$('.ft',b), foot=$('.foot',b), q=$('.sf input',b), bk=$('.bk',b), fw=$('.fw',b), nf=$('.nf',b);
-  SIDE.forEach(r=>{
-    const s=document.createElement('button'); s.className='si'; s.dataset.r=r;
-    if(WRITABLE(r))s.dataset.drop='root:'+r;
-    s.innerHTML='<svg viewBox="0 0 16 16">'+G[{recent:'clock',apps:'apps',desk:'desk',docs:'doc',down:'down',pics:'pics'}[r]]+'</svg><span>'+ROOTNAME[r]+'</span>';
-    s.addEventListener('click',()=>go({root:r,path:[]}));
-    side.appendChild(s);
-  });
-  function titleOf(){
-    if(!cur.path.length)return ROOTNAME[cur.root];
-    const parent=fsList(cur.root,cur.path.slice(0,-1))[cur.path[cur.path.length-1]];
-    return parent?parent.n:ROOTNAME[cur.root];
-  }
-  function items(){
-    const r=cur.root; let out;
-    if(r==='recent')out=allFiles().filter(f=>f.it.x!=='folder').slice(0,8).map(f=>({it:f.it,ref:{root:f.root,path:f.path,idx:f.idx}}));
-    else if(r==='apps')out=LP_APPS.map(id=>({it:{n:APPS[id].name+'.app',d:'12 thg 9 08:00',s:'--',x:'app',_app:id},ref:null}));
-    else out=fsList(r,cur.path).map((it,i)=>({it:it,ref:{root:r,path:cur.path.slice(),idx:i}}));
-    const term=norm(q.value.trim());
-    return term?out.filter(e=>norm(e.it.n).indexOf(term)>=0):out;
-  }
-  function render(){
-    cache=items();
-    $$('.si',side).forEach(s=>s.setAttribute('aria-current',s.dataset.r===cur.root?'true':'false'));
-    ft.textContent=titleOf();
-    $$('.vw button',b).forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===view?'true':'false'));
-    nf.disabled=!WRITABLE(cur.root);
-    bk.disabled=pos===0; fw.disabled=pos>=hist.length-1;
-    fl.className='fl '+view; fl.tabIndex=0;
-    let h='';
-    if(view==='list')h+='<div class="chd"><span>Tên</span><span class="dt">Ngày sửa đổi</span><span class="sz">Kích thước</span></div><div class="rows">';
-    else h+='<div class="igrid">';
-    cache.forEach((e,i)=>{
-      const it=e.it, s=i===sel?'true':'false';
-      const nm=i===ren?'<input class="rn" value="'+esc(it.n)+'" aria-label="Tên mới">':'<span class="nm">'+esc(it.n)+'</span>';
-      if(view==='list')h+='<div class="row" role="option" tabindex="0" data-i="'+i+'" aria-selected="'+s+'">'+fileIcon(it.x)+nm+'<span class="dt">'+esc(it.d)+'</span><span class="sz">'+esc(it.s)+'</span></div>';
-      else h+='<div class="cell" role="option" tabindex="0" data-i="'+i+'" aria-selected="'+s+'">'+fileIcon(it.x)+nm+'</div>';
-    });
-    if(!cache.length)h+='<div class="none">'+(q.value?'Không tìm thấy mục nào':'Thư mục trống')+'</div>';
-    h+='</div>';
-    fl.innerHTML=h;
-    foot.textContent=sel>=0&&cache[sel]?'Đã chọn "'+cache[sel].it.n+'" ('+cache[sel].it.s+')':cache.length+' mục';
-    const inp=$('.rn',fl);
-    if(inp){
-      inp.focus(); inp.select();
-      const commit=ok=>{
-        const v=inp.value.trim(), e=cache[ren]; ren=-1;
-        if(ok&&v&&e&&e.ref){e.it.n=v;e.it.d=tstamp();saveFS()}else render();
-      };
-      inp.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.key==='Enter'){commit(true)}else if(ev.key==='Escape'){commit(false)}});
-      inp.addEventListener('blur',()=>{if(ren>=0)commit(true)});
-      inp.addEventListener('click',ev=>ev.stopPropagation());
-    }
-  }
-  function go(c){
-    cur=c; sel=-1; ren=-1; q.value='';
-    hist=hist.slice(0,pos+1); hist.push(JSON.stringify(c)); pos=hist.length-1; render();
-  }
-  function openEntry(e){
-    const it=e.it;
-    if(it._app){openApp(it._app);return}
-    if(it.x==='folder'&&e.ref){go({root:e.ref.root,path:e.ref.path.concat(e.ref.idx)});return}
-    if(it.x==='jpg'||it.x==='png'){openApp('photos',{file:it.n});return}
-    if(it.x==='mp3'){openApp('music',{play:true});return}
-    if(it.x==='md'){openApp('notes',{file:it.n});return}
-    quickLook(it);
-  }
-  function ctxFor(e,i){
-    const it=e.it, real=!!e.ref&&!it._app;
-    return [{t:'Mở',fn:()=>openEntry(e)},{t:'Xem nhanh',fn:()=>quickLook(it),dis:it.x==='folder'||!!it._app},'-',{t:'Đổi tên',fn:()=>{ren=i;render()},dis:!real},{t:'Chuyển vào Thùng rác',fn:()=>{moveToTrash(e.ref.root,e.ref.path,e.ref.idx)},dis:!real}];
-  }
-  function newFolder(){
-    if(!WRITABLE(cur.root))return;
-    q.value=''; const idx=addFolder(cur.root,cur.path); ren=idx; sel=idx; render();
-  }
-  fl.addEventListener('click',ev=>{
-    if(dragging)return;
-    const r=ev.target.closest('[data-i]');
-    if(!r){sel=-1;render();return}
-    if(ev.target.closest('.rn'))return;
-    sel=+r.dataset.i; render();
-  });
-  fl.addEventListener('dblclick',ev=>{const r=ev.target.closest('[data-i]');if(r&&cache[+r.dataset.i])openEntry(cache[+r.dataset.i])});
-  fl.addEventListener('contextmenu',ev=>{
-    ev.preventDefault();
-    const r=ev.target.closest('[data-i]');
-    if(r){sel=+r.dataset.i;render();showCtx(ev.clientX,ev.clientY,ctxFor(cache[sel],sel))}
-    else showCtx(ev.clientX,ev.clientY,[{t:'Thư mục mới',fn:newFolder,dis:!WRITABLE(cur.root)},{t:'Chế độ xem: '+(view==='list'?'biểu tượng':'danh sách'),fn:()=>{view=view==='list'?'icons':'list';setPref('fview',view);render()}}]);
-  });
-  fl.addEventListener('pointerdown',ev=>{
-    const r=ev.target.closest('[data-i]'); if(!r||ev.target.closest('.rn'))return;
-    const e=cache[+r.dataset.i]; if(!e||!e.ref||e.it._app)return;
-    startDrag(ev,e.it.n,e.ref);
-  });
-  fl.addEventListener('keydown',ev=>{
-    if(ev.target.closest('.rn'))return;
-    if(ev.key===' '){ev.preventDefault();if(cache[sel]&&cache[sel].it.x!=='folder')quickLook(cache[sel].it)}
-    else if(ev.key==='Enter'){if(cache[sel])openEntry(cache[sel])}
-    else if((ev.key==='Delete'||ev.key==='Backspace')&&cache[sel]&&cache[sel].ref&&!cache[sel].it._app){moveToTrash(cache[sel].ref.root,cache[sel].ref.path,cache[sel].ref.idx)}
-    else if(ev.key==='ArrowDown'||ev.key==='ArrowRight'){ev.preventDefault();sel=Math.min(cache.length-1,sel+1);render();const n=$('[data-i="'+sel+'"]',fl);if(n)n.focus()}
-    else if(ev.key==='ArrowUp'||ev.key==='ArrowLeft'){ev.preventDefault();sel=Math.max(0,sel-1);render();const n=$('[data-i="'+sel+'"]',fl);if(n)n.focus()}
-  });
-  $$('.vw button',b).forEach(x=>x.addEventListener('click',()=>{view=x.dataset.v;setPref('fview',view);render()}));
-  bk.addEventListener('click',()=>{if(pos>0){pos--;cur=JSON.parse(hist[pos]);sel=-1;render()}});
-  fw.addEventListener('click',()=>{if(pos<hist.length-1){pos++;cur=JSON.parse(hist[pos]);sel=-1;render()}});
-  nf.addEventListener('click',newFolder);
-  q.addEventListener('input',()=>{sel=-1;render()});
-  live(w,'fs',()=>{if(ren<0){const keep=sel;render();sel=keep}});
-  render();
-  return {open(a){if(a&&a.root)go({root:a.root,path:a.path||[]})}};
-}
 
 /* ---------- Lịch ---------- */
 
@@ -2999,11 +2812,6 @@ function buildRealFiles(b,w,arg,mode){
   /* ---------- Kéo thả tệp: nhấn giữ rồi kéo (chuột: kéo ngay) vào thư mục, thanh bên, nút ↑ hoặc cửa sổ Tệp khác ---------- */
   const stripS=p=>p.replace(/\/+$/,'');
   const dirOf=p=>{const q=stripS(p);return q.slice(0,q.lastIndexOf('/'))||'/'};
-  function parentOf(p){
-    if(!p||p[0]==='@'||!R.root)return null;
-    const q=stripS(p); if(q===stripS(R.root)||q.indexOf(stripS(R.root)+'/')!==0)return null;
-    return dirOf(q);
-  }
   let D=null, noClick=0;
   function dzAt(x,y){let el=document.elementFromPoint(x,y);while(el){if(el.__dz&&!el.disabled)return el;el=el.parentElement}return null}
   function okDest(d,dest){

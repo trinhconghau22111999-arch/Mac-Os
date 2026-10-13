@@ -2113,11 +2113,6 @@ document.getElementById('btnTextEffects').addEventListener('click', () => {
 });
 
 /* Styles */
-function applyBlockStyle(tag) {
-  focusDoc();
-  document.execCommand('formatBlock', false, tag);
-  scheduleSave();
-}
 document.getElementById('styleGallery').addEventListener('click', (e) => {
   const swatch = e.target.closest('.style-swatch');
   if (!swatch) return;

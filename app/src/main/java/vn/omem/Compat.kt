@@ -4,7 +4,6 @@ import android.content.ContentUris
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.media.MediaMetadataRetriever
@@ -38,19 +37,6 @@ object Compat {
             runCatching { r.release() }
         }
     }
-
-    /** Giải mã ảnh để xem toàn màn hình. */
-    fun decodeForView(ctx: Context, uri: Uri): Bitmap =
-        if (Build.VERSION.SDK_INT >= 28) decodeForView28(ctx, uri)
-        else decodeImage(ctx, uri, 1800) ?: throw IllegalStateException("Không giải mã được ảnh")
-
-    @RequiresApi(28)
-    private fun decodeForView28(ctx: Context, uri: Uri): Bitmap =
-        ImageDecoder.decodeBitmap(ImageDecoder.createSource(ctx.contentResolver, uri)) { dec, info, _ ->
-            val m = maxOf(info.size.width, info.size.height)
-            if (m > 2400) dec.setTargetSampleSize(m / 2400 + 1)
-            dec.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-        }
 
     /** Giải mã ảnh bằng BitmapFactory (có giảm kích thước + xoay theo EXIF), cạnh dài tối đa ~target. */
     fun decodeImage(ctx: Context, uri: Uri, target: Int): Bitmap? {

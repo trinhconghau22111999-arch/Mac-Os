@@ -2119,19 +2119,6 @@ class WebBrowserActivity : Activity() {
         }
     }
 
-    private fun showSplitMenu() {
-        val names = splitUrls.keys.toMutableList()
-        if (splitService != null) names.add("Tắt chia đôi")
-        AlertDialog.Builder(this)
-            .setTitle("Chia đôi màn hình")
-            .setItems(names.toTypedArray()) { _, i ->
-                val n = names[i]
-                if (n == "Tắt chia đôi") exitSplit() else toggleSplit(n)
-            }
-            .setNegativeButton("Đóng", null)
-            .show()
-    }
-
     private fun toggleSplit(service: String) {
         if (splitService == service) exitSplit() else enterSplit(service)
     }
