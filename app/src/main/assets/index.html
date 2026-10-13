@@ -60,7 +60,8 @@
 .cm{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;padding:38px 18px 16px;background:#131218;color:#efe9fb;-webkit-user-select:none;user-select:none}
 .cm h2{flex:none;margin:0 0 12px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
 .cm .cmv{position:relative;flex:1 1 0;min-height:0;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
-.cm .cmvid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;transform:none!important}
+.cm .cmvid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.cm .cmvid.mir{transform:scaleX(-1)}
 .cm .cmmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:13px;line-height:1.5;color:#c9bfe0;cursor:pointer}
 .cm .cmblink{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .08s}
 .cm .cmblink.on{opacity:.55}
@@ -2538,7 +2539,7 @@ function buildCamera(b,w){
   const SWI='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.5-5.8L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.5 5.8L4 15.5M4 20v-4.5h4.5"/></svg>';
   b.innerHTML='<div class="cm"><h2>Webcam</h2><div class="cmv"><video class="cmvid" playsinline muted autoplay></video><div class="cmmsg" hidden></div><div class="cmblink"></div></div><div class="cmst"></div><div class="cmbt"><button type="button" class="cmth" aria-label="Ảnh vừa chụp"><img alt=""></button><button type="button" class="cmsh" aria-label="Chụp ảnh"><i></i></button><button type="button" class="cmsw" aria-label="Đổi camera trước/sau">'+SWI+'</button></div></div>';
   const vid=$('.cmvid',b), msg=$('.cmmsg',b), blk=$('.cmblink',b), st=$('.cmst',b), th=$('.cmth',b), thi=$('img',th), sh=$('.cmsh',b), sw=$('.cmsw',b);
-  let stream=null, face=lsGet('dm-camface')==='user'?'user':'environment', tok=0, pend=0, busy=false, saved=false;
+  let stream=null, face=lsGet('dm-camface')==='user'?'user':'environment', tok=0, pend=0, saved=false;
   const warn=(t,m)=>notify({app:'Webcam',title:t,body:m,icon:'camera'});
   const say=t=>{msg.textContent=t||'';msg.hidden=!t};
   function stopStream(){
@@ -2546,14 +2547,14 @@ function buildCamera(b,w){
     if(stream){try{stream.getTracks().forEach(t=>t.stop())}catch(e){}stream=null}
     try{vid.srcObject=null}catch(e){}
   }
-  /* Không lật ảnh: khung xem trước (video, object-fit: contain) là nguyên khung hình của camera, ảnh lưu vẽ lại đúng khung hình đó, camera trước cũng không lật gương */
+  /* Camera trước: lật gương cả khung xem trước lẫn ảnh lưu. Camera sau: giữ nguyên */
   async function open(){
     stopStream(); const my=tok; pend=my; say('');
-    st.textContent=face==='user'?'Camera trước':'Camera sau';
+    st.textContent=face==='user'?'Camera trước':'Camera sau'; vid.classList.toggle('mir',face==='user');
     try{
       if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){say('Thiết bị này không hỗ trợ camera trong ứng dụng.');return}
       let s;
-      try{s=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:face},width:{ideal:4000},height:{ideal:3000}}})}
+      try{s=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:face},width:{ideal:2560},height:{ideal:1920}}})}
       catch(e){if(my===tok)say('Chưa mở được Camera. Hãy cấp quyền Camera cho Desktop Mini rồi bấm vào đây để thử lại.');return}
       if(my!==tok||!w.isConnected){s.getTracks().forEach(t=>t.stop());return}
       stream=s; vid.srcObject=s;
@@ -2562,31 +2563,40 @@ function buildCamera(b,w){
   }
   function blink(){blk.classList.add('on');setTimeout(()=>blk.classList.remove('on'),120)}
   function shoot(){
-    if(!stream||!vid.videoWidth||busy)return;
-    busy=true;
-    const c=document.createElement('canvas'); c.width=vid.videoWidth; c.height=vid.videoHeight;
-    c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
+    if(!stream||!vid.videoWidth)return;
+    const vw=vid.videoWidth, vh=vid.videoHeight, mir=face==='user';
+    /* Chụp ngay khung hình hiện tại (nhanh), phần mã hóa JPEG và lưu chạy nền để chụp tiếp được liền */
+    const c=document.createElement('canvas'); c.width=vw; c.height=vh;
+    const g=c.getContext('2d');
+    if(mir){g.translate(vw,0);g.scale(-1,1)}
+    g.drawImage(vid,0,0,vw,vh);
     blink();
-    let url='', thumb='';
     try{
-      url=c.toDataURL('image/jpeg',0.95);
-      const k=96/Math.max(c.width,c.height), t=document.createElement('canvas');
-      t.width=Math.max(1,Math.round(c.width*k)); t.height=Math.max(1,Math.round(c.height*k));
-      t.getContext('2d').drawImage(c,0,0,t.width,t.height); thumb=t.toDataURL('image/jpeg',0.8);
+      const k=96/Math.max(vw,vh), t=document.createElement('canvas');
+      t.width=Math.max(1,Math.round(vw*k)); t.height=Math.max(1,Math.round(vh*k));
+      t.getContext('2d').drawImage(c,0,0,t.width,t.height);
+      thi.src=t.toDataURL('image/jpeg',0.7); th.classList.add('has');
     }catch(e){}
-    if(!url){busy=false;warn('Không chụp được','Thử lại.');return}
     const A=window.AndroidLauncher;
-    setTimeout(()=>{
+    const done=url=>{
+      if(!url){warn('Không chụp được','Thử lại.');return}
       if(A&&A.savePhoto){
         let p=''; try{p=A.savePhoto(url)}catch(e){}
-        if(!p){busy=false;warn('Không lưu được ảnh','Kiểm tra quyền truy cập ảnh/tệp rồi thử lại.');return}
+        if(!p){warn('Không lưu được ảnh','Kiểm tra quyền truy cập ảnh/tệp rồi thử lại.');return}
         saved=true; bus.emit('files');
       }else{
         const a=document.createElement('a'); a.href=url; a.download='IMG_'+Date.now()+'.jpg'; a.click();
       }
-      if(thumb){thi.src=thumb;th.classList.add('has')}
-      busy=false;
-    },30);
+    };
+    if(c.toBlob){
+      c.toBlob(bl=>{
+        if(!bl){done('');return}
+        const fr=new FileReader(); fr.onload=()=>done(String(fr.result)); fr.onerror=()=>done(''); fr.readAsDataURL(bl);
+      },'image/jpeg',0.9);
+    }else{
+      let u=''; try{u=c.toDataURL('image/jpeg',0.9)}catch(e){}
+      setTimeout(()=>done(u),0);
+    }
   }
   sh.addEventListener('click',shoot);
   sw.addEventListener('click',()=>{face=face==='user'?'environment':'user';lsSet('dm-camface',face);open()});

@@ -1103,7 +1103,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String savePhoto(String dataUrl) {
             try {
                 byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
-                String nm = "IMG_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".jpg";
+                String nm = "IMG_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss_SSS", java.util.Locale.US).format(new java.util.Date()) + ".jpg";
                 if (Build.VERSION.SDK_INT >= 29) {
                     ContentValues v = new ContentValues();
                     v.put(MediaStore.Images.Media.DISPLAY_NAME, nm);
