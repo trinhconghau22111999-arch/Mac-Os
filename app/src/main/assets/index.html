@@ -886,6 +886,7 @@ a.btn.pri{color:#fff}
 .rfl{flex:1;min-height:0;overflow:auto;padding:4px 8px}
 .rfi{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}
 .rfi{outline:0}.rfi:hover{background:var(--row)}
+.rfi.sel{background:var(--sel);box-shadow:inset 0 0 0 2px var(--accent)}
 .rfi .ri{flex:none;width:34px;height:34px;display:grid;place-items:center}.rfi .ri .fic{transform:scale(.8)}
 .rfi .rn{display:flex;flex-direction:column;min-width:0}.rfi .rn b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rfi .rn small{color:var(--muted);font-size:11.5px}
 .rft{padding:6px;text-align:center;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
@@ -2684,8 +2685,9 @@ function buildRealFiles(b,w,arg,mode){
   };
   const home=files?'@home':R.down;
   let path=(arg&&arg.path)||home, hist=[path], pos=0, M={}, io=null;
-  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><button class="ib rup" aria-label="Lên thư mục cha">↑</button><strong class="t rpt"></strong><span class="grow"></span></div><div class="rfl"></div><div class="rft"></div></div></div>';
-  const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b), up=$('.rup',b);
+  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><strong class="t rpt"></strong><span class="grow"></span><button class="btn rcn" hidden>Bỏ chọn</button><button class="btn rdel" hidden>Xoá</button></div><div class="rfl"></div><div class="rft"></div></div></div>';
+  const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b), rcn=$('.rcn',b), rdel=$('.rdel',b);
+  const SEL=new Set();
   if(!files)side.style.display='none';
   const secPath=k=>k==='img'||k==='vid'||k==='aud'?'@'+k:(k==='root'?R.root:R.down);
   const where=p=>p==='@img'?'img':p==='@vid'?'vid':p==='@aud'?'aud':p==='@home'?'':(R.down&&(p===R.down||p.indexOf(R.down+'/')===0))?'down':'root';
@@ -2702,10 +2704,10 @@ function buildRealFiles(b,w,arg,mode){
   const fmtDur=ms=>{const t=Math.round((ms||0)/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return (h?h+':'+pad(m):m)+':'+pad(s)};
   function reset(){list.onscroll=null;if(io){io.disconnect();io=null}}
   function render(){
-    reset(); pt.textContent=name(path);
+    reset(); SEL.clear(); pt.textContent=name(path); rcn.hidden=true; rdel.hidden=true;
     $$('.si',side).forEach(x=>x.setAttribute('aria-current',String(where(path)===x.dataset.k)));
     $('.rbk',b).disabled=pos<=0;
-    const par=parentOf(path); up.disabled=!par; up.style.display=par?'':'none'; up.__dz=par; list.__dz=path[0]==='@'?null:path;
+    list.__dz=path[0]==='@'?null:path;
     list.className='rfl';
     if(path==='@home')renderHome(); else if(path[0]==='@')renderMedia(path.slice(1)); else renderDir();
   }
@@ -2820,7 +2822,8 @@ function buildRealFiles(b,w,arg,mode){
     const opn=f=>{if(f.p){openPath(f.p,f.n,f);return} if(!A.openDownload(f.id,f.t))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
     $$('.rfi',list).forEach(x=>{
       const f=r.list[+x.dataset.i];
-      x.addEventListener('click',()=>opn(f));
+      if(f.p)x.dataset.full=f.p;
+      x.addEventListener('click',()=>{if(SEL.size){toggleSel(f.p);return}opn(f)});
       x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,f.p,()=>opn(f),()=>render())});
       if(f.p)dragRow(x,f.p,f.n,!!f.d,e=>fileMenu(e,f.n,f.p,()=>opn(f),()=>render(),!!f.d));
     });
@@ -2838,7 +2841,8 @@ function buildRealFiles(b,w,arg,mode){
     $$('.rfi',list).forEach(x=>{
       const f=r.list[+x.dataset.i], full=path.replace(/\/$/,'')+'/'+f.n;
       const opn=()=>{if(f.d)go(full); else openPath(full,f.n)};
-      x.addEventListener('click',opn);
+      x.dataset.full=full;
+      x.addEventListener('click',()=>{if(SEL.size){toggleSel(full);return}opn()});
       x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,full,opn,()=>render(),f.d)});
       if(f.d)x.__dz=full;
       dragRow(x,full,f.n,f.d,e=>fileMenu(e,f.n,full,opn,()=>render(),f.d));
@@ -2903,7 +2907,7 @@ function buildRealFiles(b,w,arg,mode){
     dEnd();
     if(!was)return;
     noClick=Date.now()+500;
-    if(Math.hypot(d.cx-d.sx,d.cy-d.sy)<10){if(d.menu)d.menu({clientX:d.cx,clientY:d.cy});return}
+    if(Math.hypot(d.cx-d.sx,d.cy-d.sy)<10){toggleSel(d.full);return}
     if(z&&okDest(d,z.__dz)){
       const r=A.moveFile(d.full,z.__dz);
       if(r)notify({app:'Tệp',title:'Không chuyển được',body:d.nm+': '+r,icon:'files'});
@@ -2922,7 +2926,30 @@ function buildRealFiles(b,w,arg,mode){
   list.addEventListener('touchmove',e=>{if(D&&D.active&&e.cancelable)e.preventDefault()},{passive:false});
   list.addEventListener('contextmenu',e=>{if(D&&D.active){e.preventDefault();e.stopPropagation()}},true);
   list.addEventListener('click',e=>{if(Date.now()<noClick){e.preventDefault();e.stopPropagation()}},true);
-  up.addEventListener('click',()=>{const p=parentOf(path);if(p)go(p)});
+  function selUpdate(){
+    const on=SEL.size>0;
+    $$('.rfi',list).forEach(x=>x.classList.toggle('sel',SEL.has(x.dataset.full)));
+    rcn.hidden=!on; rdel.hidden=!on;
+    pt.textContent=on?'Đã chọn '+SEL.size:name(path);
+    rdel.textContent='Xoá ('+SEL.size+')';
+  }
+  function toggleSel(full){if(!full)return;if(SEL.has(full))SEL.delete(full);else SEL.add(full);selUpdate()}
+  rcn.addEventListener('click',()=>{SEL.clear();selUpdate()});
+  rdel.addEventListener('click',()=>{
+    if(!SEL.size)return;
+    const o=document.createElement('div'); o.className='bpk';
+    o.innerHTML='<div class="bps"><b>Xoá '+SEL.size+' mục đã chọn?</b><div style="margin-top:6px;opacity:.7;padding:0 6px">Không thể hoàn tác.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn rc">Huỷ</button><button type="button" class="btn ok">Xoá</button></div></div>';
+    stage.appendChild(o);
+    $('.rc',o).addEventListener('click',()=>o.remove());
+    o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
+    $('.ok',o).addEventListener('click',()=>{
+      o.remove(); let bad=0;
+      [...SEL].forEach(f=>{let r=false;try{r=A.deleteFile(f)}catch(e){}if(!r)bad++});
+      const n=SEL.size; M={}; SEL.clear(); render();
+      if(bad)notify({app:'Tệp',title:'Không xoá được '+bad+' mục',body:'Thư mục chưa trống hoặc chưa có quyền',icon:'files'});
+      else notify({app:'Tệp',title:'Đã xoá '+n+' mục',body:'',icon:'files'});
+    });
+  });
   live(w,'files',()=>{M={};render()});
   list.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x)A.openSetup(x.dataset.setup)});
   $('.rbk',b).addEventListener('click',()=>{if(pos>0){pos--;path=hist[pos];render()}});
