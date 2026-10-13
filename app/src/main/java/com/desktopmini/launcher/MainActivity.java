@@ -317,7 +317,12 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
     }
-    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null); }
+    @Override protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        String oa = i == null ? null : i.getStringExtra("openApp");
+        if (oa != null) web.evaluateJavascript("window.nativeOpenApp&&window.nativeOpenApp(" + JSONObject.quote(oa) + ")", null);
+        else web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null);
+    }
     @Override public void onBackPressed() { web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
 
     private void go(Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { startActivity(i); } catch (Exception e) { } }
@@ -820,6 +825,10 @@ public class MainActivity extends Activity {
             if (LockService.inst != null) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
             go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return false;
         }
+        /* ---- Dock nổi trên app khác (qua dịch vụ trợ năng) ---- */
+        @JavascriptInterface public void setDockData(String json) { LockService.saveData(MainActivity.this, json); }
+        @JavascriptInterface public void setDockOverlay(boolean on) { LockService.saveEnabled(MainActivity.this, on); }
+        @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(MainActivity.this); }
         @JavascriptInterface public boolean isHomeDefault() { return isDefaultHome(); }
         @JavascriptInterface public String getStatus() {
             try {

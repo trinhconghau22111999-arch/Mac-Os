@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Desktop Mini</string>
-    <string name="a11y_desc">Cho phép Desktop Mini khóa màn hình và mở menu nguồn khi bạn chọn Khóa màn hình, Khởi động lại, Tắt máy trong menu Apple.</string>
+    <string name="a11y_desc">Cho phép Desktop Mini khóa màn hình, mở menu nguồn, và hiện Dock nổi trên các ứng dụng khác khi bạn vuốt lên từ mép dưới màn hình hoặc rê chuột xuống đáy.</string>
 </resources>

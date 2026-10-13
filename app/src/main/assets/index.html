@@ -1993,7 +1993,7 @@ function buildSettings(b,w,arg){
       }
       case 'ap':return ['Giao diện','<div class="tiles"><button class="ap" data-m="auto" aria-pressed="'+(dm==='auto')+'"><span class="th a"></span><span>Tự động</span></button><button class="ap" data-m="light" aria-pressed="'+(dm==='light')+'"><span class="th l"></span><span>Sáng</span></button><button class="ap" data-m="dark" aria-pressed="'+(dm==='dark')+'"><span class="th d"></span><span>Tối</span></button></div>'];
       case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button>'+(NA()&&NA().getPhotos?'<button class="ap" data-pick="1" aria-pressed="'+(!!lsGet('dm-photowall'))+'"><span class="wl" style="background:linear-gradient(135deg,#5b6577,#2b303b);display:grid;place-items:center;font-size:30px;color:#fff">▣</span><span>Ảnh trên máy</span></button>':'')+'</div>'];
-      case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+'</div>'];
+      case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+rw('Dock nổi trên ứng dụng khác',tgl(pref('dockFloat',true),'dockFloat','Dock nổi'),'Vuốt lên từ mép dưới hoặc rê chuột xuống đáy khi đang mở app khác (cần bật dịch vụ trợ năng)')+'</div>'];
       case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+rw('Tự xoay màn hình',tgl(rotOn(),'rot','Tự xoay màn hình'),rotOn()?'Đang bật':'Đã tắt')+'</div>'];
       case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+svRows()+'</div>'+(svRows()?'<small class="svn" hidden style="display:block;margin:8px 4px;opacity:.7">Không đổi được âm lượng này. Hãy tắt chế độ Không làm phiền của máy rồi thử lại.</small>':'')];
       case 'bt2':{
@@ -2027,7 +2027,7 @@ function buildSettings(b,w,arg){
     },true));
     $$('[data-wf]',pane).forEach(x=>x.addEventListener('click',()=>{const A=window.AndroidLauncher;let ok=false;try{ok=A.connectWifi(x.dataset.wf)}catch(e){} if(ok)setTimeout(()=>bus.emit('ui'),2000);else{try{A.openPanel('wifi')}catch(e){}}}));
     $$('[data-bt]',pane).forEach(x=>x.addEventListener('click',()=>{try{window.AndroidLauncher.openPanel('bt')}catch(e){}}));
-    $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;if(k==='rot'){toggleRot();render();return}setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'||k==='lockOnOff'))}));
+    $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;if(k==='rot'){toggleRot();render();return}setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'||k==='lockOnOff'||k==='dockFloat'))}));
     $$('.sv',pane).forEach(x=>{
       const A=window.AndroidLauncher, sm=x.closest('.rw').querySelector('small'), nt=$('.svn',pane); let t=null;
       x.addEventListener('input',()=>{
@@ -4052,6 +4052,19 @@ if(window.AndroidLauncher){(function(){
   window.nativeHome=function(){
     try{if(overlaysOpen())return;Object.keys(wins).forEach(id=>{const w=wins[id];if(!w.classList.contains('min'))minWin(w)})}catch(e){}
   };
+  window.nativeOpenApp=function(id){
+    try{overlaysOpen();openApp(id)}catch(e){}
+  };
+  let _dd='';
+  function syncDockFloat(){
+    const A=window.AndroidLauncher; if(!A||!A.setDockData)return;
+    try{
+      const d=JSON.stringify(DOCK.filter(x=>x!=='|'&&ICONS[x]).map(id=>({id:id,name:appTitle(id),bg:ICONS[id].bg,g:ICONS[id].g})));
+      if(d!==_dd){_dd=d;A.setDockData(d)}
+      A.setDockOverlay(!!pref('dockFloat',true));
+    }catch(e){}
+  }
+  bus.on('ui',syncDockFloat); syncDockFloat();
   window.nativeBack=function(){
     try{
       if(overlaysOpen())return;
