@@ -512,21 +512,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .ned textarea:focus-visible{outline:0}
 @container (max-width:520px){.nts{grid-template-columns:150px minmax(0,1fr)}.nl .bar{padding-left:78px}}
 
-/* Nhắc nhở */
-.rem .rh{display:flex;justify-content:space-between;align-items:baseline;padding:4px 20px 8px}
 .rc{font-size:30px;color:var(--accent)}
-.rml{flex:1;overflow:auto;padding:0 12px}
-.rml li{display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--line)}
-.rml li span{flex:1;min-width:0;word-break:break-word}
-.rml li.done span{color:var(--muted);text-decoration:line-through}
-.rml .none{display:block;border:0}
-.ck{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--muted);flex:none;position:relative}
-.rml li.done .ck{background:var(--accent);box-shadow:none}
-.rml li.done .ck::after{content:"";position:absolute;left:6px;top:3px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-.rx{opacity:.4;font-size:18px;padding-inline:4px}
-.rx:hover{opacity:1}
-.ra{padding:10px 14px;border-top:1px solid var(--line)}
-.ra input{width:100%;border:0;border-radius:10px;padding:8px 12px;background:var(--field);outline:0}
 
 /* Máy tính */
 .calc{--bh:44px;position:relative;container-type:size;display:flex;flex-direction:column;height:100%;background:rgba(28,28,31,.97);padding:0 10px 10px;gap:8px}
@@ -1138,8 +1124,7 @@ const ICONS={
   msppt:{bg:'linear-gradient(#ff8a5c,#c9381a)',g:'<svg viewBox="0 0 24 24"><text x="12" y="17.4" text-anchor="middle" font-size="15.5" font-weight="800" font-family="Arial,Helvetica,sans-serif" fill="#fff">P</text></svg>'},
   msoffice:{bg:'linear-gradient(#ff9a3d,#e0430f)',g:'<svg viewBox="0 0 24 24"><text x="12" y="17.4" text-anchor="middle" font-size="15.5" font-weight="800" font-family="Arial,Helvetica,sans-serif" fill="#fff">O</text></svg>'},
   typing:{bg:'linear-gradient(#5aa0ff,#1f4fc4)',g:'<svg viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="2.6" fill="#fff"/><path d="M8 8h8M8 11.5h8M8 15h5" stroke="#2b579a" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>'},
-  notes:{bg:'linear-gradient(#ffe680,#ffc21f)',g:'<svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="3" fill="#fff"/><g stroke="#c9a227" stroke-width="1.6" stroke-linecap="round"><path d="M8 9h8M8 12.5h8M8 16h5"/></g></svg>'},
-  reminders:{bg:'#fff',g:'<svg viewBox="0 0 24 24"><g stroke="#d3d6dd" stroke-width="1.2"><path d="M10 7.4h10M10 12h10M10 16.6h10"/></g><circle cx="5.6" cy="7.4" r="1.9" fill="#ff9500"/><circle cx="5.6" cy="12" r="1.9" fill="#0a84ff"/><circle cx="5.6" cy="16.6" r="1.9" fill="#34c759"/></svg>'},
+  notes:{bg:'#fff',g:'<svg viewBox="0 0 24 24"><g stroke="#d3d6dd" stroke-width="1.2"><path d="M10 7.4h10M10 12h10M10 16.6h10"/></g><circle cx="5.6" cy="7.4" r="1.9" fill="#ff9500"/><circle cx="5.6" cy="12" r="1.9" fill="#0a84ff"/><circle cx="5.6" cy="16.6" r="1.9" fill="#34c759"/></svg>'},
   calc:{bg:'linear-gradient(#5d5e64,#232427)',g:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2.4" fill="#a5a5ab"/><rect x="13" y="3" width="8" height="8" rx="2.4" fill="#ff9f0a"/><rect x="3" y="13" width="8" height="8" rx="2.4" fill="#505055"/><rect x="13" y="13" width="8" height="8" rx="2.4" fill="#ff9f0a"/></svg>'},
   terminal:{bg:'linear-gradient(#3b3c41,#111113)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#7CFC9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l5 4-5 4M12.5 17h6.5"/></svg>'},
   camera:{bg:'linear-gradient(#9a9aa3,#3b3b42)',g:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.2-1.8h6.2L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" fill="#fff" fill-opacity=".18"/><circle cx="12" cy="12.6" r="3.6" fill="#fff"/></svg>'},
@@ -1221,7 +1206,6 @@ const APPS={
   msexcel:{name:'Excel Online',w:900,h:560,minW:360,minH:280,build:(b,w,a)=>buildWebApp(b,w,'ms-excel','https://www.office.com/launch/excel','Excel Online',{close:true})},
   msppt:{name:'PowerPoint Online',w:900,h:560,minW:360,minH:280,build:(b,w,a)=>buildWebApp(b,w,'ms-ppt','https://www.office.com/launch/powerpoint','PowerPoint Online',{close:true})},
   msoffice:{name:'Office Online',w:900,h:560,minW:360,minH:280,build:(b,w,a)=>buildWebApp(b,w,'ms-office','https://www.office.com/','Office Online',{close:true})},
-  reminders:{name:'Nhắc nhở',w:380,h:440,minW:300,minH:280,build:buildReminders},
   calc:{name:'Máy tính',w:256,h:392,minW:240,minH:200,build:buildCalc,dark:true},
   terminal:{name:'Terminal',w:560,h:340,minW:320,minH:200,build:buildTerminal,dark:true},
   clock:{name:'Đồng hồ',w:520,h:400,minW:320,minH:300,build:buildClock},
@@ -1236,8 +1220,8 @@ const APPS={
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
-const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
-const DOCK=['launchpad','files','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','reminders','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
+const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
+const DOCK=['launchpad','files','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings','downloads'];
 const appTitle=id=>id==='launchpad'?'Launchpad':(APPS[id]?APPS[id].name:id);
 const wins={}, opening={};
 let z=10, count=0;
@@ -1561,16 +1545,13 @@ function applyPrefs(){
 }
 bus.on('ui',applyPrefs);
 
-/* ---------- Dữ liệu dùng chung: thư mục, thư, nhắc nhở, ghi chú ---------- */
+/* ---------- Dữ liệu dùng chung: thư mục, thư, ghi chú ---------- */
 const NOTES0=[{id:1,t:'Việc cần làm\n- Gửi báo cáo tháng 10\n- Mua cà phê\n- Đọc lại ghi chú buổi họp\n\nGhi chú này tự lưu ngay trong trình duyệt của bạn.',u:Date.now()},{id:2,t:'Ý tưởng cuối tuần\nĐi dạo ở công viên, nấu bữa trưa, gọi điện cho ông bà.',u:Date.now()-86400000}];
 let NOTES=jget('dm-notes',null)||NOTES0;
 const saveNotes=()=>{jset('dm-notes',NOTES);bus.emit('notes')};
-const REM0=[{id:1,t:'Gửi báo cáo tháng 10',done:false},{id:2,t:'Mua cà phê',done:false},{id:3,t:'Đặt lịch cắt tóc',done:true}];
-let REM=jget('dm-rem',null)||REM0;
-const saveRem=()=>{jset('dm-rem',REM);bus.emit('rem')};
 
 /* =========================================================
-   Ứng dụng nhóm 1: Tệp, Lịch, Ghi chú, Nhắc nhở, Máy tính,
+   Ứng dụng nhóm 1: Tệp, Lịch, Ghi chú, Máy tính,
    Cài đặt, Thùng rác, Giới thiệu, Buộc thoát
    ========================================================= */
 const live=(w,ev,fn)=>bus.on(ev,a=>{if(w.isConnected)fn(a)});
@@ -2010,32 +1991,6 @@ function buildOmem(b,w){
   drawTabs(); drawBar(); drawBody(true);
   omCall('init',{},()=>load());
   return {destroy(){alive=false;clearTimeout(timer);if(io)io.disconnect()}};
-}
-
-/* ---------- Nhắc nhở ---------- */
-function buildReminders(b,w){
-  b.innerHTML='<div class="app rem"><div class="bar"><strong class="t">Nhắc nhở</strong></div><div class="rh"><b class="rc">0</b><button class="lnk rt">Hiện việc đã xong</button></div><ul class="rml"></ul><form class="ra"><input type="text" placeholder="Nhắc nhở mới" aria-label="Nhắc nhở mới" autocomplete="off"></form></div>';
-  const rl=$('.rml',b), rc=$('.rc',b), rt=$('.rt',b); let showDone=false;
-  function render(){
-    const open=REM.filter(r=>!r.done); rc.textContent=open.length+' việc'; rl.innerHTML='';
-    rt.textContent=showDone?'Ẩn việc đã xong':'Hiện việc đã xong ('+(REM.length-open.length)+')';
-    REM.filter(r=>showDone||!r.done).forEach(r=>{
-      const li=document.createElement('li'); li.className=r.done?'done':'';
-      li.innerHTML='<button class="ck" role="checkbox" aria-checked="'+r.done+'" aria-label="Hoàn thành"></button><span>'+esc(r.t)+'</span><button class="rx" aria-label="Xóa nhắc nhở">×</button>';
-      $('.ck',li).addEventListener('click',()=>{r.done=!r.done;saveRem()});
-      $('.rx',li).addEventListener('click',()=>{REM.splice(REM.indexOf(r),1);saveRem()});
-      rl.appendChild(li);
-    });
-    if(!rl.children.length)rl.innerHTML='<li class="none">Không có nhắc nhở nào</li>';
-  }
-  rt.addEventListener('click',()=>{showDone=!showDone;render()});
-  $('.ra',b).addEventListener('submit',e=>{
-    e.preventDefault(); const i=$('.ra input',b), v=i.value.trim(); if(!v)return;
-    REM.push({id:Date.now(),t:v,done:false}); i.value=''; saveRem();
-  });
-  live(w,'rem',render);
-  render();
-  return {};
 }
 
 /* ---------- Máy tính ---------- */
@@ -3795,10 +3750,9 @@ function renderNC(){
   });
   const y=now.getFullYear(), m=now.getMonth(), lead=(new Date(y,m,1).getDay()+6)%7, dim=new Date(y,m+1,0).getDate();
   let cells=''; for(let i=0;i<lead;i++)cells+='<i></i>'; for(let d=1;d<=dim;d++)cells+='<i'+(d===now.getDate()?' class="td"':'')+'>'+d+'</i>';
-  const open=REM.filter(r=>!r.done).slice(0,4), ev=eventsToday(), nt=NOTES[0];
+  const ev=eventsToday(), nt=NOTES[0];
   wg.innerHTML='<div class="wg"><small>'+DAYSL[now.getDay()].toUpperCase()+'</small><b>'+now.getDate()+' '+MONTHS[m].toLowerCase()+'</b><div class="mc7"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>'+cells+'</div></div>'+
     '<div class="wg"><small>LỊCH HÔM NAY</small>'+(ev.length?'<ul>'+ev.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul>':'<p>Không có sự kiện nào hôm nay</p>')+'</div>'+
-    '<div class="wg"><small>NHẮC NHỞ</small>'+(open.length?'<ul>'+open.map(r=>'<li>'+esc(r.t)+'</li>').join('')+'</ul>':'<p>Đã hoàn thành mọi việc</p>')+'</div>'+
     '<div class="wg"><small>GHI CHÚ</small>'+(nt?'<b>'+esc(nt.t.split('\n')[0]||'Ghi chú mới')+'</b><p>'+esc(nt.t.split('\n').slice(1).join(' ').slice(0,90)||'Không có nội dung thêm')+'</p>':'<p>Chưa có ghi chú</p>')+'</div>';
 }
 $('#nclear').addEventListener('click',()=>{NOTIFS.length=0;renderNC()});
@@ -3806,15 +3760,7 @@ $('#clk').addEventListener('click',e=>{
   e.stopPropagation(); const was=!pops.nc.hidden; closeAllPopups();
   if(!was){pops.nc.hidden=false;$('#clk').classList.add('open');renderNC()}
 });
-['rem','notes','ev','notif'].forEach(ev=>bus.on(ev,()=>{if(!pops.nc.hidden)renderNC()}));
-/* Thông báo nhắc nhở luôn khớp với danh sách việc thực tế */
-bus.on('rem',()=>{
-  const i=NOTIFS.findIndex(n=>n.live==='rem'); if(i<0)return;
-  const o=REM.filter(r=>!r.done);
-  if(!o.length)NOTIFS.splice(i,1); else{NOTIFS[i].title='Bạn còn '+o.length+' việc chưa xong'; NOTIFS[i].body=o[0].t}
-  bus.emit('notif');
-});
-
+['notes','ev','notif'].forEach(ev=>bus.on(ev,()=>{if(!pops.nc.hidden)renderNC()}));
 /* ---------- Xem nhanh ---------- */
 const ql=$('#ql');
 function quickLook(it){
@@ -4183,8 +4129,6 @@ function greet(){
   if(!lsGet('dm-welcome')){
     lsSet('dm-welcome','1');
     setTimeout(()=>{deliverMail({from:'Nhóm Desktop Mini',addr:'chao@desktopmini.example',subj:'Chào mừng bạn đến Desktop Mini',body:'Chúc bạn có buổi làm việc vui vẻ. Thử bấm F4 để mở Launchpad, F3 để xem Mission Control, hoặc Ctrl + Space để tìm kiếm bằng Spotlight.'});notify({app:'Thư',title:'Chào mừng bạn đến Desktop Mini',body:'Nhóm Desktop Mini',icon:'mail'})},6000);
-  }else{
-    setTimeout(()=>{const n=REM.filter(r=>!r.done).length;if(n)notify({app:'Nhắc nhở',title:'Bạn còn '+n+' việc chưa xong',body:REM.filter(r=>!r.done)[0].t,icon:'reminders',live:'rem'})},6000);
   }
 }
 
