@@ -135,7 +135,7 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(true);
-        web.setBackgroundColor(0xFF000000);
+        web.setBackgroundColor(0x00000000);
         web.setFocusable(true); web.setFocusableInTouchMode(true); web.requestFocus();
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new android.webkit.WebChromeClient() {
