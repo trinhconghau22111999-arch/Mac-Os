@@ -1191,6 +1191,15 @@ public class MainActivity extends Activity {
                 File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Desktop Mini"); dir.mkdirs();
                 File f = new File(dir, nm);
                 FileOutputStream os2 = new FileOutputStream(f); os2.write(by); os2.close();
+                /* Đưa vào MediaStore ngay để có id (mở thẳng ảnh vừa chụp trong app Ảnh) */
+                try {
+                    ContentValues v2 = new ContentValues();
+                    v2.put(MediaStore.Images.Media.DISPLAY_NAME, nm);
+                    v2.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                    v2.put(MediaStore.Images.Media.DATA, f.getAbsolutePath());
+                    Uri u2 = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v2);
+                    if (u2 != null) return u2.toString();
+                } catch (Exception e2) { }
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f)));
                 return f.getAbsolutePath();
             } catch (Exception e) { return ""; }

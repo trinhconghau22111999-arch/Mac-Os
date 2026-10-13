@@ -2568,6 +2568,7 @@ function buildCamera(b,w){
       const p=vid.play(); if(p&&p.catch)p.catch(()=>{});
     }finally{if(pend===my)pend=0}
   }
+  let shotSeq=0, lastSeq=0, lastId=0;
   function blink(){blk.classList.add('on');setTimeout(()=>blk.classList.remove('on'),120)}
   function shoot(){
     if(!stream||!vid.videoWidth)return;
@@ -2584,12 +2585,14 @@ function buildCamera(b,w){
       t.getContext('2d').drawImage(c,0,0,t.width,t.height);
       thi.src=t.toDataURL('image/jpeg',0.7); th.classList.add('has');
     }catch(e){}
-    const A=window.AndroidLauncher;
+    const A=window.AndroidLauncher, seq=++shotSeq;
     const done=url=>{
       if(!url){warn('Không chụp được','Thử lại.');return}
       if(A&&A.savePhoto){
         let p=''; try{p=A.savePhoto(url)}catch(e){}
         if(!p){warn('Không lưu được ảnh','Kiểm tra quyền truy cập ảnh/tệp rồi thử lại.');return}
+        const m=/\/(\d+)$/.exec(String(p));
+        if(seq>=lastSeq){lastSeq=seq;lastId=m?+m[1]:0}
         saved=true; bus.emit('files');
       }else{
         const a=document.createElement('a'); a.href=url; a.download='IMG_'+Date.now()+'.jpg'; a.click();
@@ -2607,7 +2610,7 @@ function buildCamera(b,w){
   }
   sh.addEventListener('click',shoot);
   sw.addEventListener('click',()=>{face=face==='user'?'environment':'user';lsSet('dm-camface',face);open()});
-  th.addEventListener('click',()=>{if(th.classList.contains('has')&&saved)openApp('photos')});
+  th.addEventListener('click',()=>{if(!th.classList.contains('has')||!saved)return;if(lastId)openApp('photos',{pid:lastId,name:'Ảnh vừa chụp'});else openApp('photos')});
   msg.addEventListener('click',open);
   /* Nhả camera khi app ra nền hoặc cửa sổ bị thu nhỏ để không giữ camera và đèn báo */
   const onVis=()=>{if(document.hidden)stopStream();else if(w.isConnected&&!w.classList.contains('min'))open()};
