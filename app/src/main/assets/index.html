@@ -522,8 +522,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 .expr{min-height:1.3em;padding:0 10px;text-align:right;font-size:clamp(15px,3.6cqh,28px);color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;margin-top:auto}
 .disp{flex:0 0 auto;min-height:56px;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 8px 2px;font-size:46px;line-height:1.1;font-weight:300;font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap;color:#fff}
 .disp span{display:block}
-.keys{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,minmax(0,1fr));gap:7px;flex:1;min-height:0}
-.k{height:auto;min-height:0;border-radius:999px;background:#505055;color:#fff;font-size:19px;display:grid;place-items:center}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,minmax(0,1fr));gap:6px;flex:0 0 50cqh;min-height:0}
+.k{height:auto;min-height:0;border-radius:999px;background:#505055;color:#fff;font-size:17px;display:grid;place-items:center}
 .k:active{filter:brightness(1.4)}
 .k.fn{background:#a5a5ab;color:#111}
 .k.op{background:#ff9f0a}
@@ -2013,7 +2013,7 @@ function buildCalc(b,w){
   /* Chữ kết quả to hết cỡ theo chiều cao cửa sổ, tự thu nhỏ khi số dài */
   function fit(){
     const H=calcEl.clientHeight, W=disp.clientWidth-16; if(!H||W<=0)return;
-    let sz=Math.max(30,Math.min(96,H*0.12)), n=0;
+    let sz=H>340?Math.max(44,Math.min(150,H*0.2)):Math.max(30,Math.min(96,H*0.12)), n=0;
     disp.style.fontSize=sz+'px';
     while(ds.offsetWidth>W&&sz>16&&n++<40){sz*=0.93;disp.style.fontSize=sz+'px'}
   }
