@@ -43,10 +43,7 @@ object OmemApi {
     private fun handle(ctx: Context, op: String, a: JSONObject): JSONObject = when (op) {
         "init" -> { Scheduler.apply(ctx); ok() }
         "state" -> state(ctx)
-        "thumb" -> {
-            val raw = Server.thumbnail(ctx, a.getString("id"))
-            img(raw?.let { Base64.encodeToString(it, Base64.NO_WRAP) }, sniff(raw ?: ByteArray(0)))
-        }
+        "thumb" -> remoteThumb(ctx, a.getString("id"), a.optBoolean("video"))
         "lthumb" -> {
             val b = Compat.thumbnail(ctx, a.getString("id").toLong(), a.optBoolean("video"), 240)
             img(b?.let { toB64(it, 78) }, "image/jpeg")
@@ -105,6 +102,28 @@ object OmemApi {
             ok()
         }
         else -> throw Exception("Lệnh không hợp lệ: $op")
+    }
+
+    /** Bản xem trước của mục trên Drive: lấy từ bộ nhớ đệm, rồi từ máy chủ; nếu không có thì tự tạo từ ảnh gốc (chỉ với ảnh). */
+    private fun remoteThumb(ctx: Context, key: String, video: Boolean): JSONObject {
+        val dir = java.io.File(ctx.cacheDir, "thumbs").apply { mkdirs() }
+        val cf = java.io.File(dir, key.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".jpg")
+        if (cf.exists() && cf.length() > 0) {
+            val b = cf.readBytes()
+            return img(Base64.encodeToString(b, Base64.NO_WRAP), sniff(b))
+        }
+        var raw: ByteArray? = Server.thumbnail(ctx, key)
+        if (raw == null || raw.isEmpty()) {
+            raw = null
+            if (!video) runCatching {
+                val f = Restore.toCache(ctx, group(key))
+                val bm = Compat.decodeImage(ctx, Uri.fromFile(f), 320)
+                if (bm != null) { val o = ByteArrayOutputStream(); bm.compress(Bitmap.CompressFormat.JPEG, 78, o); raw = o.toByteArray() }
+            }
+        }
+        val r = raw ?: return img(null, "image/jpeg")
+        runCatching { cf.writeBytes(r) }
+        return img(Base64.encodeToString(r, Base64.NO_WRAP), sniff(r))
     }
 
     /** Tệp cục bộ của một mục trong thư viện: dùng đường dẫn thật nếu đọc được, nếu không thì chép vào bộ nhớ đệm. */

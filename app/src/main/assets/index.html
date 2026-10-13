@@ -313,7 +313,14 @@ ul,ol{margin:0;padding:0;list-style:none}
 .om{position:relative}
 .om .bar{touch-action:auto}
 .omst{flex:1;min-width:0;font-size:12px;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.omact{display:flex;align-items:center;gap:6px;flex:none}
+.omact{display:flex;align-items:center;gap:6px;flex:none;min-width:0}
+.omact .btn{padding:6px 10px;white-space:nowrap}
+.omact .cn{white-space:nowrap}
+.omsel .t,.omsel .omst{display:none}
+.omsel .omact{margin-left:auto}
+.omnv{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:64px;border:0;border-radius:12px;background:rgba(255,255,255,.18);color:#fff;font-size:34px;line-height:1;z-index:2}
+.omnv.p{left:6px}.omnv.n{right:6px}
+.omcn2{margin-left:auto;color:#fff;opacity:.75;font-size:12px;white-space:nowrap}
 .omtabs{flex:none;display:flex;gap:4px;padding:4px 10px;border-bottom:1px solid rgba(128,128,128,.2)}
 .omtab{flex:1;padding:6px 4px;border-radius:8px;font-size:13px}
 .omtab[aria-current="true"]{background:var(--sel);color:var(--accent);font-weight:700}
@@ -1915,10 +1922,10 @@ function buildOmem(b,w){
   }
 
   function drawBar(){
-    act.innerHTML='';
+    act.innerHTML=''; bar.classList.toggle('omsel',selMode);
     if(selMode){
       const n=sel.size;
-      act.innerHTML='<span class="cn">Đã chọn '+n+'</span><button class="btn" data-a="dl"'+(n?'':' disabled')+'>⬇ Tải</button><button class="btn" data-a="del"'+(n?'':' disabled')+'>🗑 Xóa</button><button class="btn" data-a="done">Xong</button>';
+      act.innerHTML='<span class="cn">Đã chọn '+n+'</span><button class="btn" data-a="dl" aria-label="Tải về máy"'+(n?'':' disabled')+'>⬇ Tải</button><button class="btn" data-a="del" aria-label="Xóa khỏi Ổ mềm"'+(n?'':' disabled')+'>🗑 Xóa</button><button class="btn" data-a="done">Xong</button>';
     }else if(tab<3){
       act.innerHTML='<button class="btn" data-a="sel">Chọn</button>';
     }
@@ -1950,13 +1957,26 @@ function buildOmem(b,w){
   });
 
   /* xem ảnh / video / tệp ngay trong Ổ mềm (không mở app ngoài hay app hệ thống) */
-  let ovTok=0;
+  let ovTok=0, VL=[], vi=-1;
+  function openAt(i){if(i<0||i>=VL.length)return;vi=i;const t=VL[i];openItem(t.kind,t.key,t.name,t.video)}
   const ovHead=(name,dl)=>'<div class="omvh"><button class="btn" data-x="close">✕</button><span>'+esc(name)+'</span>'+(dl?'<span class="grow"></span><button class="btn" data-x="dl">Tải về</button>':'')+'</div>';
-  function closeOv(){ovTok++;const m=$('video,audio',ov);if(m){try{m.pause();m.removeAttribute('src');m.load()}catch(e){}}ov.hidden=true;ov.innerHTML='';ov.onclick=null}
+  function closeOv(){vi=-1;ovTok++;const m=$('video,audio',ov);if(m){try{m.pause();m.removeAttribute('src');m.load()}catch(e){}}ov.hidden=true;ov.innerHTML='';ov.onclick=null}
   function showOv(name,msg,dlGrp){
     ov.hidden=false; ov.className='omov view'; const tk=++ovTok;
-    ov.innerHTML=ovHead(name,!!dlGrp)+'<div class="omvb"><div class="none" style="color:#fff">'+msg+'</div></div>';
+    const nav=vi>=0&&VL.length>1;
+    ov.innerHTML=ovHead(name,!!dlGrp).replace('</div>',(nav?'<span class="omcn2">'+(vi+1)+'/'+VL.length+'</span>':'')+'</div>')+'<div class="omvb"><div class="none" style="color:#fff">'+msg+'</div></div>'
+      +(nav?'<button class="omnv p" data-x="prev" aria-label="Ảnh trước">‹</button><button class="omnv n" data-x="next" aria-label="Ảnh sau">›</button>':'');
+    let sx=0,sy=0,sOk=false;
+    ov.onpointerdown=e=>{sx=e.clientX;sy=e.clientY;sOk=!e.target.closest('video,audio,button')};
+    ov.onpointerup=e=>{
+      if(!sOk||vi<0)return; sOk=false;
+      const dx=e.clientX-sx, dy=e.clientY-sy;
+      if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&!$('img.z',ov)){ov.__sw=Date.now();openAt(vi+(dx<0?1:-1))}
+    };
     ov.onclick=e=>{
+      if(ov.__sw&&Date.now()-ov.__sw<400)return;
+      if(e.target.closest('[data-x="prev"]')){openAt(vi-1);return}
+      if(e.target.closest('[data-x="next"]')){openAt(vi+1);return}
       if(e.target.closest('[data-x="close"]')){closeOv();return}
       const d=e.target.closest('[data-x="dl"]');
       if(d&&dlGrp){d.disabled=true;d.textContent='Đang tải…';omCall('dl',{grps:[dlGrp]},x=>{if(!alive||ovTok!==tk)return;d.textContent=(!x.ok||x.err)?'Lỗi: '+(x.err||'lỗi'):'Đã lưu vào Download/OMem'});return}
@@ -1976,7 +1996,7 @@ function buildOmem(b,w){
   }
   const EXT={img:/\.(jpe?g|png|gif|webp|bmp|heic)$/i,vid:/\.(mp4|m4v|mkv|webm|3gp|mov)$/i,aud:/\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i,txt:/\.(txt|md|json|csv|log|xml|html?|css|js|java|kt|py|ini|ya?ml|srt|conf)$/i};
   function openFileItem(g){
-    const nm=g.name||'', dl=g.g;
+    vi=-1; const nm=g.name||'', dl=g.g;
     const err=r=>'<div class="none" style="color:#fff">Lỗi: '+esc(r.err||'không mở được tệp')+'</div>';
     if(EXT.img.test(nm)){const tk=showOv(nm,'Đang tải tệp về để mở…',dl);omCall('view',{kind:'r',key:g.g},r=>fillOv(tk,r.ok?'<img alt="" src="'+r.img+'">':err(r)));return}
     if(EXT.vid.test(nm)){const tk=showOv(nm,'Đang tải video về để mở…',dl);omCall('media',{kind:'r',key:g.g,video:true},r=>fillOv(tk,r.ok?'<video class="omvid" src="'+esc(r.url)+'" controls autoplay playsinline></video>':err(r)));return}
@@ -2002,7 +2022,7 @@ function buildOmem(b,w){
       if(io)io.observe(d);
     }
     press(d,()=>{
-      if(grp&&selMode)toggleSel(grp); else openItem(kind,key,name,video);
+      if(grp&&selMode)toggleSel(grp); else{const k=VL.findIndex(x=>x.kind===kind&&String(x.key)===String(key));if(k>=0)openAt(k);else{vi=-1;openItem(kind,key,name,video)}}
     },grp?()=>toggleSel(grp):null);
     return d;
   }
@@ -2027,8 +2047,9 @@ function buildOmem(b,w){
       if(!list.length&&!pend.length){const nn=document.createElement('div');nn.className='none';nn.textContent='Chưa có '+TITLES[tab].toLowerCase()+' nào.';body.appendChild(nn)}
       if(tab<2){
         const grid=document.createElement('div'); grid.className='omg';
+        VL=[]; pend.forEach(f=>VL.push({kind:'l',key:f.id,name:f.name,video:!!f.video})); list.forEach(g=>VL.push({kind:'r',key:g.g,name:g.name,video:tab===1}));
         pend.forEach(f=>grid.appendChild(cell('l',f.id,f.video,f.name,null,true,f.up)));
-        list.forEach(g=>grid.appendChild(cell('r',g.g,tab===1,g.name,g.g,g.th,false)));
+        list.forEach(g=>grid.appendChild(cell('r',g.g,tab===1,g.name,g.g,tab===1?g.th:true,false)));
         body.appendChild(grid);
       }else{
         list.forEach(g=>{
