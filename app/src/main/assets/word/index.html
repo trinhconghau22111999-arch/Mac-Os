@@ -6156,6 +6156,190 @@ applyZoom();
   doc.addEventListener('input', function () { if (cur) clearSel(); });
 })();
 
+/* ================= BẢNG (chuột): bấm lề trái để chọn DÒNG; giữ Ctrl + kéo để quét chọn nhiều Ô ================= */
+(function () {
+  var cells = [], table = null, layer = null, timer = null;
+  var drag = null; // { mode: 'row'|'rect', table, anchor }
+  var MARGIN = 44; // bề rộng vùng bấm bên trái bảng (px trang)
+
+  function scaleOf() { var r = pageWrap.getBoundingClientRect(), w = pageWrap.offsetWidth; return (w > 0 && r.width > 0) ? r.width / w : 1; }
+  function ensureLayer() {
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = 'tableSelLayer';
+      layer.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:9997';
+      document.body.appendChild(layer);
+      var st = document.createElement('style');
+      st.textContent = '@media print{#tableSelLayer{display:none!important}}';
+      document.head.appendChild(st);
+    }
+    return layer;
+  }
+  function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+  function clear() { cells = []; table = null; if (layer) layer.innerHTML = ''; stopTimer(); }
+  function draw() {
+    if (!layer) return;
+    cells = cells.filter(function (c) { return doc.contains(c); });
+    layer.innerHTML = '';
+    if (!cells.length) { stopTimer(); return; }
+    cells.forEach(function (c) {
+      var r = c.getBoundingClientRect(), d = document.createElement('div');
+      d.style.cssText = 'position:absolute;box-sizing:border-box;background:rgba(43,87,154,.28);border:1px solid #2b579a;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;';
+      layer.appendChild(d);
+    });
+  }
+  function setCells(list, tbl) {
+    cells = list; table = tbl; ensureLayer(); draw();
+    if (!timer) timer = setInterval(draw, 300);
+  }
+  function rowRange(t, a, b) {
+    var lo = Math.min(a, b), hi = Math.max(a, b), out = [];
+    for (var i = lo; i <= hi; i++) { var row = t.rows[i]; if (row) Array.prototype.forEach.call(row.cells, function (c) { out.push(c); }); }
+    return out;
+  }
+  function rectRange(t, a, b) {
+    var r1 = Math.min(a.parentNode.rowIndex, b.parentNode.rowIndex), r2 = Math.max(a.parentNode.rowIndex, b.parentNode.rowIndex);
+    var c1 = Math.min(a.cellIndex, b.cellIndex), c2 = Math.max(a.cellIndex, b.cellIndex), out = [];
+    for (var i = r1; i <= r2; i++) { var row = t.rows[i]; if (!row) continue; for (var j = c1; j <= c2; j++) if (row.cells[j]) out.push(row.cells[j]); }
+    return out;
+  }
+  // Vùng chọn thật của trình duyệt (để các nút Định dạng/Xóa dòng ở thanh công cụ dùng được)
+  function setNative(fullRows) {
+    if (!cells.length) return;
+    try {
+      doc.focus({ preventScroll: true });
+      var s = window.getSelection(), r = document.createRange(), f = cells[0], l = cells[cells.length - 1];
+      var oneRow = cells.every(function (c) { return c.parentNode === f.parentNode; });
+      r.setStart(f, 0);
+      if (fullRows || oneRow) r.setEnd(l, l.childNodes.length); else r.collapse(true);
+      s.removeAllRanges(); s.addRange(r);
+    } catch (e) {}
+  }
+  function collapseToFirst() {
+    try {
+      if (!cells.length) return;
+      var f = cells[0], s = window.getSelection(), r = document.createRange();
+      r.selectNodeContents(f); r.collapse(false); s.removeAllRanges(); s.addRange(r);
+    } catch (e) {}
+  }
+  // Điểm bấm ở lề trái ngay cạnh một dòng của bảng?
+  function marginRow(x, y) {
+    var tables = doc.querySelectorAll('table'), sc = scaleOf();
+    for (var k = 0; k < tables.length; k++) {
+      var t = tables[k];
+      for (var i = 0; i < t.rows.length; i++) {
+        var rr = t.rows[i].getBoundingClientRect();
+        if (y >= rr.top && y <= rr.bottom && x < rr.left && x >= rr.left - MARGIN * sc) return { table: t, index: i };
+      }
+    }
+    return null;
+  }
+  function rowUnder(t, y) {
+    var n = t.rows.length; if (!n) return 0;
+    if (y <= t.rows[0].getBoundingClientRect().top) return 0;
+    for (var i = 0; i < n; i++) { var rr = t.rows[i].getBoundingClientRect(); if (y >= rr.top && y <= rr.bottom) return i; }
+    return n - 1;
+  }
+
+  document.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    var t = e.target; if (!t || !t.closest) return;
+    // bấm vào thanh công cụ/menu: giữ nguyên vùng chọn để nút Định dạng áp dụng
+    if (t.closest('.ribbon, .dd-menu, .grid-picker, .color-palette, .tell-me-results, .modal-overlay')) return;
+    var inCell = t.closest('td,th');
+    if (pageWrap.contains(t) && !inCell) {
+      var hit = marginRow(e.clientX, e.clientY);
+      if (hit) {
+        e.preventDefault();
+        drag = { mode: 'row', table: hit.table, anchor: hit.index };
+        setCells(rowRange(hit.table, hit.index, hit.index), hit.table);
+        setNative(true);
+        return;
+      }
+    }
+    if ((e.ctrlKey || e.metaKey) && inCell && doc.contains(inCell)) {
+      e.preventDefault();
+      var tb = inCell.closest('table');
+      drag = { mode: 'rect', table: tb, anchor: inCell };
+      setCells([inCell], tb);
+      setNative(false);
+      return;
+    }
+    if (cells.length) clear();
+  }, true);
+
+  document.addEventListener('mousemove', function (e) {
+    if (!drag) return;
+    e.preventDefault();
+    if (drag.mode === 'row') {
+      setCells(rowRange(drag.table, drag.anchor, rowUnder(drag.table, e.clientY)), drag.table);
+    } else {
+      var el = document.elementFromPoint(e.clientX, e.clientY), c = el && el.closest ? el.closest('td,th') : null;
+      if (c && c.closest('table') === drag.table) setCells(rectRange(drag.table, drag.anchor, c), drag.table);
+    }
+  }, true);
+  document.addEventListener('mouseup', function () {
+    if (!drag) return;
+    var m = drag.mode; drag = null;
+    setNative(m === 'row');
+    draw();
+  }, true);
+
+  // Delete / Backspace: xóa nội dung các ô đang chọn (không phá cấu trúc bảng)
+  doc.addEventListener('keydown', function (e) {
+    if (!cells.length) return;
+    if (e.key === 'Escape') { clear(); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      cells.forEach(function (c) { c.innerHTML = '<br>'; });
+      scheduleSave(); draw();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key.length === 1 || e.key === 'Enter') { collapseToFirst(); clear(); } // gõ chữ: về lại một ô, không ghi đè nhiều ô
+  }, true);
+  doc.addEventListener('beforeinput', function () { if (cells.length) { collapseToFirst(); clear(); } }, true);
+  doc.addEventListener('input', function () { if (cells.length) clear(); });
+
+  // Sao chép: dán ra Excel/Word được theo dạng bảng
+  document.addEventListener('copy', function (e) {
+    if (!cells.length || !table || !e.clipboardData) return;
+    var rows = [];
+    Array.prototype.forEach.call(table.rows, function (row) {
+      var sel = cells.filter(function (c) { return c.parentNode === row; });
+      if (sel.length) rows.push(sel);
+    });
+    var text = rows.map(function (r) { return r.map(function (c) { return c.innerText.replace(/\s+$/, ''); }).join('\t'); }).join('\n');
+    var html = '<table>' + rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + c.innerHTML + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>';
+    e.clipboardData.setData('text/plain', text);
+    e.clipboardData.setData('text/html', html);
+    e.preventDefault();
+  });
+
+  // Tô màu nền cho tất cả ô đang chọn
+  var shade = document.getElementById('tableShadingPick');
+  if (shade) shade.addEventListener('input', function (e) {
+    if (cells.length) { cells.forEach(function (c) { c.style.background = e.target.value; }); scheduleSave(); }
+  });
+
+  // Định dạng chữ (đậm, nghiêng, màu, căn lề...) áp dụng cho TỪNG ô đang chọn
+  var origExec = document.execCommand.bind(document);
+  var PER_CELL = /^(bold|italic|underline|strikeThrough|subscript|superscript|foreColor|hiliteColor|backColor|fontName|fontSize|justifyLeft|justifyRight|justifyCenter|justifyFull|removeFormat)$/i;
+  document.execCommand = function (cmd, ui, val) {
+    if (cells.length > 1 && PER_CELL.test(String(cmd))) {
+      var s = window.getSelection(), ok = true;
+      cells.forEach(function (c) {
+        var r = document.createRange(); r.selectNodeContents(c);
+        s.removeAllRanges(); s.addRange(r);
+        ok = origExec(cmd, ui, val) && ok;
+      });
+      collapseToFirst(); draw(); scheduleSave();
+      return ok;
+    }
+    return origExec(cmd, ui, val);
+  };
+})();
+
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') { closeColorPalette(); closeGenericDialog(); closeAllMenus(); }
 });
