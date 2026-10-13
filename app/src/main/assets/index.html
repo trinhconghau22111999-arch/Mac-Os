@@ -906,6 +906,7 @@ a.btn.pri{color:#fff}
 .rfi .rn{display:flex;flex-direction:column;min-width:0}.rfi .rn b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rfi .rn small{color:var(--muted);font-size:11.5px}
 .rft{padding:6px;text-align:center;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
 @container (max-width:520px){.rf{grid-template-columns:minmax(0,1fr)}.rf .side{display:none}}
+.gk .bar{gap:4px}.gku{flex:1;min-width:0;height:28px;padding:0 10px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.14);color:inherit;font-size:13px;outline:none}.gku:focus{border-color:#0a84ff}.gk .ib:disabled{opacity:.35}.gk .ggo{width:auto;padding:0 10px;font-size:13px}.gkp{height:3px;flex:none}.gkp i{display:block;height:100%;width:0;background:#0a84ff;transition:width .15s}
 .wa{display:flex;flex-direction:column;height:100%}.wa .bar{padding-left:78px;gap:4px}.wa .wab{flex:1;min-height:0;position:relative}
 body.native{padding:0;box-sizing:border-box;background:#000}
 body.native .stage{border-radius:0;min-height:0}
@@ -1203,7 +1204,7 @@ bus.on('fs',()=>{
 const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
-  browser:{name:'Trình duyệt',w:700,h:440,minW:360,minH:260,build:buildBrowser},
+  browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.gkShow)?buildGecko(b,w,a):buildBrowser(b,w,a)},
   mail:{name:'Thư',w:880,h:540,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail'):buildMail(b,w)},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
   photos:{name:'Ảnh',w:660,h:440,minW:340,minH:280,build:buildPhotos},
@@ -1264,7 +1265,6 @@ function buildDock(){
       else{
         const w=wins[id];
         items.push({t:w?'Hiện cửa sổ':'Mở',fn:()=>openApp(id)});
-        if(id==='browser'&&window.AndroidLauncher&&window.AndroidLauncher.getBrowsers)items.push({t:'Chọn lại trình duyệt…',fn:()=>showBrowserPicker()});
         if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Thoát (tắt hẳn)',fn:()=>closeWin(w)})}
       }
       showCtx(cx,cy,items);
@@ -1377,7 +1377,6 @@ function openRealBrowser(){
 function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
-  if(id==='browser'&&openRealBrowser())return;
   if(!APPS[id])return;
   const w=wins[id];
   if(w){
@@ -3095,6 +3094,37 @@ function buildWebApp(b,w,key,url,title){
   return {destroy(){clearInterval(timer);A.extHide(key);delete EXTERR[key]}};
 }
 
+/* ---------- Trình duyệt Gecko (chép từ repo dang-nhap-github) nhúng trong cửa sổ ---------- */
+const GK={url:'',back:false,fwd:false,p:0,ui:null};
+window.nativeGk=s=>{Object.assign(GK,s);if(GK.ui)GK.ui()};
+function buildGecko(b,w,arg){
+  const A=window.AndroidLauncher;
+  b.innerHTML='<div class="wa gk"><div class="bar"><button class="ib gbk" type="button" aria-label="Quay lại">‹</button><button class="ib gfw" type="button" aria-label="Tiến tới">›</button><button class="ib grl" type="button" aria-label="Tải lại">⟳</button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nhập địa chỉ hoặc tìm kiếm" aria-label="Địa chỉ"><button class="ib ggo" type="button">Đi</button></div><div class="gkp"><i></i></div><div class="wab"></div></div>';
+  const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b); let last='', timer=null;
+  GK.ui=()=>{
+    bk.disabled=!GK.back; fw.disabled=!GK.fwd; bar.style.width=(GK.p||0)+'%';
+    if(document.activeElement!==inp&&GK.url)inp.value=GK.url;
+  };
+  const blocked=()=>(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||['#spot','#nc','#cc','#ql','#lock','#off','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
+  function sync(){
+    if(!w.isConnected)return;
+    const vis=w.classList.contains('focus')&&!w.classList.contains('min')&&!w._leaving&&!blocked();
+    if(!vis){if(last!=='hide'){A.gkHide();last='hide'}return}
+    const r=area.getBoundingClientRect(), sig=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
+    if(sig!==last){last=sig;A.gkShow(r.left,r.top,r.width,r.height)}
+  }
+  function go(){const t=inp.value.trim(); if(!t)return; A.gkGo(t); inp.blur()}
+  bk.addEventListener('click',()=>A.gkBack());
+  fw.addEventListener('click',()=>A.gkForward());
+  $('.grl',b).addEventListener('click',()=>A.gkReload());
+  $('.ggo',b).addEventListener('click',go);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
+  inp.addEventListener('focus',()=>inp.select());
+  GK.ui(); timer=setInterval(sync,90); sync();
+  if(typeof arg==='string'&&arg)A.gkGo(arg); else if(arg&&arg.url)A.gkGo(arg.url);
+  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){clearInterval(timer);GK.ui=null;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
+}
+
 /* =========================================================
    Ứng dụng nhóm 2: Trình duyệt, Thư, Ảnh, Nhạc, Terminal, Đồng hồ
    ========================================================= */
@@ -3861,7 +3891,7 @@ function quickLook(it){
 ql.addEventListener('pointerdown',e=>{if(!e.target.closest('.qlp'))ql.hidden=true});
 
 /* ---------- Menu thanh trên cùng ---------- */
-const NEWMAP={files:['Thư mục mới','.nf'],notes:['Ghi chú mới','.nn'],mail:['Thư mới','.mc'],browser:['Thẻ mới','.nt2']};
+const NEWMAP={files:['Thư mục mới','.nf'],notes:['Ghi chú mới','.nn'],mail:['Thư mới','.mc']};
 function musHalt(){MUS.playing=false;clearInterval(MUS.timer);bus.emit('music')}
 function buildMenu(key){
   const w=activeWin(), id=w&&w.dataset.app, nm=id?APPS[id].name:'Desktop', user=userName();
@@ -4547,6 +4577,7 @@ if(window.AndroidLauncher){(function(){
     try{
       if(overlaysOpen())return;
       const w=$('.win.focus',layer); if(!w)return;
+      if(w.dataset.app==='browser'&&GK.back&&window.AndroidLauncher&&window.AndroidLauncher.gkBack){window.AndroidLauncher.gkBack();return}
             closeWin(w);
     }catch(e){}
   };

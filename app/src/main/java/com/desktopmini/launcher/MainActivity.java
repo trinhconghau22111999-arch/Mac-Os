@@ -397,6 +397,95 @@ public class MainActivity extends Activity {
         return v;
     }
 
+
+    /* ================= Trình duyệt Gecko nhúng trong cửa sổ (chép từ repo dang-nhap-github) ================= */
+    private static final String GK_HOME = "https://github.com/";
+    private static final String GK_SEARCH = "https://duckduckgo.com/?q=";
+    private static org.mozilla.geckoview.GeckoRuntime gkRuntime;
+    private org.mozilla.geckoview.GeckoSession gkSession;
+    private org.mozilla.geckoview.GeckoView gkView;
+    private boolean gkBackOk, gkFwdOk;
+    private String gkUrl = "";
+    private int gkProg = 0;
+
+    private void gkPush() {
+        if (web == null) return;
+        try {
+            JSONObject o = new JSONObject();
+            o.put("url", gkUrl); o.put("back", gkBackOk); o.put("fwd", gkFwdOk); o.put("p", gkProg);
+            web.evaluateJavascript("window.nativeGk&&window.nativeGk(" + o.toString() + ")", null);
+        } catch (Exception e) { }
+    }
+    private void gkToast(final String msg) {
+        runOnUiThread(new Runnable() { public void run() { android.widget.Toast.makeText(MainActivity.this, msg, android.widget.Toast.LENGTH_LONG).show(); } });
+    }
+    private String gkHeader(org.mozilla.geckoview.WebResponse r, String key) {
+        if (r.headers == null) return null;
+        for (java.util.Map.Entry<String, String> e : r.headers.entrySet()) {
+            if (e.getKey() != null && e.getKey().equalsIgnoreCase(key)) return e.getValue();
+        }
+        return null;
+    }
+    private void gkDownload(final org.mozilla.geckoview.WebResponse r) {
+        final String name = android.webkit.URLUtil.guessFileName(r.uri, gkHeader(r, "content-disposition"), gkHeader(r, "content-type"));
+        gkToast("Đang tải: " + name);
+        new Thread(new Runnable() { public void run() {
+            try {
+                InputStream in = r.body;
+                if (in == null) throw new java.io.IOException("không có dữ liệu");
+                File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (!(dir.exists() || dir.mkdirs()) || !dir.canWrite()) dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                File f = new File(dir, name);
+                int i = 1; String base = name, ex = "";
+                int dot = name.lastIndexOf('.');
+                if (dot > 0) { base = name.substring(0, dot); ex = name.substring(dot); }
+                while (f.exists()) f = new File(dir, base + " (" + (i++) + ")" + ex);
+                OutputStream out = new FileOutputStream(f);
+                try { byte[] buf = new byte[16384]; int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n); } finally { out.close(); }
+                in.close();
+                android.media.MediaScannerConnection.scanFile(MainActivity.this, new String[]{f.getAbsolutePath()}, null, null);
+                gkToast("Đã tải xong: " + f.getAbsolutePath());
+            } catch (Exception e) { gkToast("Tải lỗi: " + e.getMessage()); }
+        } }).start();
+    }
+    private String gkToUrl(String text) {
+        if (text.startsWith("http://") || text.startsWith("https://") || text.startsWith("file://") || text.startsWith("about:")) return text;
+        if (!text.contains(" ") && text.contains(".")) return "https://" + text;
+        return GK_SEARCH + Uri.encode(text);
+    }
+    private void gkEnsure() {
+        if (gkView != null) return;
+        if (gkRuntime == null) gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
+        gkUrl = GK_HOME; gkBackOk = false; gkFwdOk = false; gkProg = 0;
+        gkView = new org.mozilla.geckoview.GeckoView(this);
+        /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
+        gkView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
+        final org.mozilla.geckoview.GeckoSession se = new org.mozilla.geckoview.GeckoSession();
+        gkSession = se;
+        se.setContentDelegate(new org.mozilla.geckoview.GeckoSession.ContentDelegate() {
+            @Override public void onExternalResponse(org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.WebResponse response) { gkDownload(response); }
+        });
+        se.setProgressDelegate(new org.mozilla.geckoview.GeckoSession.ProgressDelegate() {
+            @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) gkUrl = url; gkProg = 5; gkPush(); }
+            @Override public void onProgressChange(org.mozilla.geckoview.GeckoSession s, int p) { gkProg = p; gkPush(); }
+            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) { gkProg = 0; gkPush(); }
+        });
+        se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
+            @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { gkBackOk = can; gkPush(); }
+            @Override public void onCanGoForward(org.mozilla.geckoview.GeckoSession s, boolean can) { gkFwdOk = can; gkPush(); }
+            @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession> onNewSession(org.mozilla.geckoview.GeckoSession s, String uri) {
+                /* Link mở tab mới -> mở ngay trong tab hiện tại */
+                se.loadUri(uri); return null;
+            }
+        });
+        se.open(gkRuntime);
+        gkView.setSession(se);
+        gkView.setVisibility(View.GONE);
+        root.addView(gkView, new FrameLayout.LayoutParams(1, 1));
+        se.loadUri(GK_HOME);
+    }
+    private void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
+
     private static String icon(Drawable d, int n) {
         Bitmap bm = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bm); d.setBounds(0, 0, n, n); d.draw(c);
@@ -1463,10 +1552,44 @@ public class MainActivity extends Activity {
             return arr.toString();
         }
 
+
+        /* ---- Trình duyệt Gecko nhúng trong cửa sổ ---- */
+        @JavascriptInterface public void gkShow(final float x, final float y, final float w, final float h) {
+            runOnUiThread(new Runnable() { public void run() {
+                try {
+                    float d = getResources().getDisplayMetrics().density;
+                    for (WebView v : ext.values()) v.setVisibility(View.GONE);
+                    gkEnsure();
+                    FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
+                    lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
+                    gkView.setLayoutParams(lp); gkView.setVisibility(View.VISIBLE);
+                    gkPush();
+                } catch (Throwable t) { gkToast("Không mở được trình duyệt: " + t); }
+            }});
+        }
+        @JavascriptInterface public void gkHide() { runOnUiThread(new Runnable() { public void run() { gkHideNow(); } }); }
+        @JavascriptInterface public void gkClose() {
+            runOnUiThread(new Runnable() { public void run() {
+                if (gkView == null) return;
+                try { gkSession.close(); } catch (Exception e) { }
+                try { root.removeView(gkView); } catch (Exception e) { }
+                gkView = null; gkSession = null;
+            }});
+        }
+        @JavascriptInterface public void gkGo(final String text) {
+            runOnUiThread(new Runnable() { public void run() {
+                try { gkEnsure(); String t = text == null ? "" : text.trim(); if (t.length() > 0) gkSession.loadUri(gkToUrl(t)); } catch (Throwable e) { }
+            }});
+        }
+        @JavascriptInterface public void gkBack() { runOnUiThread(new Runnable() { public void run() { if (gkSession != null) gkSession.goBack(); } }); }
+        @JavascriptInterface public void gkForward() { runOnUiThread(new Runnable() { public void run() { if (gkSession != null) gkSession.goForward(); } }); }
+        @JavascriptInterface public void gkReload() { runOnUiThread(new Runnable() { public void run() { if (gkSession != null) gkSession.reload(); } }); }
+
         /* ---- Gmail / Lịch Google: trình duyệt nhúng trong cửa sổ ---- */
         @JavascriptInterface public void extShow(final String key, final String url, final float x, final float y, final float w, final float h) {
             runOnUiThread(new Runnable() { public void run() {
                 float d = getResources().getDisplayMetrics().density;
+                gkHideNow();
                 for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) e.getValue().setVisibility(View.GONE);
                 WebView v = extGet(key, url);
                 FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
