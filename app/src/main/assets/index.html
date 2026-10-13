@@ -2391,7 +2391,7 @@ function buildRecorder(b,w){
   async function start(){
     if(st!=='idle')return;
     if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)){warn('Không ghi âm được','Thiết bị này không hỗ trợ ghi âm trong ứng dụng.');return}
-    let s; try{s=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){warn('Không mở được micro','Hãy cấp quyền Micro cho Desktop Mini rồi thử lại.');return}
+    let s; try{s=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){warn('Không mở được micro',(e&&e.name==='NotFoundError'?'Không tìm thấy micro hoặc micro đang được app khác dùng.':e&&e.name==='NotReadableError'?'Micro đang bị app khác chiếm dùng.':'Hãy cấp quyền Micro cho Desktop Mini rồi thử lại.')+(e&&e.name?' ('+e.name+')':''));return}
     if(!w.isConnected||st!=='idle'){s.getTracks().forEach(t=>t.stop());return}
     const types=['audio/webm;codecs=opus','audio/mp4','audio/webm'];
     const mt=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
