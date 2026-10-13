@@ -947,7 +947,9 @@ body.native .stage{border-radius:0;min-height:0}
 .msh .ic{width:26px;height:26px;border-radius:7px}
 .msx{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.22);color:#fff;font-size:12px;line-height:1;display:grid;place-items:center}
 .msv{position:relative;overflow:hidden;border-radius:18px;background:var(--win);box-shadow:0 14px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.18);pointer-events:none}
-.mshint{position:absolute;left:0;right:0;bottom:calc(var(--base) + 20px);text-align:center;color:rgba(255,255,255,.75);font-size:12px;pointer-events:none}
+.msall{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--base) + 14px);padding:9px 24px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 0 0 1px rgba(255,255,255,.18);cursor:pointer;z-index:2}
+.msall:active{background:rgba(255,255,255,.32)}
+.mshint{position:absolute;left:0;right:0;bottom:calc(var(--base) + 64px);text-align:center;color:rgba(255,255,255,.75);font-size:12px;pointer-events:none}
 /* Chạm giữ màn hình nền */
 .dsh{position:absolute;left:50%;bottom:calc(var(--base) + 44px);transform:translateX(-50%);z-index:9;display:flex;gap:4px;padding:14px 10px 12px;border-radius:28px;background:rgba(40,44,60,.38);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.16);max-width:calc(100% - 12px);animation:dshin .2s ease-out}
 @keyframes dshin{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -987,7 +989,7 @@ body.native .stage{border-radius:0;min-height:0}
   <div class="desk" id="desk" data-drop="root:desk"></div>
   <div class="mcbg" id="mcbg"></div>
   <div class="wins" id="wins"></div>
-  <div class="msw" id="msw" hidden><div class="mst" id="mst"></div><div class="mshint">Chạm để mở · Vuốt lên để đóng ứng dụng</div></div>
+  <div class="msw" id="msw" hidden><div class="mst" id="mst"></div><div class="mshint">Chạm để mở · Vuốt lên để đóng ứng dụng</div><button class="msall" id="msall" type="button">Xoá tất cả</button></div>
   <div class="dsh" id="dsh" hidden></div>
 
   <div class="menubar" id="menubar">
@@ -4262,7 +4264,7 @@ function openMS(){
     const ow=parseFloat(w.style.width)||w.offsetWidth||APPS[id].w, oh=parseFloat(w.style.height)||w.offsetHeight||APPS[id].h;
     const sc=Math.min(H/oh,maxW/ow), cw=Math.round(ow*sc), ch=Math.round(oh*sc);
     if(k===0)firstW=cw; lastW=cw;
-    const card=document.createElement('div'); card.className='msc';
+    const card=document.createElement('div'); card.className='msc'; card.dataset.id=id;
     card.innerHTML='<div class="msh">'+iconHTML(ICONS[id]?id:'about')+'<span>'+esc(APPS[id].name)+'</span><button class="msx" type="button" aria-label="Đóng">✕</button></div><div class="msv" style="width:'+cw+'px;height:'+ch+'px"></div>';
     try{
       const c=w.cloneNode(true);
@@ -4301,6 +4303,10 @@ function msClose(id,card){
   setTimeout(()=>{card.remove();if(!$('.msc',mst))closeMS()},210);
 }
 function closeMS(){if(!msOn)return;msOn=false;msw.hidden=true;mst.innerHTML=''}
+$('#msall').addEventListener('click',e=>{
+  e.stopPropagation();
+  $$('.msc',mst).forEach((c,i)=>setTimeout(()=>msClose(c.dataset.id,c),i*70));
+});
 msw.addEventListener('click',e=>{if(e.target===msw||e.target===mst||e.target.classList.contains('msp'))closeMS()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&msOn)closeMS()});
 desk.addEventListener('pointerdown',()=>{
