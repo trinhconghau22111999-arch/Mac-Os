@@ -351,6 +351,11 @@ public class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int c, String[] p, int[] r) {
         askingRuntime = false;
+        if (c == PERM_VOICE) {
+            if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) launchVoiceSearch();
+            else android.widget.Toast.makeText(this, "Cần cấp quyền micro để dùng tìm kiếm bằng giọng nói", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (c == 77) {
             final android.webkit.PermissionRequest q = micReq; micReq = null;
             if (q != null) answerWeb(q);
@@ -364,6 +369,21 @@ public class MainActivity extends Activity {
         if (wordHost != null && wordHost.handleResult(req, res, data)) return;
         if (req == REQ_EXTFILE) {
             if (extFileCb != null) { extFileCb.onReceiveValue(android.webkit.WebChromeClient.FileChooserParams.parseResult(res, data)); extFileCb = null; }
+            return;
+        }
+        if (req == REQ_VOICE) {
+            if (res == RESULT_OK && data != null) {
+                ArrayList<String> rs = data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+                if (rs != null && !rs.isEmpty()) {
+                    String q = rs.get(0);
+                    WebView tw = voiceKey == null ? null : ext.get(voiceKey);
+                    if (tw != null) {   // nút mic trong cửa sổ YouTube / Duyệt web nhúng
+                        String cu = tw.getUrl();
+                        boolean onYt = "youtube".equals(voiceKey) || (cu != null && cu.contains("youtube.com"));
+                        tw.loadUrl((onYt ? "https://www.youtube.com/results?search_query=" : "https://www.google.com/search?q=") + Uri.encode(q));
+                    } else push("nativeVoiceResult", org.json.JSONObject.quote(q));
+                }
+            }
             return;
         }
         if (req == 91) push("nativeDelResult", res == RESULT_OK ? "1" : "0");
@@ -444,6 +464,28 @@ public class MainActivity extends Activity {
         try { startActivity(i); } catch (Exception e) { }
     }
 
+    /** Cầu nối nút mic cho cửa sổ web nhúng (YouTube, Duyệt web): nhớ cửa sổ nào bấm để trả kết quả đúng nơi. */
+    private class WebVoice {
+        final String k;
+        WebVoice(String k) { this.k = k; }
+        @JavascriptInterface public void startVoiceSearch() { runOnUiThread(new Runnable() { public void run() { voiceKey = k; launchVoiceSearch(); } }); }
+    }
+
+    /** Nút mic của thanh tìm kiếm Google trên Desktop: xin quyền micro rồi mở bộ nhận dạng giọng nói của Android; kết quả trả về JS qua nativeVoiceResult(text). */
+    void launchVoiceSearch() {
+        if (android.os.Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            askingRuntime = true;
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERM_VOICE);
+            return;
+        }
+        Intent it = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        it.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        it.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, java.util.Locale.getDefault().toLanguageTag());
+        it.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Nói để tìm kiếm trên Google");
+        try { startActivityForResult(it, REQ_VOICE); }
+        catch (Exception e) { android.widget.Toast.makeText(this, "Máy chưa có ứng dụng nhận dạng giọng nói (cần ứng dụng Google). Hãy cài hoặc cập nhật Google từ CH Play", android.widget.Toast.LENGTH_LONG).show(); }
+    }
+
     /** Mở app con "YouTube". */
     void openYt() {
         Intent i = new Intent(this, YouTubeActivity.class);
@@ -470,6 +512,10 @@ public class MainActivity extends Activity {
     private WordHost wordHost;
     private static final int REQ_WORD = 1002;
     private static final int REQ_EXTFILE = 1003;
+    private static final int REQ_VOICE = 1004;
+    private static final int PERM_VOICE = 78;
+    /** Cửa sổ web nhúng (khóa trong ext) đang chờ kết quả giọng nói; null = thanh tìm kiếm Google trên Desktop. */
+    private String voiceKey = null;
     private android.webkit.ValueCallback<Uri[]> extFileCb;
     private static final String[] MS_HOSTS = {
         "office.com", "office365.com", "microsoft365.com", "microsoft.com", "microsoftonline.com", "microsoftonline-p.com",
@@ -588,6 +634,7 @@ public class MainActivity extends Activity {
                 }
             }
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(v, true);
+            if (yt || br) v.addJavascriptInterface(new WebVoice(key), "AndroidVoice");
             v.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                     if (!(yt || br || ms) || !req.isForMainFrame()) return false;
@@ -629,6 +676,7 @@ public class MainActivity extends Activity {
                     if (yt || br || ms) {
                         /* WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần) */
                         try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
+                        if (u != null && u.startsWith("http") && (yt || br)) view.evaluateJavascript(YouTubeActivityKt.VOICE_HOOK_JS, null);   // nối nút mic
                         extNav(key, view, 100);
                     }
                     CookieManager.getInstance().flush();
@@ -1479,6 +1527,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openWebBrowser(String url) { openWeb(url); }
         /** Mở app con "YouTube" (chỉ YouTube, không thanh địa chỉ). */
         @JavascriptInterface public void openYouTube() { openYt(); }
+        /** Nút mic trên thanh tìm kiếm Google của Desktop. */
+        @JavascriptInterface public void startVoiceSearch() { runOnUiThread(new Runnable() { public void run() { voiceKey = null; launchVoiceSearch(); } }); }
         /** Mở app con "Gõ văn bản" (trình soạn thảo kiểu Word). */
         @JavascriptInterface public void openTyping() { openTy(); }
         @JavascriptInterface public boolean hasPackage(String pkg) {

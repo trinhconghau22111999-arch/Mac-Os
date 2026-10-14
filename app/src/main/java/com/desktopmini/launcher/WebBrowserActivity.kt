@@ -74,6 +74,8 @@ private const val REQ_MEDIA = 101
 private const val REQ_STORAGE = 102
 private const val REQ_FILE = 103
 private const val REQ_ACCOUNT = 104
+private const val REQ_VOICE = 105
+private const val REQ_VOICE_PERM = 106
 
 private const val COLOR_BAR = 0xFF2B1B4A.toInt()
 private const val COLOR_TAB_BG = 0xFFE9E3F5.toInt()
@@ -552,6 +554,7 @@ class WebBrowserActivity : Activity() {
         s.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         CookieManager.getInstance().setAcceptThirdPartyCookies(wv, true)
         s.userAgentString = mobileUa
+        wv.addJavascriptInterface(VoiceBridge(), "AndroidVoice")
 
         wv.setDownloadListener { dlUrl, userAgent, contentDisposition, mimeType, _ ->
             try {
@@ -769,6 +772,7 @@ class WebBrowserActivity : Activity() {
                     updateBookmarkBtn()
                 }
                 tab.loadedAt = System.currentTimeMillis()
+                if (url != null && url.startsWith("http")) view?.evaluateJavascript(VOICE_HOOK_JS, null)   // nối nút mic (Google, YouTube...)
                 if (!docStartScriptSupported && url != null && url.startsWith("http")) {
                     view?.evaluateJavascript(PW_JS, null)
                     // WebView cu khong ho tro script luc bat dau tai: chen sau khi tai xong.
@@ -1005,6 +1009,13 @@ class WebBrowserActivity : Activity() {
             else showGoogleEmailInput()
             return
         }
+        if (requestCode == REQ_VOICE) {
+            if (resultCode == RESULT_OK) {
+                val q = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+                if (!q.isNullOrBlank()) active?.webView?.let { go(it, voiceSearchUrl(q)) }
+            }
+            return
+        }
         if (requestCode == REQ_FILE) {
             fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
             fileCallback = null
@@ -1015,6 +1026,11 @@ class WebBrowserActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_VOICE_PERM) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) launchVoiceRecognizer()
+            else Toast.makeText(this, "Cần cấp quyền micro để dùng tìm kiếm bằng giọng nói", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (requestCode == REQ_MEDIA) {
             val req = pendingPermRequest
             pendingPermRequest = null
@@ -1027,6 +1043,33 @@ class WebBrowserActivity : Activity() {
             }
         }
     }
+
+    // ====================== Tim kiem bang giong noi (hoc tu repo Y-utubecuatoi) ======================
+
+    private inner class VoiceBridge {
+        @JavascriptInterface fun startVoiceSearch() { runOnUiThread { launchVoiceRecognizer() } }
+    }
+
+    private fun launchVoiceRecognizer() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQ_VOICE_PERM)
+            return
+        }
+        val it = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, java.util.Locale.getDefault().toLanguageTag())
+            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Nói để tìm kiếm")
+        }
+        try { startActivityForResult(it, REQ_VOICE) }
+        catch (e: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, "Máy chưa có ứng dụng nhận dạng giọng nói (cần ứng dụng Google). Hãy cài hoặc cập nhật Google từ CH Play", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Đang ở YouTube thì tìm trên YouTube, còn lại tìm trên Google.
+    private fun voiceSearchUrl(q: String): String =
+        if (isYoutubeUrl(active?.url)) "https://www.youtube.com/results?search_query=" + Uri.encode(q)
+        else "https://www.google.com/search?q=" + Uri.encode(q)
 
     // ====================== Dieu huong / Menu ======================
 

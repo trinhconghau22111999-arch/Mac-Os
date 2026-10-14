@@ -135,6 +135,9 @@ ul,ol{margin:0;padding:0;list-style:none}
 .gbar .gg svg{width:20px;height:20px}
 .gbar input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#202124;font-size:15px;user-select:text;-webkit-user-select:text}
 .gbar input::placeholder{color:#5f6368}
+.gbar .gm{width:34px;height:34px;border:0;border-radius:50%;background:none;display:grid;place-items:center;flex:none;cursor:pointer;padding:0}
+.gbar .gm:active{background:rgba(0,0,0,.1)}
+.gbar .gm[hidden]{display:none}
 .gbar .gs{width:34px;height:34px;border:0;border-radius:50%;background:#4285f4;color:#fff;display:grid;place-items:center;flex:none;cursor:pointer}
 .stage.gbon .desk{padding-top:96px}
 .di{width:88px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;border-radius:10px;color:#fff;text-align:center}
@@ -1043,7 +1046,7 @@ body.native .stage{border-radius:0;min-height:0}
 </head><body>
 <div class="stage" id="stage" data-wall="1">
   <div class="desk" id="desk" data-drop="root:desk"></div>
-  <div class="gbar" id="gbar"><button class="gg" type="button" aria-label="Google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 7-10.3 7-17.7z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.7-6c-2.2 1.5-5 2.3-8.3 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg></button><input id="gq" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tìm kiếm trên Google" aria-label="Tìm kiếm trên Google"><button class="gs" type="button" aria-label="Tìm kiếm"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button></div>
+  <div class="gbar" id="gbar"><button class="gg" type="button" aria-label="Google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 7-10.3 7-17.7z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.7-6c-2.2 1.5-5 2.3-8.3 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg></button><input id="gq" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tìm kiếm trên Google" aria-label="Tìm kiếm trên Google"><button class="gm" type="button" aria-label="Tìm kiếm bằng giọng nói"><svg viewBox="0 0 24 24" width="20" height="20" fill="#4285f4" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></svg></button><button class="gs" type="button" aria-label="Tìm kiếm"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button></div>
   <div class="mcbg" id="mcbg"></div>
   <div class="wins" id="wins"></div>
   <div class="msw" id="msw" hidden><div class="mst" id="mst"></div><div class="mshint">Chạm để mở · Vuốt lên để đóng ứng dụng</div><button class="msall" id="msall" type="button">Xoá tất cả</button></div>
@@ -1599,6 +1602,11 @@ addEventListener('pointercancel',e=>{if(dkH&&e.pointerId===dkH.pid)dkEnd(true)})
     gq.value=''; gq.blur(); closeAllPopups(); openApp('webbrowser',u);
   }
   $('.gs',bar).addEventListener('click',e=>{e.stopPropagation();go()});
+  /* Nút mic: mở bộ nhận dạng giọng nói của Android (giống app Y-utubecuatoi), nói xong tự tìm trên Google */
+  const gm=$('.gm',bar), AL=window.AndroidLauncher;
+  if(!AL||!AL.startVoiceSearch)gm.hidden=true;
+  else gm.addEventListener('click',e=>{e.stopPropagation();gq.blur();try{AL.startVoiceSearch()}catch(x){}});
+  window.nativeVoiceResult=t=>{t=String(t||'').trim();if(!t)return;gq.value=t;go()};
   $('.gg',bar).addEventListener('click',e=>{e.stopPropagation();if(e.currentTarget._lp){e.currentTarget._lp=false;return}gq.value='';closeAllPopups();openApp('webbrowser','https://www.google.com/')});
   gq.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();go()}else if(e.key==='Escape')gq.blur()});
   ['keyup','keypress'].forEach(t=>gq.addEventListener(t,e=>e.stopPropagation()));

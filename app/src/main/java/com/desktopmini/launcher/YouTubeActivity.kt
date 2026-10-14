@@ -1,14 +1,19 @@
 package com.desktopmini.launcher
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -21,6 +26,7 @@ import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import java.io.ByteArrayInputStream
+import java.util.Locale
 
 private const val YT_ONLY_HOME = "https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1"
 
@@ -81,6 +87,7 @@ class YouTubeActivity : Activity() {
             fitsSystemWindows = true
         }
         web = WebView(this)
+        web.addJavascriptInterface(VoiceBridge(), "AndroidVoice")
         root.addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         setContentView(root)
 
@@ -139,7 +146,10 @@ class YouTubeActivity : Activity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 // WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần)
                 val h = try { Uri.parse(url ?: "").host } catch (e: Exception) { null } ?: return
-                if (hostIs(h, "youtube.com")) view?.evaluateJavascript(AD_ON + YT_ONLY_AD_JS, null)
+                if (hostIs(h, "youtube.com")) {
+                    view?.evaluateJavascript(AD_ON + YT_ONLY_AD_JS, null)
+                    view?.evaluateJavascript(VOICE_HOOK_JS, null)   // nối nút mic của YouTube
+                }
             }
         }
 
@@ -160,6 +170,49 @@ class YouTubeActivity : Activity() {
 
         val first = intent?.dataString?.takeIf { allowedPage(Uri.parse(it)) } ?: YT_ONLY_HOME
         web.loadUrl(first)
+    }
+
+    // ---- Tìm kiếm bằng giọng nói (học từ repo Y-utubecuatoi): nút mic của YouTube không chạy trong WebView
+    // (Web Speech API không có), nên bắt cú bấm rồi gọi bộ nhận dạng giọng nói gốc của Android. ----
+    inner class VoiceBridge {
+        @JavascriptInterface fun startVoiceSearch() { runOnUiThread { launchVoiceRecognizer() } }
+    }
+
+    private fun launchVoiceRecognizer() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQ_VOICE_PERM)
+            return
+        }
+        val it = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói để tìm kiếm trên YouTube")
+        }
+        try { startActivityForResult(it, REQ_VOICE) }
+        catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "Máy chưa có ứng dụng nhận dạng giọng nói (cần ứng dụng Google). Hãy cài hoặc cập nhật Google từ CH Play", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQ_VOICE) {
+            if (resultCode == RESULT_OK) {
+                val q = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+                if (!q.isNullOrBlank()) web.loadUrl("https://www.youtube.com/results?search_query=" + Uri.encode(q))
+            }
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_VOICE_PERM) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) launchVoiceRecognizer()
+            else Toast.makeText(this, "Cần cấp quyền micro để dùng tìm kiếm bằng giọng nói", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun hideCustomView() {
@@ -200,6 +253,8 @@ class YouTubeActivity : Activity() {
 
     companion object {
         private const val AD_ON = "window.__wbAdSkip=true;"
+        private const val REQ_VOICE = 201
+        private const val REQ_VOICE_PERM = 202
     }
 }
 
@@ -234,5 +289,28 @@ const val YT_ONLY_AD_JS = """
   }catch(e){}
  }
  setInterval(tick,250);
+})();
+"""
+
+// Gắn mọi nút "Tìm kiếm bằng giọng nói" trên trang (YouTube, Google...) sang AndroidVoice. Dò theo aria-label/title
+// thay vì class CSS vì nhãn hỗ trợ tiếp cận ít khi đổi giữa các bản cập nhật giao diện. (Học từ repo Y-utubecuatoi.)
+const val VOICE_HOOK_JS = """
+(function(){
+ if(window.__dmVoiceHook)return; window.__dmVoiceHook=true;
+ var L=['tìm kiếm bằng giọng nói','tim kiem bang giong noi','search by voice','voice search','search with your voice'];
+ function txt(el){return ((el.getAttribute('aria-label')||'')+' '+(el.getAttribute('title')||'')).toLowerCase();}
+ function has(t){for(var i=0;i<L.length;i++){if(t.indexOf(L[i])!==-1)return true;}return false;}
+ function hook(){
+  Array.prototype.forEach.call(document.querySelectorAll('button,[role="button"],a,div[aria-label],span[aria-label]'),function(el){
+   if(el.__dmVoice)return;
+   if(!has(txt(el)))return;
+   el.__dmVoice=true;
+   el.addEventListener('click',function(ev){
+    if(window.AndroidVoice){ev.preventDefault();ev.stopPropagation();window.AndroidVoice.startVoiceSearch();}
+   },true);
+  });
+ }
+ hook(); setInterval(hook,1000);
+ try{new MutationObserver(hook).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
 })();
 """
