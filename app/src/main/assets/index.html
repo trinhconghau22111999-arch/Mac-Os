@@ -4427,7 +4427,10 @@ let deskDragEnd=0, deskDragOn=false;
       const id=d.el.dataset.app, pos=d.pos;
       if(d.occ)pos[d.occ]=d.from; /* ô đích có icon: hai icon đổi chỗ, không dồn ai */
       pos[id]=d.tgt;
-      DESKPOS={}; for(const k in pos)DESKPOS[k]=[pos[k][0],pos[k][1]];
+      /* chỉ ghi vị trí của icon vừa kéo, icon bị đổi chỗ và icon chưa có vị trí; icon đã được đặt từ trước giữ nguyên vị trí đã lưu (kể cả khi lúc này đang bị dồn tạm vì màn hình ít hàng hơn) */
+      const prev=DESKPOS; DESKPOS={};
+      for(const k in prev)if(Array.isArray(prev[k]))DESKPOS[k]=prev[k];
+      for(const k in pos)if(k===id||k===d.occ||!Array.isArray(prev[k]))DESKPOS[k]=[pos[k][0],pos[k][1]];
       saveDeskPos();
     }
     renderDesk();
