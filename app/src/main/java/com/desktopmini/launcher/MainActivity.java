@@ -39,6 +39,8 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.Size;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowManager;
@@ -84,6 +86,42 @@ public class MainActivity extends Activity {
     private static final long EXT_IDLE_MS = 10 * 60 * 1000L;
     private final HashMap<String, Long> extHiddenAt = new HashMap<String, Long>();
     private final android.os.Handler reaper = new android.os.Handler(android.os.Looper.getMainLooper());
+    /* Độ sáng thấp nhất khi không dùng: không chạm/gõ/rê chuột sau idleDimMs thì hạ độ sáng cửa sổ xuống mức tối nhất, chạm lại thì sáng như cũ */
+    private volatile boolean idleDimOn = false;
+    private volatile long idleDimMs = 5 * 60000L;
+    private volatile long lastTouchAt = android.os.SystemClock.elapsedRealtime();
+    private boolean idleDimmed = false, inFg = false;
+    private float idleDimPrev = -1f;
+    private final Runnable idleTask = new Runnable() { public void run() { checkIdleDim(); reaper.postDelayed(this, 5000); } };
+
+    private void userActive() {
+        lastTouchAt = android.os.SystemClock.elapsedRealtime();
+        if (idleDimmed) undimIdle();
+    }
+    private void undimIdle() {
+        if (!idleDimmed) return;
+        idleDimmed = false;
+        try { WindowManager.LayoutParams lp = getWindow().getAttributes(); lp.screenBrightness = idleDimPrev; getWindow().setAttributes(lp); } catch (Exception e) { }
+    }
+    /** Chưa tới hạn thì thôi; đang xem video toàn màn hình hoặc đang phát nhạc/video trong trang web nhúng thì không hạ (tránh tối màn hình khi đang xem). */
+    private void checkIdleDim() {
+        if (!idleDimOn || idleDimmed || !inFg) return;
+        if (android.os.SystemClock.elapsedRealtime() - lastTouchAt < idleDimMs) return;
+        if (extFullView != null) return;
+        try {
+            boolean music = ((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive();
+            if (music) for (WebView v : ext.values()) if (v.getVisibility() == View.VISIBLE) return;
+        } catch (Exception e) { }
+        try {
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            idleDimPrev = lp.screenBrightness; lp.screenBrightness = 0.004f; getWindow().setAttributes(lp);
+            idleDimmed = true;
+        } catch (Exception e) { }
+    }
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) { userActive(); return super.dispatchTouchEvent(ev); }
+    @Override public boolean dispatchKeyEvent(KeyEvent ev) { userActive(); return super.dispatchKeyEvent(ev); }
+    @Override public boolean dispatchGenericMotionEvent(MotionEvent ev) { userActive(); return super.dispatchGenericMotionEvent(ev); }
+
     private final Runnable reapTask = new Runnable() { public void run() { reapIdleExt(); reaper.postDelayed(this, 60000); } };
     /** Gmail / Drive / Zalo / Facebook web: giao diện máy tính. */
     private static final String UA_DESK = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -179,10 +217,12 @@ public class MainActivity extends Activity {
         immersive();
         askPermissions();
         reaper.postDelayed(reapTask, 60000);
+        reaper.postDelayed(idleTask, 5000);
     }
 
     @Override protected void onPause() {
         super.onPause();
+        inFg = false; undimIdle();
         if (wordHost != null) wordHost.save();
         /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
         for (WebView v : ext.values()) { try { v.onPause(); } catch (Exception e) { } }
@@ -219,7 +259,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
-        reaper.removeCallbacks(reapTask);
+        reaper.removeCallbacks(reapTask); reaper.removeCallbacks(idleTask);
         try { unregisterReceiver(media); } catch (Exception e) { }
         try { unregisterReceiver(scr); } catch (Exception e) { }
         if (btRecv) { try { unregisterReceiver(btRx); } catch (Exception e) { } }
@@ -436,6 +476,7 @@ public class MainActivity extends Activity {
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
     @Override protected void onResume() {
         super.onResume();
+        inFg = true; lastTouchAt = android.os.SystemClock.elapsedRealtime();
         imeUp = false; hideBars(); prefetchApps(); scanNewMedia();
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) { try { if (e.getValue().getVisibility() == View.VISIBLE) { e.getValue().onResume(); extHiddenAt.remove(e.getKey()); } } catch (Exception x) { } }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
@@ -1545,28 +1586,13 @@ public class MainActivity extends Activity {
             return 0;
         }
 
-        /* ---- Thời gian tắt màn hình khi không dùng (cài đặt thật SCREEN_OFF_TIMEOUT của máy) ---- */
-        /**
-         * Bật: nhớ thời gian cũ của máy rồi đặt thành `min` phút. Tắt: trả lại thời gian cũ.
-         * Cần quyền "Sửa cài đặt hệ thống"; chưa có thì mở trang cấp quyền và trả về false.
-         */
-        @JavascriptInterface public boolean setScreenTimeout(boolean on, int min) {
-            if (!Settings.System.canWrite(MainActivity.this)) {
-                go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName()))); return false;
-            }
-            try {
-                SharedPreferences st = getSharedPreferences("screen_timeout", 0);
-                if (on) {
-                    /* chỉ lưu giá trị gốc lần đầu, đổi 5/10/30 phút sau đó không ghi đè */
-                    if (!st.contains("orig")) st.edit().putInt("orig", Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 60000)).apply();
-                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, Math.max(1, min) * 60000);
-                } else {
-                    int orig = st.getInt("orig", -1);
-                    if (orig > 0) Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, orig);
-                    st.edit().remove("orig").apply();
-                }
-                return true;
-            } catch (Exception e) { return false; }
+        /* ---- Độ sáng thấp nhất khi không dùng ---- */
+        /** Bật/tắt và đặt số phút không chạm trước khi hạ xuống độ sáng thấp nhất. Không cần quyền hệ thống (chỉ đổi độ sáng của cửa sổ). */
+        @JavascriptInterface public boolean setIdleDim(boolean on, int min) {
+            idleDimMs = Math.max(1, min) * 60000L; idleDimOn = on;
+            lastTouchAt = android.os.SystemClock.elapsedRealtime();
+            if (!on) runOnUiThread(new Runnable() { public void run() { undimIdle(); } });
+            return true;
         }
 
         /* ---- Tự xoay màn hình (cài đặt thật của máy) ---- */
