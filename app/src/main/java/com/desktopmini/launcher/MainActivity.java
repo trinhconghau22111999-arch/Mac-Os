@@ -86,6 +86,11 @@ public class MainActivity extends Activity {
     private static final long EXT_IDLE_MS = 10 * 60 * 1000L;
     private final HashMap<String, Long> extHiddenAt = new HashMap<String, Long>();
     private final android.os.Handler reaper = new android.os.Handler(android.os.Looper.getMainLooper());
+    /* Cài/gỡ/cập nhật app: dựng lại danh sách app cho Launchpad và Tìm kiếm (gộp các sự kiện bắn liền nhau, chờ 2 giây) */
+    private final Runnable appsRefresh = new Runnable() { public void run() { appsAt = 0; prefetchApps(); } };
+    private final android.content.BroadcastReceiver pkgRx = new android.content.BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) { reaper.removeCallbacks(appsRefresh); reaper.postDelayed(appsRefresh, 2000); }
+    };
     /* Độ sáng thấp nhất khi không dùng: không chạm/gõ/rê chuột sau idleDimMs thì hạ độ sáng cửa sổ xuống mức tối nhất, chạm lại thì sáng như cũ */
     private volatile boolean idleDimOn = false;
     private volatile long idleDimMs = 5 * 60000L;
@@ -213,6 +218,9 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(media, f, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(media, f);
         IntentFilter sf = new IntentFilter(Intent.ACTION_SCREEN_OFF);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(scr, sf, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(scr, sf);
+        IntentFilter pf = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+        pf.addAction(Intent.ACTION_PACKAGE_REMOVED); pf.addAction(Intent.ACTION_PACKAGE_REPLACED); pf.addDataScheme("package");
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(pkgRx, pf, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(pkgRx, pf);
         trackIme();
         immersive();
         askPermissions();
@@ -235,8 +243,12 @@ public class MainActivity extends Activity {
     }
 
     /** Đóng hẳn các trang nhúng đã ẩn quá EXT_IDLE_MS. Bỏ qua trang đang hiện, "Gõ văn bản" (giữ tài liệu đang soạn) và lúc đang phát nhạc. */
-    private void reapIdleExt() {
+    private void reapIdleExt() { reapExt(EXT_IDLE_MS); }
+
+    /** minIdleMs = 0: đóng NGAY mọi trang nhúng đang ẩn (dùng khi máy sắp hết RAM), không chờ đủ thời gian. */
+    private void reapExt(long minIdleMs) {
         if (ext.isEmpty()) return;
+        if (minIdleMs == 0 && extFullView != null) return; /* đang xem toàn màn hình thì không đụng tới */
         long now = android.os.SystemClock.elapsedRealtime();
         boolean music = false;
         try { music = ((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive(); } catch (Exception e) { }
@@ -244,8 +256,8 @@ public class MainActivity extends Activity {
         for (String key : new ArrayList<String>(ext.keySet())) {
             Long t = extHiddenAt.get(key);
             WebView v = ext.get(key);
-            if (t == null || v == null || v.getVisibility() == View.VISIBLE) continue;
-            if (now - t < EXT_IDLE_MS || "word".equals(key)) continue;
+            if (v == null || v.getVisibility() == View.VISIBLE || "word".equals(key)) continue;
+            if (minIdleMs > 0 && (t == null || now - t < minIdleMs)) continue;
             ext.remove(key); zooms.remove(key); extHiddenAt.remove(key);
             try { v.loadUrl("about:blank"); root.removeView(v); v.destroy(); } catch (Exception e) { }
         }
@@ -253,13 +265,17 @@ public class MainActivity extends Activity {
 
     @Override public void onTrimMemory(int level) {
         super.onTrimMemory(level);
+        /* Máy sắp hết RAM thật (đang chạy mà RAM tới mức "nguy cấp", hoặc app ở nền bị đẩy tới giữa/cuối danh sách bị giết): đóng ngay trang nhúng đang ẩn.
+           Cố ý KHÔNG dùng mức UI_HIDDEN (20) và BACKGROUND (40): hai mức này xảy ra mỗi khi mở app khác từ launcher, chưa phải thiếu RAM, đóng thì YouTube/Zalo bị tải lại liên tục. */
+        if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) reapExt(0);
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
             for (WebView v : ext.values()) { try { if (v.getVisibility() != View.VISIBLE) v.clearCache(false); } catch (Exception e) { } }
         }
     }
 
     @Override protected void onDestroy() {
-        reaper.removeCallbacks(reapTask); reaper.removeCallbacks(idleTask);
+        reaper.removeCallbacks(reapTask); reaper.removeCallbacks(idleTask); reaper.removeCallbacks(appsRefresh);
+        try { unregisterReceiver(pkgRx); } catch (Exception e) { }
         try { unregisterReceiver(media); } catch (Exception e) { }
         try { unregisterReceiver(scr); } catch (Exception e) { }
         if (btRecv) { try { unregisterReceiver(btRx); } catch (Exception e) { } }
@@ -1146,6 +1162,8 @@ public class MainActivity extends Activity {
     }
 
     private volatile String appsCache;
+    /* Mốc thời gian lần dựng danh sách app gần nhất: giao diện so sánh số này để biết có cần nạp lại danh sách không */
+    private volatile long appsVer = 0;
     /** Dựng sẵn danh sách app cài đặt (kèm icon) ở luồng nền để Launchpad mở ngay, không khựng. */
     private long appsAt;
     private void prefetchApps() {
@@ -1153,7 +1171,7 @@ public class MainActivity extends Activity {
         if (appsCache != null && now - appsAt < 30000) return;
         appsAt = now;
         new Thread(new Runnable() { public void run() {
-            try { Bridge b = new Bridge(); String r = b.buildAppsNow(); appsCache = r; } catch (Throwable e) { }
+            try { Bridge b = new Bridge(); String r = b.buildAppsNow(); appsCache = r; appsVer = System.currentTimeMillis(); } catch (Throwable e) { }
         } }, "apps-prefetch").start();
     }
 
@@ -1707,8 +1725,9 @@ public class MainActivity extends Activity {
         }
         private synchronized String buildApps() {
             if (appsCache != null) return appsCache;
-            String r = buildAppsNow(); appsCache = r; return r;
+            String r = buildAppsNow(); appsCache = r; appsVer = System.currentTimeMillis(); return r;
         }
+        @JavascriptInterface public long getAppsVersion() { return appsVer; }
         private String buildAppsNow() {
             PackageManager pm = getPackageManager();
             Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);

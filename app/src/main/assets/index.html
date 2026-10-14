@@ -823,7 +823,6 @@ a.btn.pri{color:#fff}
 .dk{position:relative;flex:none;width:var(--base);height:var(--base);}
 .dk .ic{display:grid;width:100%;height:100%;transform-origin:50% 100%}
 .dock:not(.dmag) .dk,.dock:not(.dmag) .dk .ic{transition:transform .14s ease-out}
-.dk::after{margin-bottom:var(--lift,0px)}
 .dk.dkhold .ic{transform:scale(1.14)!important}
 .dk.dkdrag{transition:none!important;z-index:30;position:relative}
 .dk.dkdrag .ic{transform:scale(1.2)!important;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}
@@ -843,7 +842,7 @@ a.btn.pri{color:#fff}
 @keyframes dkicin{from{transform:translateY(16px) scale(.4);opacity:0}55%{opacity:1}to{transform:none;opacity:1}}
 @keyframes dkicout{from{transform:none;opacity:1}to{transform:translateY(16px) scale(.4);opacity:0}}
 @keyframes bounce{0%{transform:translateY(0)}25%{transform:translateY(-24px)}50%{transform:translateY(0)}75%{transform:translateY(-12px)}100%{transform:translateY(0)}}
-.dk::after{content:attr(data-label);position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);padding:4px 11px;border-radius:9px;background:var(--glass);color:var(--fg);
+.dk::after{content:attr(data-label);position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%) translateY(calc(var(--lift,0px) * -1));padding:4px 11px;border-radius:9px;background:var(--glass);color:var(--fg);
   backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);box-shadow:0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.25);font-size:13px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s}
 .dk:hover::after,.dk:focus-visible::after{opacity:1}
 .dk .dot{position:absolute;left:50%;bottom:-7px;margin-left:-2px;width:4px;height:4px;border-radius:50%;background:var(--fg);opacity:0}
@@ -1145,6 +1144,16 @@ const bus={l:{},on(e,f){(this.l[e]=this.l[e]||[]).push(f)},emit(e,a){(this.l[e]|
 /* Khung nội dung gốc (WebView/Gecko nhúng) bám theo cửa sổ: bình thường dò mỗi 90ms, còn khi đang kéo/đổi cỡ cửa sổ thì ép đồng bộ ngay mỗi khung hình để không bị trễ, giật */
 const NSYNC=new Set(); let nsRaf=0;
 function kickSync(){if(nsRaf)return;nsRaf=requestAnimationFrame(()=>{nsRaf=0;NSYNC.forEach(f=>{try{f()}catch(e){}})})}
+/* Một bộ đếm chung cho các cửa sổ web nhúng và Gecko (trước đây mỗi cửa sổ có một setInterval 90ms riêng).
+   Đang dùng: 90ms/lần như cũ. Desktop Mini ra nền (document.hidden): chỉ thức dậy 1 lần/giây và không làm gì. Hết cửa sổ thì tự dừng. */
+let nsTimer=0;
+function nsTick(){
+  nsTimer=0; if(!NSYNC.size)return;
+  if(!document.hidden)NSYNC.forEach(f=>{try{f()}catch(e){}});
+  nsTimer=setTimeout(nsTick,document.hidden?1000:90);
+}
+function nsStart(){if(!nsTimer&&NSYNC.size)nsTimer=setTimeout(nsTick,90)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){clearTimeout(nsTimer);nsTimer=0;nsStart();kickSync()}});
 let P=jget('dm-prefs',{});
 const pref=(k,d)=>k in P?P[k]:d;
 const setPref=(k,v)=>{P[k]=v;jset('dm-prefs',P);bus.emit('ui')};
@@ -2982,13 +2991,13 @@ function buildWebApp(b,w,key,url,title,opt){
     $('.whm',b).addEventListener('click',()=>go(url));
     bkb.disabled=true; fwb.disabled=true;
   }
-  timer=setInterval(sync,90); NSYNC.add(sync);
+  NSYNC.add(sync); nsStart();
   if(bkb)bkb.addEventListener('click',()=>A.extBack(key));
   {const rl=$('.wrl',b); if(rl)rl.addEventListener('click',()=>{if(check())A.extReload(key)})}
   sync();
   return {
     open(arg){const u=typeof arg==='string'?arg:(arg&&arg.url); if(u)go(u)},
-    destroy(){clearInterval(timer);NSYNC.delete(sync);delete EXTERR[key];delete EXTNAV[key];if(opt.close&&A.extClose){A.extClose(key)}else{A.extHide(key)}}
+    destroy(){NSYNC.delete(sync);delete EXTERR[key];delete EXTNAV[key];if(opt.close&&A.extClose){A.extClose(key)}else{A.extHide(key)}}
   };
 }
 
@@ -3051,9 +3060,9 @@ function buildGecko(b,w,arg){
   $('.ggo',b).addEventListener('click',go);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
   inp.addEventListener('focus',()=>inp.select());
-  GK.ui(); renderDl(); timer=setInterval(sync,90); NSYNC.add(sync); sync();
+  GK.ui(); renderDl(); NSYNC.add(sync); nsStart(); sync();
   if(typeof arg==='string'&&arg)A.gkGo(arg); else if(arg&&arg.url)A.gkGo(arg.url);
-  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){clearInterval(timer);NSYNC.delete(sync);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
+  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){NSYNC.delete(sync);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
 }
 
 /* =========================================================
@@ -3939,7 +3948,8 @@ sq.addEventListener('keydown',e=>{
   const QA=window.AndroidLauncher;
   let devApps=null, hitsQ=[], fsTok=0, fsTimer=0, fsN=0; const fsCbs={};
   window.fsCb=function(id,json){const f=fsCbs[id]; delete fsCbs[id]; if(!f)return; let r=[]; try{r=JSON.parse(json)}catch(e){} f(r)};
-  const loadDev=()=>{if(!devApps){try{devApps=QA&&QA.getApps?JSON.parse(QA.getApps()):[]}catch(e){devApps=[]}} return devApps};
+  let devV=null;
+  const loadDev=()=>{const v=QA&&QA.getAppsVersion?QA.getAppsVersion():0; if(!devApps||v!==devV){try{devApps=QA&&QA.getApps?JSON.parse(QA.getApps()):[]}catch(e){devApps=[]} devV=v} return devApps};
   const fmtSize=n=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
   const FCOL={jpg:'#e0457b',jpeg:'#e0457b',png:'#e0457b',gif:'#e0457b',webp:'#e0457b',heic:'#e0457b',mp4:'#d9534f',mkv:'#d9534f',webm:'#d9534f',mov:'#d9534f',mp3:'#8e5ad7',m4a:'#8e5ad7',wav:'#8e5ad7',flac:'#8e5ad7',pdf:'#e5493a',doc:'#2b6fd6',docx:'#2b6fd6',xls:'#1f9d55',xlsx:'#1f9d55',ppt:'#e07b1f',pptx:'#e07b1f',zip:'#a07a3c',rar:'#a07a3c',apk:'#3ddc84',txt:'#6b7280',md:'#6b7280'};
   const shortPath=p=>{const d=p.replace(/\/[^\/]*$/,'').replace(/^\/storage\/emulated\/0/,'Bộ nhớ trong').replace(/^\/sdcard/,'Bộ nhớ trong');return d};
@@ -4039,9 +4049,10 @@ function openLP(){
   lpOn=true; lp.hidden=false; lp.classList.remove('out'); $('#lpq').value=''; renderLP(); $('#lpd').innerHTML='<i class="on"></i>';
   /* Không tự đưa con trỏ vào ô tìm kiếm: chỉ khi người dùng chạm vào ô thì bàn phím mới hiện */
   try{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}catch(x){}
+  kickSync(); /* trang web nhúng là view gốc nằm đè lên giao diện: ẩn nó ngay khung hình kế tiếp, không chờ vòng kiểm tra 90ms */
 }
 function closeLP(){
-  if(!lpOn)return; lpOn=false; lp.classList.add('out');
+  if(!lpOn)return; lpOn=false; lp.classList.add('out'); kickSync();
   setTimeout(()=>{if(!lpOn)lp.hidden=true},reduce?0:220);
 }
 function toggleLP(){lpOn?closeLP():openLP()}
@@ -4759,8 +4770,9 @@ if(window.AndroidLauncher){(function(){
     safe(()=>A.openPanel(kind));
   },true);
   /* Launchpad: thêm ứng dụng thật đã cài trên máy */
-  let REAL=null, lpTok=0;
-  const loadApps=()=>{if(REAL===null)REAL=safe(()=>JSON.parse(A.getApps()),[])};
+  let REAL=null, REALV=null, lpTok=0;
+  /* Chỉ phân tích lại danh sách (JSON lớn có icon) khi bên Android báo đã cài/gỡ/cập nhật app; không thì dùng bản đã có */
+  const loadApps=()=>{const v=safe(()=>A.getAppsVersion?A.getAppsVersion():0,0); if(REAL===null||v!==REALV){REAL=safe(()=>JSON.parse(A.getApps()),[]);REALV=v}};
   /* Nạp sẵn danh sách app thật lúc rảnh (native đã cache), để lần đầu mở Launchpad không bị khựng */
   (window.requestIdleCallback||(f=>setTimeout(f,900)))(()=>{loadApps()},{timeout:2500});
   const _rl=renderLP;

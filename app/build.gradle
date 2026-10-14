@@ -2,10 +2,14 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
+// Phiên bản GeckoView cố định: đọc từ file gecko.version ở thư mục gốc (CI tự ghi lại ở lần build đầu tiên thành công).
+// Chưa có file (hoặc nội dung sai dạng) thì tạm dùng 128.+ như cũ. Muốn nâng cấp Gecko: sửa nội dung file này.
+def geckoVer = rootProject.file('gecko.version').exists() ? rootProject.file('gecko.version').text.trim() : ''
+if (!(geckoVer ==~ /^128\.[0-9A-Za-z.\-]+$/)) geckoVer = '128.+'
 dependencies {
     implementation 'androidx.core:core:1.13.1'
-    // ---- Trình duyệt Gecko (Firefox) đóng gói sẵn; thư viện gốc được lọc chỉ còn arm64-v8a và x86_64 (xem abiFilters bên dưới) ----
-    implementation 'org.mozilla.geckoview:geckoview-omni:128.+'
+    // ---- Trình duyệt Gecko (Firefox) đóng gói sẵn; thư viện gốc được lọc theo abiFilters bên dưới ----
+    implementation "org.mozilla.geckoview:geckoview-omni:${geckoVer}"
     // ---- App con "Duyệt web" (chép từ repo Webandr) ----
     implementation 'androidx.webkit:webkit:1.11.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
@@ -21,9 +25,9 @@ android {
         def run = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
         versionCode run
         versionName "1.0.${run}"
-        // Đóng gói arm64-v8a, x86_64 và x86 (x86 cần cho máy Intel chạy Android 32-bit như Lenovo Yoga Book, nếu thiếu sẽ không cài được); bỏ armeabi-v7a cho nhẹ máy
-        // Đổi bằng -Pabis=x86_64,x86 (hoặc nhập ở nút Run workflow) khi cần, ví dụ máy Intel dùng hệ 32-bit
-        def abis = ((project.findProperty('abis') ?: 'arm64-v8a,x86_64,x86') as String).split(',').collect { it.trim() }.findAll { it }
+        // Bản này chỉ dành cho máy Lenovo Yoga Book YB1-X90F (chip Intel, Android 32-bit): chỉ đóng gói x86 nên APK nhẹ hơn nhiều, nhưng KHÔNG cài được trên điện thoại ARM.
+        // Muốn đóng cho máy khác: -Pabis=arm64-v8a (hoặc nhập ở nút Run workflow), ví dụ 'arm64-v8a,x86_64,x86' cho cả ba loại CPU
+        def abis = ((project.findProperty('abis') ?: 'x86') as String).split(',').collect { it.trim() }.findAll { it }
         ndk { abiFilters.addAll(abis) }
     }
     signingConfigs {
