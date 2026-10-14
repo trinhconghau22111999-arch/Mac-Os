@@ -1545,6 +1545,30 @@ public class MainActivity extends Activity {
             return 0;
         }
 
+        /* ---- Thời gian tắt màn hình khi không dùng (cài đặt thật SCREEN_OFF_TIMEOUT của máy) ---- */
+        /**
+         * Bật: nhớ thời gian cũ của máy rồi đặt thành `min` phút. Tắt: trả lại thời gian cũ.
+         * Cần quyền "Sửa cài đặt hệ thống"; chưa có thì mở trang cấp quyền và trả về false.
+         */
+        @JavascriptInterface public boolean setScreenTimeout(boolean on, int min) {
+            if (!Settings.System.canWrite(MainActivity.this)) {
+                go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName()))); return false;
+            }
+            try {
+                SharedPreferences st = getSharedPreferences("screen_timeout", 0);
+                if (on) {
+                    /* chỉ lưu giá trị gốc lần đầu, đổi 5/10/30 phút sau đó không ghi đè */
+                    if (!st.contains("orig")) st.edit().putInt("orig", Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 60000)).apply();
+                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, Math.max(1, min) * 60000);
+                } else {
+                    int orig = st.getInt("orig", -1);
+                    if (orig > 0) Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, orig);
+                    st.edit().remove("orig").apply();
+                }
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
         /* ---- Tự xoay màn hình (cài đặt thật của máy) ---- */
         @JavascriptInterface public boolean isAutoRotate() {
             try { return Settings.System.getInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION) == 1; } catch (Exception e) { return false; }
