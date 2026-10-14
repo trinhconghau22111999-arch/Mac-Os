@@ -842,6 +842,10 @@ a.btn.pri{color:#fff}
 .dk .ic{display:grid;width:100%;height:100%;transform-origin:50% 100%}
 .dock:not(.dmag) .dk,.dock:not(.dmag) .dk .ic{transition:transform .14s ease-out}
 .dk::after{margin-bottom:var(--lift,0px)}
+.dk.dkhold .ic{transform:scale(1.14)!important}
+.dk.dkdrag{transition:none!important;z-index:30;position:relative}
+.dk.dkdrag .ic{transform:scale(1.2)!important;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}
+.dock.dkdragging .dk::after{display:none!important}
 .dk.bounce .ic{animation:bounce .56s cubic-bezier(.3,.6,.4,1)}
 /* Icon vào/ra Dock kiểu macOS: ô mở rộng (hoặc thu lại) từ từ nên Dock co giãn mượt quanh tâm, các icon cũ trượt nhẹ sang hai bên;
    icon mới giữ nguyên cỡ tròn (đặt tuyệt đối giữa ô) nên không bị bóp thành elip, chỉ phóng lên và hiện dần */
@@ -1326,7 +1330,8 @@ function addDockBtn(id){
     b.addEventListener('pointerdown',e=>{
       if(e.pointerType==='mouse')return;
       b._lp=false; cancelLp();
-      lpT=setTimeout(()=>{b._lp=true;const r=b.getBoundingClientRect();dockMenu(r.left+r.width/2-40,r.top-4,r)},450);
+      lpT=setTimeout(()=>{b._lp=true;const r=b.getBoundingClientRect(),menu=()=>dockMenu(r.left+r.width/2-40,r.top-4,r);
+        if(typeof dkHoldStart==='function'&&DOCK.indexOf(id)>=0&&id!=='launchpad')dkHoldStart(b,e.pointerId,menu); else menu()},450);
     });
     ['pointerup','pointercancel','pointerleave','pointermove'].forEach(t=>b.addEventListener(t,t==='pointermove'?(e=>{if(Math.abs(e.movementX)+Math.abs(e.movementY)>6)cancelLp()}):cancelLp));
     let ctxT=0;
@@ -1479,7 +1484,7 @@ const applyMag=()=>{
   });
 };
 const magnify=e=>{
-  if(!pref('magnify',true)||narrowDock())return; /* màn hẹp: dock là thanh cuộn ngang, không phóng đại để lướt mượt */
+  if(dkDragOn||!pref('magnify',true)||narrowDock())return; /* màn hẹp: dock là thanh cuộn ngang, không phóng đại để lướt mượt */
   if(!centers.length)calcCenters();
   if(!centers.length)return;
   dock.classList.add('dmag'); mgX=e.clientX; /* không dùng tên 'mg': trùng với .mg (lưới 92px) làm dock giãn ra hai bên */
@@ -1513,6 +1518,58 @@ addEventListener('pointermove',e=>{
   if(e.clientX<r.left-pad||e.clientX>r.right+pad||e.clientY<r.top-pad||e.clientY>r.bottom+pad)mgOff();
 },true);
 setInterval(()=>{if(mgType==='touch'&&!mgDown)mgOff()},300);
+/* Đổi chỗ icon trên Dock: cảm ứng = nhấn giữ rồi kéo ngang (nhả mà không kéo thì hiện menu); chuột = bấm giữ và kéo. Thứ tự được lưu lại */
+let dkDragOn=false, dkH=null, dkPD=null;
+dock.addEventListener('pointerdown',e=>{
+  dkPD={x:e.clientX,y:e.clientY,pid:e.pointerId};
+  if(e.pointerType==='mouse'&&e.button===0){
+    const el=e.target.closest('.dk'); if(el&&DOCK.indexOf(el.dataset.id)>=0&&el.dataset.id!=='launchpad')dkH={el:el,pid:e.pointerId,mouse:true,drag:false,sx:e.clientX,sy:e.clientY,menu:null};
+  }
+},true);
+function dkHoldStart(el,pid,menu){
+  if(!dkPD)return; dkH={el:el,pid:pid,mouse:false,drag:false,sx:dkPD.x,sy:dkPD.y,menu:menu};
+  el.classList.add('dkhold'); try{unmagnify()}catch(e){}
+}
+dock.addEventListener('touchmove',e=>{if(dkH&&!dkH.mouse)e.preventDefault()},{passive:false});
+const dkCenter=o=>dock.getBoundingClientRect().left+o.offsetLeft-dock.scrollLeft+o.offsetWidth/2;
+function dkDragStart(){
+  const el=dkH.el; dkH.drag=true; dkDragOn=true; unmagnify(); closeAllPopups();
+  el.classList.remove('dkhold'); el.classList.add('dkdrag'); dock.classList.add('dkdragging'); el._lp=true;
+}
+function dkDragMove(x){
+  const el=dkH.el, pinned=$$('.dk',dock).filter(d=>d!==el&&DOCK.indexOf(d.dataset.id)>=0);
+  const dr=dock.getBoundingClientRect();
+  if(dock.classList.contains('scroll')){if(x<dr.left+34)dock.scrollLeft-=10; else if(x>dr.right-34)dock.scrollLeft+=10}
+  let before=null; for(const o of pinned){if(dkCenter(o)>=x){before=o;break}}
+  if(before&&before.dataset.id==='launchpad')before=pinned[1]||null; /* Launchpad luôn đứng đầu */
+  const last=pinned[pinned.length-1];
+  const needMove=before?el.nextElementSibling!==before:(last&&last.nextElementSibling!==el);
+  if(needMove){
+    const rects=new Map(pinned.map(o=>{o.style.transition='none';return [o,o.getBoundingClientRect().left]}));
+    if(before)dock.insertBefore(el,before); else dock.insertBefore(el,last.nextElementSibling);
+    pinned.forEach(o=>{o.style.transform='';const d=rects.get(o)-o.getBoundingClientRect().left; if(d)o.style.transform='translateX('+d+'px)'});
+    void dock.offsetWidth;
+    pinned.forEach(o=>{o.style.transition='transform .18s ease';o.style.transform=''; setTimeout(()=>{o.style.transition=''},220)});
+  }
+  el.style.transform=''; el.style.transform='translateX('+(x-dkCenter(el))+'px)';
+}
+function dkEnd(cancel){
+  const h=dkH; dkH=null; if(!h)return;
+  const el=h.el; el.classList.remove('dkhold');
+  setTimeout(()=>{el._lp=false},350);
+  if(!h.drag){ if(!h.mouse&&!cancel&&h.menu)h.menu(); return }
+  el.style.transition='transform .18s ease'; el.style.transform='';
+  setTimeout(()=>{el.style.transition='';el.classList.remove('dkdrag');dock.classList.remove('dkdragging');dkDragOn=false;try{unmagnify()}catch(e){}},200);
+  const nl=[]; [...dock.children].forEach(c=>{if(c.classList.contains('sep'))nl.push('|'); else if(c.classList.contains('dk')&&DOCK.indexOf(c.dataset.id)>=0)nl.push(c.dataset.id)});
+  if(nl.length===DOCK.length&&nl.every(x=>x==='|'||DOCK.indexOf(x)>=0)){DOCK.length=0; nl.forEach(x=>DOCK.push(x)); saveDock()}
+}
+addEventListener('pointermove',e=>{
+  if(!dkH||e.pointerId!==dkH.pid)return;
+  if(!dkH.drag){const dx=e.clientX-dkH.sx, dy=e.clientY-dkH.sy; if(Math.abs(dx)+Math.abs(dy)<(dkH.mouse?7:5))return; dkDragStart()}
+  dkDragMove(e.clientX);
+});
+addEventListener('pointerup',e=>{if(dkH&&e.pointerId===dkH.pid)dkEnd(false)});
+addEventListener('pointercancel',e=>{if(dkH&&e.pointerId===dkH.pid)dkEnd(true)});
 $('#hotz').addEventListener('pointerenter',()=>{if(pref('hideDock',false))dock.classList.add('peek')});
 
 /* ---------- Cửa sổ ---------- */
