@@ -4,13 +4,6 @@ plugins {
 }
 dependencies {
     implementation 'androidx.core:core:1.13.1'
-    // ---- App con "Ổ mềm" (Bo-nho-ao) ----
-    implementation 'androidx.core:core-ktx:1.13.1'
-    implementation 'androidx.work:work-runtime-ktx:2.9.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
-    implementation('com.google.api-client:google-api-client-android:2.2.0') { exclude group: 'org.apache.httpcomponents' }
-    implementation('com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0') { exclude group: 'org.apache.httpcomponents' }
-    implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
     // ---- Trình duyệt Gecko (Firefox) đóng gói sẵn; thư viện gốc được lọc chỉ còn arm64-v8a và x86_64 (xem abiFilters bên dưới) ----
     implementation 'org.mozilla.geckoview:geckoview-omni:128.+'
     // ---- App con "Duyệt web" (chép từ repo Webandr) ----

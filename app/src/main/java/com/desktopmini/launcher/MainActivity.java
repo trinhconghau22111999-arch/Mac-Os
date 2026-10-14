@@ -493,6 +493,12 @@ public class MainActivity extends Activity {
         try { startActivity(i); } catch (Exception e) { }
     }
 
+    /** Mở app "Ổ mềm" = Drive 3 hồ sơ (màn hình chọn Ảnh / Video / Tệp). */
+    void openDriveHome() {
+        Intent i = new Intent(this, com.desktopmini.launcher.drive3.HomeActivity.class);
+        try { startActivity(i); } catch (Exception e) { }
+    }
+
     /** Mở app con "Gõ văn bản". */
     void openTy() {
         Intent i = new Intent(this, TypingActivity.class);
@@ -1513,16 +1519,8 @@ public class MainActivity extends Activity {
             } catch (Exception e) { }
             return arr.toString();
         }
-        /** App con "Ổ mềm": giao diện HTML gọi lệnh, kết quả (JSON) trả lại qua window.omemCb(id, json). */
-        @JavascriptInterface public void omem(final String op, final String arg, final int cb) {
-            vn.omem.OmemApi.call(MainActivity.this, op, arg, new vn.omem.OmemCb() {
-                @Override public void done(final String json) {
-                    runOnUiThread(new Runnable() { public void run() {
-                        if (web != null) web.evaluateJavascript("window.omemCb&&window.omemCb(" + cb + "," + JSONObject.quote(json) + ")", null);
-                    } });
-                }
-            });
-        }
+        /** Mở app "Ổ mềm" (Drive 3 hồ sơ: Ảnh / Video / Tệp) ở màn hình riêng; thoát thì quay về Desktop Mini. */
+        @JavascriptInterface public void openDrive3() { runOnUiThread(new Runnable() { public void run() { openDriveHome(); } }); }
         /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */
         @JavascriptInterface public void openWebBrowser(String url) { openWeb(url); }
         /** Mở app con "YouTube" (chỉ YouTube, không thanh địa chỉ). */

@@ -40,3 +40,12 @@ Mỗi quyền đặc biệt chỉ hỏi một lần; xem lại và cấp sau tro
 - Chỉ vào được trang của Microsoft (office.com, microsoft365.com, microsoftonline.com, live.com, sharepoint.com, onedrive.com…); link ra ngoài bị chặn và hiện thông báo, như YouTube.
 - Hỗ trợ chọn tệp từ máy (mở/tải lên tài liệu) và tải tệp về qua trình tải xuống của máy. Cần Internet; đóng cửa sổ thì trang được hủy (tài liệu đã tự lưu trên OneDrive).
 - Microsoft có thể hiện trang chặn/xác minh khi đăng nhập trong WebView; nếu bị, mở office.com ở Chrome đăng nhập trước hoặc báo lại để đổi cách.
+
+## Ổ mềm = Drive 3 hồ sơ (chép từ repo Drive, thay hẳn bản Ổ mềm cũ)
+- Bản Ổ mềm cũ (gộp nhiều Google Drive bằng Drive API, `vn.omem`, WorkManager) đã **xóa toàn bộ**; chỉ giữ biểu tượng **Ổ mềm** trên Dock/Launchpad. Bấm vào là mở app **Drive 3 hồ sơ** ở màn hình Android riêng (thoát/Back thì quay về Desktop Mini).
+- Mã nằm ở `app/src/main/java/com/desktopmini/launcher/drive3/` (chép nguyên từ repo Drive, đổi tên gói; `MainActivity` của Drive đổi thành `HomeActivity`).
+- 3 hồ sơ cố định **Ảnh / Video / Tệp**, mỗi hồ sơ đăng nhập 1 tài khoản Google riêng trong Drive web; nút **Tải lên** ở mỗi thẻ chọn tệp rồi tự gửi lên Drive.
+  - Android 9 trở lên: mỗi hồ sơ 1 process (`:p1`, `:p2`, `:p3`) + thư mục dữ liệu WebView riêng, tách đăng nhập hoàn toàn, mở song song được.
+  - Android 7–8: 3 hồ sơ chạy chung process chính và **đổi cookie** theo hồ sơ (`DriveCookies.java`); mỗi lúc chỉ 1 hồ sơ đăng nhập, đang tải lên ở hồ sơ này thì chưa mở được hồ sơ khác.
+- Khi tải lên: khung phần trăm ở đáy màn hình, thông báo tiến độ, giữ màn hình sáng, dịch vụ nền (`UploadService`) giữ CPU + Wi-Fi thức khi tắt màn hình.
+- Không dùng Google Drive API, không cần khóa/máy chủ; đã bỏ các thư viện chỉ phục vụ Ổ mềm cũ (Google API client, WorkManager, coroutines).
