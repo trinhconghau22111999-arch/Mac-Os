@@ -129,6 +129,14 @@ ul,ol{margin:0;padding:0;list-style:none}
 /* Màn hình nền */
 .desk{position:absolute;inset:0;z-index:0;padding:40px 12px 110px;display:flex;flex-direction:column;flex-wrap:wrap;align-content:flex-end;gap:6px}
 .desk.dropping{background:rgba(255,255,255,.1)}
+.gbar{position:absolute;top:40px;left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 28px));height:44px;z-index:1;display:flex;align-items:center;gap:10px;padding:0 5px 0 14px;border-radius:999px;background:rgba(255,255,255,.93);box-shadow:0 4px 18px rgba(0,0,0,.28);box-sizing:border-box}
+.gbar[hidden]{display:none}
+.gbar .gg{width:22px;height:22px;flex:none;padding:0;border:0;background:none;display:grid;place-items:center;cursor:pointer}
+.gbar .gg svg{width:20px;height:20px}
+.gbar input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#202124;font-size:15px;user-select:text;-webkit-user-select:text}
+.gbar input::placeholder{color:#5f6368}
+.gbar .gs{width:34px;height:34px;border:0;border-radius:50%;background:#4285f4;color:#fff;display:grid;place-items:center;flex:none;cursor:pointer}
+.stage.gbon .desk{padding-top:96px}
 .di{width:88px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;border-radius:10px;color:#fff;text-align:center}
 .di .dl{max-width:100%;padding:1px 6px;border-radius:5px;font-size:12px;line-height:1.3;text-shadow:0 1px 3px rgba(0,0,0,.6);word-break:break-word}
 .di[aria-selected="true"]{background:rgba(255,255,255,.2)}
@@ -1035,6 +1043,7 @@ body.native .stage{border-radius:0;min-height:0}
 </head><body>
 <div class="stage" id="stage" data-wall="1">
   <div class="desk" id="desk" data-drop="root:desk"></div>
+  <div class="gbar" id="gbar"><button class="gg" type="button" aria-label="Google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 7-10.3 7-17.7z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.7-6c-2.2 1.5-5 2.3-8.3 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg></button><input id="gq" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tìm kiếm trên Google" aria-label="Tìm kiếm trên Google"><button class="gs" type="button" aria-label="Tìm kiếm"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button></div>
   <div class="mcbg" id="mcbg"></div>
   <div class="wins" id="wins"></div>
   <div class="msw" id="msw" hidden><div class="mst" id="mst"></div><div class="mshint">Chạm để mở · Vuốt lên để đóng ứng dụng</div><button class="msall" id="msall" type="button">Xoá tất cả</button></div>
@@ -1581,6 +1590,23 @@ addEventListener('pointermove',e=>{
 });
 addEventListener('pointerup',e=>{if(dkH&&e.pointerId===dkH.pid)dkEnd(false)});
 addEventListener('pointercancel',e=>{if(dkH&&e.pointerId===dkH.pid)dkEnd(true)});
+/* Thanh tìm kiếm Google trên màn hình nền: gõ rồi Enter -> mở ứng dụng Duyệt web với kết quả Google (hoặc mở thẳng địa chỉ nếu gõ tên trang web) */
+(function(){
+  const bar=$('#gbar'), gq=$('#gq');
+  function go(){
+    const q=gq.value.trim(); let u='https://www.google.com/';
+    if(q){u=/^https?:\/\/\S+$/i.test(q)?q:(/^[\w-]+(\.[\w-]+)+(:\d+)?(\/\S*)?$/.test(q)?'https://'+q:'https://www.google.com/search?q='+encodeURIComponent(q))}
+    gq.value=''; gq.blur(); closeAllPopups(); openApp('webbrowser',u);
+  }
+  $('.gs',bar).addEventListener('click',e=>{e.stopPropagation();go()});
+  $('.gg',bar).addEventListener('click',e=>{e.stopPropagation();if(e.currentTarget._lp){e.currentTarget._lp=false;return}gq.value='';closeAllPopups();openApp('webbrowser','https://www.google.com/')});
+  gq.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();go()}else if(e.key==='Escape')gq.blur()});
+  ['keyup','keypress'].forEach(t=>gq.addEventListener(t,e=>e.stopPropagation()));
+  ['pointerdown','click','dblclick'].forEach(t=>bar.addEventListener(t,e=>e.stopPropagation()));
+  const hide=()=>setPref('gbar',false);
+  bindHold(bar,'.gg',(el,cx,cy,r)=>popAt(cx,cy,[{t:'Ẩn thanh tìm kiếm Google',fn:hide}],r));
+  bar.addEventListener('contextmenu',e=>{if(e.target.closest('input'))return;e.preventDefault();popAt(e.clientX,e.clientY,[{t:'Ẩn thanh tìm kiếm Google',fn:hide}])});
+})();
 $('#hotz').addEventListener('pointerenter',()=>{if(pref('hideDock',false))dock.classList.add('peek')});
 
 /* ---------- Cửa sổ ---------- */
@@ -1802,6 +1828,7 @@ function applyPrefs(){
   $('#wifi').classList.toggle('off',!pref('wifi',true));
   $('#dim').style.opacity=((100-pref('bright',100))/100*.75).toFixed(2);
   dock.classList.toggle('hide',!!pref('hideDock',false));
+  {const gb=!!pref('gbar',true), was=stage.classList.contains('gbon'); stage.classList.toggle('gbon',gb); $('#gbar').hidden=!gb; if(gb!==was&&typeof renderDesk==='function')try{renderDesk()}catch(e){}}
   $('#hotz').hidden=!pref('hideDock',false);
   fitDock();
 }
@@ -2443,7 +2470,7 @@ function buildSettings(b,w,arg){
       }
       case 'ap':return ['Giao diện','<div class="tiles"><button class="ap" data-m="auto" aria-pressed="'+(dm==='auto')+'"><span class="th a"></span><span>Tự động</span></button><button class="ap" data-m="light" aria-pressed="'+(dm==='light')+'"><span class="th l"></span><span>Sáng</span></button><button class="ap" data-m="dark" aria-pressed="'+(dm==='dark')+'"><span class="th d"></span><span>Tối</span></button></div>'];
       case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button>'+(NA()&&NA().getPhotos?'<button class="ap" data-pick="1" aria-pressed="'+(!!lsGet('dm-photowall'))+'"><span class="wl" style="background:linear-gradient(135deg,#5b6577,#2b303b);display:grid;place-items:center;font-size:30px;color:#fff">▣</span><span>Ảnh trên máy</span></button>':'')+'</div>'];
-      case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Chế độ nhẹ (máy yếu)',tgl(pref('lite',false),'lite','Chế độ nhẹ'),'Tắt hiệu ứng mờ kính và bóng lớn để mượt hơn trên máy cấu hình thấp')+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+rw('Nút Desktop nổi trên ứng dụng khác',tgl(pref('dockFloat',true),'dockFloat','Nút Desktop nổi'),'Hiện nút tròn "Desktop" trên ứng dụng khác: bấm 1 lần để về màn hình Desktop, nhấn giữ rồi kéo để đổi vị trí. Cần bật dịch vụ trợ năng. Muốn ẩn luôn thanh trạng thái và thanh điều hướng của hệ thống (Android 10 trở xuống) cần cấp quyền WRITE_SECURE_SETTINGS qua adb')+'</div>'];
+      case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Thanh tìm kiếm Google',tgl(pref('gbar',true),'gbar','Thanh tìm kiếm Google'),'Hiện thanh tìm kiếm Google trên màn hình nền, tìm bằng ứng dụng Duyệt web')+rw('Chế độ nhẹ (máy yếu)',tgl(pref('lite',false),'lite','Chế độ nhẹ'),'Tắt hiệu ứng mờ kính và bóng lớn để mượt hơn trên máy cấu hình thấp')+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+rw('Nút Desktop nổi trên ứng dụng khác',tgl(pref('dockFloat',true),'dockFloat','Nút Desktop nổi'),'Hiện nút tròn "Desktop" trên ứng dụng khác: bấm 1 lần để về màn hình Desktop, nhấn giữ rồi kéo để đổi vị trí. Cần bật dịch vụ trợ năng. Muốn ẩn luôn thanh trạng thái và thanh điều hướng của hệ thống (Android 10 trở xuống) cần cấp quyền WRITE_SECURE_SETTINGS qua adb')+'</div>'];
       case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+rw('Tự xoay màn hình',tgl(rotOn(),'rot','Tự xoay màn hình'),rotOn()?'Đang bật':'Đã tắt')+'</div>'];
       case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+svRows()+'</div>'+(svRows()?'<small class="svn" hidden style="display:block;margin:8px 4px;opacity:.7">Không đổi được âm lượng này. Hãy tắt chế độ Không làm phiền của máy rồi thử lại.</small>':'')];
       case 'bt2':{
@@ -2477,7 +2504,7 @@ function buildSettings(b,w,arg){
     },true));
     $$('[data-wf]',pane).forEach(x=>x.addEventListener('click',()=>{const A=window.AndroidLauncher;let ok=false;try{ok=A.connectWifi(x.dataset.wf)}catch(e){} if(ok)setTimeout(()=>bus.emit('ui'),2000);else{try{A.openPanel('wifi')}catch(e){}}}));
     $$('[data-bt]',pane).forEach(x=>x.addEventListener('click',()=>{try{window.AndroidLauncher.openPanel('bt')}catch(e){}}));
-    $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;if(k==='rot'){toggleRot();render();return}setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'||k==='lockOnOff'||k==='dockFloat'))}));
+    $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;if(k==='rot'){toggleRot();render();return}setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'||k==='gbar'||k==='lockOnOff'||k==='dockFloat'))}));
     $$('.sv',pane).forEach(x=>{
       const A=window.AndroidLauncher, sm=x.closest('.rw').querySelector('small'), nt=$('.svn',pane); let t=null;
       x.addEventListener('input',()=>{
