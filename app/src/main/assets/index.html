@@ -1498,6 +1498,21 @@ dock.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!narrowDock(
 dock.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&!(e.buttons&1))return;magnify(e)},{passive:true});
 ['pointerup','pointercancel'].forEach(t=>dock.addEventListener(t,e=>{if(e.pointerType==='touch')unmagnify()}));
 dock.addEventListener('pointerleave',()=>{unmagnify();if(pref('hideDock',false))dock.classList.remove('peek')});
+/* Chống kẹt phóng đại (vuốt qua lại rồi icon bự mãi): thu lại khi ngón tay/chuột nhả hoặc rời khỏi Dock ở bất cứ đâu, và có đồng hồ canh phòng khi mất sự kiện nhả */
+let mgDown=false, mgType='';
+const mgOff=()=>{if(dock.classList.contains('dmag')||centers.length)unmagnify()};
+addEventListener('pointerdown',e=>{mgType=e.pointerType;if(e.pointerType==='touch')mgDown=true},true);
+['pointerup','pointercancel','touchend','touchcancel','blur','contextmenu'].forEach(t=>addEventListener(t,e=>{
+  if(t==='touchend'&&e.touches&&e.touches.length)return;
+  if(t!=='blur'&&t!=='contextmenu')mgDown=false; if(mgType==='touch'||t==='blur'||t==='contextmenu')mgOff()
+},true));
+document.addEventListener('visibilitychange',()=>{mgDown=false;mgOff()});
+addEventListener('pointermove',e=>{
+  if(!dock.classList.contains('dmag'))return;
+  const r=dock.getBoundingClientRect(), pad=70;
+  if(e.clientX<r.left-pad||e.clientX>r.right+pad||e.clientY<r.top-pad||e.clientY>r.bottom+pad)mgOff();
+},true);
+setInterval(()=>{if(mgType==='touch'&&!mgDown)mgOff()},300);
 $('#hotz').addEventListener('pointerenter',()=>{if(pref('hideDock',false))dock.classList.add('peek')});
 
 /* ---------- Cửa sổ ---------- */
