@@ -376,9 +376,57 @@ public class MainActivity extends Activity {
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
     @Override protected void onResume() {
         super.onResume();
-        imeUp = false; hideBars(); prefetchApps();
+        imeUp = false; hideBars(); prefetchApps(); scanNewMedia();
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
+    }
+
+    /* Đăng ký vào thư viện (MediaStore) các ảnh/video/nhạc mới nằm trong bộ nhớ nhưng chưa được hệ thống quét (vd. ảnh chụp màn hình của trình duyệt trên Android 9 trở xuống), rồi nạp lại danh sách */
+    private volatile boolean scanBusy = false; private long scanAt = 0;
+    private static final java.util.HashSet<String> MEDIA_EXT = new java.util.HashSet<String>(java.util.Arrays.asList(
+        "jpg","jpeg","png","gif","webp","bmp","heic","heif","mp4","mkv","webm","3gp","mov","avi","m4v","mp3","m4a","aac","wav","ogg","flac","opus"));
+    private void scanNewMedia() {
+        long now = System.currentTimeMillis();
+        if (scanBusy || now - scanAt < 20000) return;
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) return;
+        scanBusy = true; scanAt = now;
+        new Thread(new Runnable() { public void run() {
+            try {
+                SharedPreferences sp = getSharedPreferences("dm_scan", MODE_PRIVATE);
+                final long last = sp.getLong("last", 0);
+                final java.util.ArrayList<File> found = new java.util.ArrayList<File>();
+                walkMedia(Environment.getExternalStorageDirectory(), last, found, 0);
+                if (found.isEmpty()) return;
+                java.util.Collections.sort(found, new java.util.Comparator<File>() {
+                    @Override public int compare(File a, File b) { return Long.compare(a.lastModified(), b.lastModified()); }
+                });
+                int n = Math.min(found.size(), 5000);
+                final String[] paths = new String[n]; long mx = last;
+                for (int i = 0; i < n; i++) { paths[i] = found.get(i).getAbsolutePath(); mx = Math.max(mx, found.get(i).lastModified()); }
+                sp.edit().putLong("last", mx).apply();
+                final int[] left = {n};
+                android.media.MediaScannerConnection.scanFile(MainActivity.this, paths, null, new android.media.MediaScannerConnection.OnScanCompletedListener() {
+                    @Override public void onScanCompleted(String path, Uri uri) {
+                        boolean done; synchronized (left) { done = --left[0] <= 0; }
+                        if (done) runOnUiThread(new Runnable() { public void run() { try { web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null); } catch (Exception e) { } } });
+                    }
+                });
+            } catch (Throwable e) { } finally { scanBusy = false; }
+        } }).start();
+    }
+    private void walkMedia(File d, long since, java.util.ArrayList<File> out, int depth) {
+        if (d == null || depth > 8 || out.size() > 20000) return;
+        File[] fs = d.listFiles(); if (fs == null) return;
+        for (File f : fs) { if (f.getName().equals(".nomedia")) return; }
+        for (File f : fs) {
+            String nm = f.getName();
+            if (nm.startsWith(".")) continue;
+            if (f.isDirectory()) { if (depth == 0 && nm.equals("Android")) continue; walkMedia(f, since, out, depth + 1); }
+            else if (f.lastModified() > since) {
+                int i = nm.lastIndexOf('.');
+                if (i > 0 && MEDIA_EXT.contains(nm.substring(i + 1).toLowerCase(java.util.Locale.ROOT))) out.add(f);
+            }
+        }
     }
     @Override protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
@@ -1532,7 +1580,7 @@ public class MainActivity extends Activity {
                     java.util.Arrays.sort(idx, new java.util.Comparator<Integer>() {
                         @Override public int compare(Integer x, Integer y) { return Long.compare(rows.get(y)[1], rows.get(x)[1]); }
                     });
-                    for (int k = 0; k < idx.length && k < 500; k++) {
+                    for (int k = 0; k < idx.length && k < 50000; k++) {
                         int i = idx[k];
                         JSONObject o = new JSONObject();
                         o.put("id", rows.get(i)[0]); o.put("n", info.get(i)[0]); o.put("p", info.get(i)[1]); o.put("t", rows.get(i)[1]);

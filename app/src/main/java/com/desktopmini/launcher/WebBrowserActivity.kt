@@ -1418,6 +1418,7 @@ class WebBrowserActivity : Activity() {
                 val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Webandr")
                 dir.mkdirs()
                 FileOutputStream(File(dir, name)).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                android.media.MediaScannerConnection.scanFile(this, arrayOf(File(dir, name).absolutePath), arrayOf("image/png"), null) /* để Ảnh/Tệp thấy ngay */
             }
             Toast.makeText(this, "Đã lưu ảnh chụp: Pictures/Webandr/$name", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {

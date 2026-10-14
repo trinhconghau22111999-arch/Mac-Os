@@ -4891,7 +4891,7 @@ if(window.AndroidLauncher){(function(){
     PH.length=0; l.forEach(p=>{const e=['','','','','',p.n];e.pid=p.id;
       /* Phân loại theo thư mục/tên tệp: ảnh chụp màn hình (Screenshots) và ảnh chụp bằng camera (DCIM/Camera, Pictures/Desktop Mini) */
       const lp=((p.p||'')+' '+(p.n||'')).toLowerCase();
-      if(/screenshot|screen_shot|screen-shot|chụp màn hình|chup man hinh/.test(lp))e.k='shot';
+      if(/screenshot|screen_shot|screen-shot|chụp màn hình|chup man hinh|webandr/.test(lp))e.k='shot';
       else if(/dcim\/camera|dcim\/100|desktop mini|desktopmini/.test(lp)||/^(img|pxl)_\d{8}_\d{6}/.test((p.n||'').toLowerCase()))e.k='cam';
       PH.push(e)});
   }
