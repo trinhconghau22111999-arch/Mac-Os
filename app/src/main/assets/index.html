@@ -1276,6 +1276,17 @@ const APPS={
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
   forcequit:{name:'Buộc thoát ứng dụng',w:380,h:330,minW:340,minH:280,build:buildForceQuit,hidden:true}
 };
+/* Ứng dụng Android đã cài đặt lên màn hình desktop/Dock: đăng ký như app giả có id 'x:<gói>' (tên + biểu tượng được lưu lại để lần sau vẫn hiện) */
+const EXTINFO=(()=>{try{const o=JSON.parse(localStorage.getItem('dm-extinfo')||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{}}catch(e){return {}}})();
+const EXTLIVE={};
+function extReg(pkg,label,icon,save){
+  const id='x:'+pkg;
+  APPS[id]={name:label||pkg,ext:pkg,hidden:true,w:0,h:0,minW:0,minH:0,build:()=>({})};
+  ICONS[id]={bg:'transparent',g:'<img src="'+String(icon||'').replace(/"/g,'&quot;')+'" alt="" decoding="async" style="width:100%;height:100%;border-radius:22%;object-fit:cover">'};
+  if(save){EXTINFO[pkg]={label:label,icon:icon};try{localStorage.setItem('dm-extinfo',JSON.stringify(EXTINFO))}catch(e){}}
+  return id;
+}
+Object.keys(EXTINFO).forEach(k=>{const o=EXTINFO[k];if(o)extReg(k,o.label,o.icon)});
 const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
 const DOCK_DEF=['launchpad','files','webbrowser','youtube','mail','photos','camera','notes','omem','zalo','facebook','settings'];
 /* Dock và màn hình desktop do người dùng tự sắp xếp (lưu lại để mở app lần sau vẫn giữ) */
@@ -1615,6 +1626,7 @@ function flyOut(w,id,done){
 function openApp(id,arg){
   closeAllPopups();
   if(id==='launchpad'){toggleLP();return}
+  if(typeof id==='string'&&id.indexOf('x:')===0){if(typeof lpOn!=='undefined'&&lpOn)closeLP();extLaunch(id.slice(2));return}
   if(!APPS[id])return;
   /* "Duyệt web" là trình duyệt Webandr đầy đủ (thẻ, dấu sao, phím tắt, dịch, chụp màn hình...) nên mở màn hình trình duyệt thật; thoát thì quay về Desktop Mini */
   if(id==='webbrowser'&&window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser){
@@ -4174,7 +4186,9 @@ function toggleLP(){lpOn?closeLP():openLP()}
 $('#lpq').addEventListener('input',renderLP);
 /* Nhấn giữ / chuột phải một app trong Launchpad: đặt lên màn hình desktop hoặc thanh Dock */
 bindHold($('#lpg'),'.lpi',(el,cx,cy,r)=>{
-  const id=el.dataset.app; if(!id)return;
+  let id=el.dataset.app;
+  if(!id&&el.dataset.pkg){const a=EXTLIVE[el.dataset.pkg]; if(!a)return; id=extReg(a.pkg,a.label,a.icon,true)} /* app Android đã cài: cũng đặt được lên desktop/Dock */
+  if(!id)return;
   const onDesk=deskApps().indexOf(id)>=0, inDock=DOCK.indexOf(id)>=0;
   popAt(cx,cy,[
     {t:'Mở',fn:()=>{closeLP();openApp(id)}},'-',
@@ -4888,9 +4902,9 @@ if(window.AndroidLauncher){(function(){
       if(tok!==lpTok||!lpOn)return;
       const frag=document.createDocumentFragment();
       for(const end=Math.min(i+16,list.length);i<end;i++){
-        const a=list[i], b=document.createElement('button'); b.className='lpi';
+        const a=list[i], b=document.createElement('button'); b.className='lpi'; b.dataset.pkg=a.pkg; EXTLIVE[a.pkg]=a;
         b.innerHTML='<img src="'+a.icon+'" alt="" decoding="async" style="width:var(--lpic,64px);height:var(--lpic,64px);border-radius:22%;object-fit:cover"><span>'+esc(a.label)+'</span>';
-        b.addEventListener('click',e=>{e.stopPropagation();closeLP();extLaunch(a.pkg)});
+        b.addEventListener('click',e=>{e.stopPropagation();if(b._lp){b._lp=false;return}closeLP();extLaunch(a.pkg)});
         frag.appendChild(b);
       }
       g.appendChild(frag);
