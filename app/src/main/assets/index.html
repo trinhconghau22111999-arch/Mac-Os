@@ -4056,7 +4056,7 @@ function closeLP(){
   setTimeout(()=>{if(!lpOn)lp.hidden=true},reduce?0:220);
 }
 function toggleLP(){lpOn?closeLP():openLP()}
-$('#lpq').addEventListener('input',renderLP);
+$('#lpq').addEventListener('input',()=>renderLP()); /* gọi qua tên để dùng bản renderLP mới (có cả app cài đặt) được gán lại ở phía dưới */
 /* Nhấn giữ / chuột phải một app trong Launchpad: đặt lên màn hình desktop hoặc thanh Dock */
 bindHold($('#lpg'),'.lpi',(el,cx,cy,r)=>{
   let id=el.dataset.app;
@@ -4774,15 +4774,22 @@ if(window.AndroidLauncher){(function(){
   /* Chỉ phân tích lại danh sách (JSON lớn có icon) khi bên Android báo đã cài/gỡ/cập nhật app; không thì dùng bản đã có */
   const loadApps=()=>{const v=safe(()=>A.getAppsVersion?A.getAppsVersion():0,0); if(REAL===null||v!==REALV){REAL=safe(()=>JSON.parse(A.getApps()),[]);REALV=v}};
   /* Nạp sẵn danh sách app thật lúc rảnh (native đã cache), để lần đầu mở Launchpad không bị khựng */
-  (window.requestIdleCallback||(f=>setTimeout(f,900)))(()=>{loadApps()},{timeout:2500});
   const _rl=renderLP;
-  renderLP=function(){
-    _rl(); loadApps();
-    const term=norm($('#lpq').value.trim()), g=$('#lpg');
+  /* Lưới Launchpad được DỰNG SẴN lúc rảnh (quiet) và GIỮ LẠI giữa các lần mở: lần mở sau chỉ hiện ra, không tạo lại vài chục nút + ảnh.
+     lpKey = "từ khoá|phiên bản danh sách app" của lưới đã dựng ĐỦ; đổi từ khoá hoặc cài/gỡ app thì khoá khác đi và lưới được dựng lại. */
+  let lpKey=null;
+  const lpFill=quiet=>{
+    loadApps();
+    const term=norm($('#lpq').value.trim()), g=$('#lpg'), key=term+'|'+REALV;
+    if(lpKey===key&&g.firstElementChild){
+      if(!quiet){g.querySelectorAll('.lpi').forEach(b=>{b._lp=false}); g.scrollTop=0} /* xoá cờ nhấn giữ còn sót, về đầu danh sách */
+      return;
+    }
+    lpKey=null; _rl();
     const list=REAL.filter(a=>!term||norm(a.label).indexOf(term)>=0), tok=(lpTok=lpTok+1);
     let i=0;
     const step=()=>{
-      if(tok!==lpTok||!lpOn)return;
+      if(tok!==lpTok||(!quiet&&!lpOn))return;
       const frag=document.createDocumentFragment();
       for(const end=Math.min(i+16,list.length);i<end;i++){
         const a=list[i], b=document.createElement('button'); b.className='lpi'; b.dataset.pkg=a.pkg; EXTLIVE[a.pkg]=a;
@@ -4791,10 +4798,13 @@ if(window.AndroidLauncher){(function(){
         frag.appendChild(b);
       }
       g.appendChild(frag);
-      if(i<list.length)requestAnimationFrame(step);
+      if(i<list.length)requestAnimationFrame(step); else lpKey=key; /* chỉ đánh dấu "đã dựng đủ" khi chạy hết, đóng giữa chừng thì lần sau dựng lại */
     };
     requestAnimationFrame(step);
   };
+  renderLP=function(){lpFill(false)};
+  /* Nạp danh sách app thật rồi dựng sẵn lưới lúc máy rảnh, để lần ĐẦU mở Launchpad cũng không khựng */
+  (window.requestIdleCallback||(f=>setTimeout(f,900)))(()=>{lpFill(true)},{timeout:2500});
   /* Pin thật */
   function realBatt(){const o=safe(()=>JSON.parse(A.getBattery()),{});if(o.level!=null){BAT.level=o.level;BAT.charging=!!o.charging;BAT.real=true;battUpdate()}}
   setInterval(realBatt,10000); realBatt(); setTimeout(realBatt,1500);
