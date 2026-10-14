@@ -2931,9 +2931,9 @@ function buildRealFiles(b,w,arg,mode){
     });
   }
   function renderDir(){
-    /* Thư mục Tải xuống gốc: hiện toàn bộ tệp bên trong ứng dụng (MediaStore), không nhảy sang app Tải xuống của hệ thống */
-    if(path===R.down&&A.listDownloads){renderDownloads();return}
+    /* Thư mục Tải xuống = thư mục "Download" thật trong quản lý tệp của máy (đọc trực tiếp như mọi thư mục khác, có cả thư mục con); MediaStore chỉ là dự phòng khi không đọc được */
     let r={list:[]}; try{r=JSON.parse(A.listDir(path))}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
+    if(r.error&&path===R.down&&A.listDownloads){renderDownloads();return}
     if(r.error){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
     ft.textContent=r.list.length+' mục';
     list.innerHTML=r.list.length?r.list.map((f,i)=>{
