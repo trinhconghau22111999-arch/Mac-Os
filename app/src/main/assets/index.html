@@ -977,10 +977,10 @@ body.native .stage{border-radius:0;min-height:0}
 @media (pointer:coarse){.win.wplain .tls{top:6px}}
 
 /* Đa nhiệm kiểu iPhone (thẻ ngang) */
-.msw{position:absolute;inset:0;z-index:8;display:flex;align-items:center;background:rgba(10,12,24,.5);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);animation:mswin .22s ease-out}
+.msw{position:absolute;inset:0;z-index:8;display:flex;align-items:flex-start;background:rgba(10,12,24,.5);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);animation:mswin .22s ease-out}
 .msw[hidden],.dsh[hidden]{display:none}
 @keyframes mswin{from{opacity:0}to{opacity:1}}
-.mst{display:flex;align-items:center;gap:26px;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-block:40px 24px}
+.mst{display:flex;align-items:center;gap:26px;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-block:18px 0}
 .mst::-webkit-scrollbar{display:none}
 .msp{flex:none;height:1px}
 .msc{flex:none;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;touch-action:pan-x;transition:transform .22s ease,opacity .22s ease;cursor:pointer}
@@ -991,9 +991,9 @@ body.native .stage{border-radius:0;min-height:0}
 .msxv img{width:44%;max-width:96px;aspect-ratio:1;border-radius:22%;object-fit:cover;box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .msh img.ic{width:26px;height:26px;border-radius:7px;object-fit:cover}
 .msv{position:relative;overflow:hidden;border-radius:18px;background:var(--win);box-shadow:0 14px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.18);pointer-events:none}
-.msall{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--base) + 14px);padding:9px 24px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 0 0 1px rgba(255,255,255,.18);cursor:pointer;z-index:2}
+.msall{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--base) + 62px);padding:9px 24px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 0 0 1px rgba(255,255,255,.18);cursor:pointer;z-index:2}
 .msall:active{background:rgba(255,255,255,.32)}
-.mshint{position:absolute;left:0;right:0;bottom:calc(var(--base) + 64px);text-align:center;color:rgba(255,255,255,.75);font-size:12px;pointer-events:none}
+.mshint{position:absolute;left:0;right:0;bottom:calc(var(--base) + 110px);text-align:center;color:rgba(255,255,255,.75);font-size:12px;pointer-events:none}
 /* Chạm giữ màn hình nền */
 .dsh{position:absolute;left:50%;bottom:calc(var(--base) + 44px);transform:translateX(-50%);z-index:9;display:flex;gap:4px;padding:14px 10px 12px;border-radius:28px;background:rgba(40,44,60,.38);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.16);max-width:calc(100% - 12px);animation:dshin .2s ease-out}
 @keyframes dshin{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -4473,7 +4473,7 @@ function openMS(){
   if(!ids.length&&!extRun.length)return;
   msOn=true; msw.hidden=false; mst.innerHTML='';
   const sr=stage.getBoundingClientRect(), base=parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||54;
-  const H=Math.max(150,sr.height-28-base-150), maxW=sr.width*.66;
+  const H=Math.max(130,sr.height-base-215), maxW=sr.width*.6;
   const lead=document.createElement('div'); lead.className='msp'; mst.appendChild(lead);
   let firstW=0,lastW=0;
   ids.forEach((id,k)=>{
