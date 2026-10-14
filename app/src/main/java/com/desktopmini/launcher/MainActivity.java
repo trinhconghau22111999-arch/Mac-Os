@@ -79,6 +79,12 @@ public class MainActivity extends Activity {
     private final HashMap<String, WebView> ext = new HashMap<String, WebView>();
     /* Zoom (2 ngón / Ctrl+lăn chuột) + nhớ mức zoom theo từng ứng dụng web nhúng */
     private final HashMap<String, ZoomHelper> zooms = new HashMap<String, ZoomHelper>();
+    /* Tự đóng hẳn trang web nhúng đã ẩn lâu để giải phóng RAM, như điện thoại đóng ứng dụng nền.
+       Mở lại cửa sổ đó thì trang được tạo mới và tải lại (extShow -> extGet). Đổi EXT_IDLE_MS để chỉnh thời gian chờ. */
+    private static final long EXT_IDLE_MS = 10 * 60 * 1000L;
+    private final HashMap<String, Long> extHiddenAt = new HashMap<String, Long>();
+    private final android.os.Handler reaper = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable reapTask = new Runnable() { public void run() { reapIdleExt(); reaper.postDelayed(this, 60000); } };
     /** Gmail / Drive / Zalo / Facebook web: giao diện máy tính. */
     private static final String UA_DESK = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
     private static final String UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
@@ -172,6 +178,7 @@ public class MainActivity extends Activity {
         trackIme();
         immersive();
         askPermissions();
+        reaper.postDelayed(reapTask, 60000);
     }
 
     @Override protected void onPause() {
@@ -179,6 +186,29 @@ public class MainActivity extends Activity {
         if (wordHost != null) wordHost.save();
         /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
         for (WebView v : ext.values()) { try { v.onPause(); } catch (Exception e) { } }
+        for (String k : ext.keySet()) markExtHidden(k);
+    }
+
+    /** Ghi lại thời điểm trang bắt đầu bị ẩn (chỉ ghi lần đầu, không đặt lại khi ẩn tiếp). */
+    private void markExtHidden(String key) {
+        if (!extHiddenAt.containsKey(key)) extHiddenAt.put(key, android.os.SystemClock.elapsedRealtime());
+    }
+
+    /** Đóng hẳn các trang nhúng đã ẩn quá EXT_IDLE_MS. Bỏ qua trang đang hiện, "Gõ văn bản" (giữ tài liệu đang soạn) và lúc đang phát nhạc. */
+    private void reapIdleExt() {
+        if (ext.isEmpty()) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        boolean music = false;
+        try { music = ((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive(); } catch (Exception e) { }
+        if (music) return;
+        for (String key : new ArrayList<String>(ext.keySet())) {
+            Long t = extHiddenAt.get(key);
+            WebView v = ext.get(key);
+            if (t == null || v == null || v.getVisibility() == View.VISIBLE) continue;
+            if (now - t < EXT_IDLE_MS || "word".equals(key)) continue;
+            ext.remove(key); zooms.remove(key); extHiddenAt.remove(key);
+            try { v.loadUrl("about:blank"); root.removeView(v); v.destroy(); } catch (Exception e) { }
+        }
     }
 
     @Override public void onTrimMemory(int level) {
@@ -189,6 +219,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        reaper.removeCallbacks(reapTask);
         try { unregisterReceiver(media); } catch (Exception e) { }
         try { unregisterReceiver(scr); } catch (Exception e) { }
         if (btRecv) { try { unregisterReceiver(btRx); } catch (Exception e) { } }
@@ -406,7 +437,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         imeUp = false; hideBars(); prefetchApps(); scanNewMedia();
-        for (WebView v : ext.values()) { try { if (v.getVisibility() == View.VISIBLE) v.onResume(); } catch (Exception e) { } }
+        for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) { try { if (e.getValue().getVisibility() == View.VISIBLE) { e.getValue().onResume(); extHiddenAt.remove(e.getKey()); } } catch (Exception x) { } }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
     }
@@ -1376,6 +1407,14 @@ public class MainActivity extends Activity {
             try { go(new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)); } catch (Exception e) { go(new Intent(Intent.ACTION_POWER_USAGE_SUMMARY)); }
             return false;
         }
+        /** RAM đang dùng / tổng RAM của máy (byte), cho thanh menu phía trên. */
+        @JavascriptInterface public String getRam() {
+            try {
+                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                ((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
+                JSONObject o = new JSONObject(); o.put("total", mi.totalMem); o.put("free", mi.availMem); return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
         @JavascriptInterface public String getBattery() {
             try {
                 Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -2230,8 +2269,9 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() { public void run() {
                 float d = getResources().getDisplayMetrics().density;
                 gkHideNow();
-                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } }
+                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
                 WebView v = extGet(key, url);
+                extHiddenAt.remove(key);
                 try { v.onResume(); } catch (Exception x) { }
                 FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
                 lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
@@ -2241,7 +2281,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void extHide(final String key) {
             runOnUiThread(new Runnable() { public void run() {
-                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } }
+                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
             }});
         }
         @JavascriptInterface public void extReload(final String key) {
@@ -2262,7 +2302,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() { public void run() {
                 extHideFull();
                 final WebView v = ext.remove(key);
-                zooms.remove(key);
+                zooms.remove(key); extHiddenAt.remove(key);
                 if (v == null) return;
                 if ("word".equals(key) && wordHost != null) {
                     /* lưu nội dung đang gõ rồi mới hủy trang (lệnh lưu chạy bất đồng bộ) */
