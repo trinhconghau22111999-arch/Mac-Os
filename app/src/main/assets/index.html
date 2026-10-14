@@ -1438,7 +1438,10 @@ function fitDock(){
   const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
   let base=Math.floor((sw-40-(tot-1)*6-seps*8-12)/n);
   const ps=pref('dockSize',54);
-  base=Math.max(Math.min(44,ps),Math.min(ps,base));
+  /* màn rộng (>560px): cho icon nhỏ tới 30px để Dock vẫn vừa, không chuyển sang chế độ cuộn (chế độ cuộn tắt hiệu ứng phóng đại) */
+  const flo=window.matchMedia('(max-width:560px)').matches?44:30;
+  base=Math.max(Math.min(flo,ps),Math.min(ps,base));
+  try{unmagnify()}catch(e){} /* kích thước đổi thì toạ độ tâm icon cũ không còn đúng */
   stage.style.setProperty('--base',base+'px');
   /* Nếu vẫn chưa vừa chiều ngang thì chuyển sang chế độ vuốt ngang (Dock vẫn nằm giữa, icon dư bị ẩn) */
   dock.classList.remove('scroll');
