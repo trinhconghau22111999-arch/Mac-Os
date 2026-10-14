@@ -736,7 +736,7 @@ public class MainActivity extends Activity {
 
     /* ================= Trình duyệt Gecko nhúng trong cửa sổ (chép từ repo dang-nhap-github) ================= */
     private static final String GK_HOME = "https://www.google.com/";
-    private static final String GK_SEARCH = "https://duckduckgo.com/?q=";
+    private static final String GK_SEARCH = "https://www.google.com/search?q=";
     private static org.mozilla.geckoview.GeckoRuntime gkRuntime;
     private org.mozilla.geckoview.GeckoSession gkSession;
     private org.mozilla.geckoview.GeckoView gkView;
