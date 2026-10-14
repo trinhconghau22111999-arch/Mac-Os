@@ -3216,16 +3216,26 @@ function buildWebApp(b,w,key,url,title,opt){
   function offline(){
     off=true; area.innerHTML='<div class="rnote"><b>Cần kết nối mạng</b><span>'+esc(title)+' cần Internet. Hãy bật Wi-Fi hoặc dữ liệu di động rồi thử lại.</span><div class="ir"><button class="btn wf">Mở Wi-Fi</button><button class="btn wr">Thử lại</button></div></div>';
     $('.wf',area).addEventListener('click',()=>A.openPanel('wifi'));
-    $('.wr',area).addEventListener('click',()=>{last='';check()});
+    $('.wr',area).addEventListener('click',()=>{failed=true;last='';check()});
     A.extHide(key); last='';
   }
+  /* Mất mạng chớp nhoáng (máy lag, đổi sóng) không được coi là offline và không được tải lại trang:
+     tải lại sẽ quay về địa chỉ ban đầu (ví dụ video YouTube mở từ phút 10 sẽ phát lại từ phút 10).
+     Chỉ coi là offline khi mất mạng liên tục > 2,5 giây; chỉ tải lại khi trang thật sự báo lỗi tải. */
+  let offSince=0, failed=false;
   function check(){
     if(opt.local)return true;
-    if(!A.isOnline()){if(!off)offline();return false}
-    if(off){off=false;area.innerHTML='';A.extReload(key)}
+    if(!A.isOnline()){
+      if(!offSince)offSince=Date.now();
+      if(off)return false;
+      if(Date.now()-offSince<2500)return true;
+      offline(); return false;
+    }
+    offSince=0;
+    if(off){off=false;area.innerHTML='';if(failed){failed=false;A.extReload(key)}else last=''}
     return true;
   }
-  EXTERR[key]=offline;
+  EXTERR[key]=()=>{failed=true;offline()};
   const blocked=()=>(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||(typeof msOn!=='undefined'&&msOn)||['#spot','#nc','#cc','#ql','#lock','#off','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
   function sync(){
     if(!w.isConnected)return;
