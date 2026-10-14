@@ -177,6 +177,15 @@ public class MainActivity extends Activity {
     @Override protected void onPause() {
         super.onPause();
         if (wordHost != null) wordHost.save();
+        /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
+        for (WebView v : ext.values()) { try { v.onPause(); } catch (Exception e) { } }
+    }
+
+    @Override public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            for (WebView v : ext.values()) { try { if (v.getVisibility() != View.VISIBLE) v.clearCache(false); } catch (Exception e) { } }
+        }
     }
 
     @Override protected void onDestroy() {
@@ -397,6 +406,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         imeUp = false; hideBars(); prefetchApps(); scanNewMedia();
+        for (WebView v : ext.values()) { try { if (v.getVisibility() == View.VISIBLE) v.onResume(); } catch (Exception e) { } }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
     }
@@ -491,6 +501,135 @@ public class MainActivity extends Activity {
         Intent i = new Intent(this, YouTubeActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try { startActivity(i); } catch (Exception e) { }
+    }
+
+    /* ================= Chụp ảnh màn hình (nút vuông góc phải dưới) ================= */
+    private void shotDone(final boolean ok) {
+        runOnUiThread(new Runnable() { public void run() {
+            if (web != null) web.evaluateJavascript("window.shotDone&&window.shotDone(" + ok + ")", null);
+        } });
+    }
+
+    /** Chụp cả cửa sổ (kể cả trang web nhúng/Gecko): PixelCopy từ Android 8, máy cũ hơn thì vẽ lại cây View. */
+    void captureScreen() {
+        final View dv = getWindow().getDecorView();
+        final int w = dv.getWidth(), h = dv.getHeight();
+        if (w <= 0 || h <= 0) { shotDone(false); return; }
+        final Bitmap bm;
+        try { bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888); }
+        catch (Throwable t) { shotDone(false); return; }
+        if (Build.VERSION.SDK_INT >= 26) {
+            try {
+                android.view.PixelCopy.request(getWindow(), bm, new android.view.PixelCopy.OnPixelCopyFinishedListener() {
+                    @Override public void onPixelCopyFinished(int r) {
+                        if (r == android.view.PixelCopy.SUCCESS) saveShotAsync(bm); else shotDone(false);
+                    }
+                }, new android.os.Handler(android.os.Looper.getMainLooper()));
+                return;
+            } catch (Throwable t) { /* rơi xuống cách vẽ lại */ }
+        }
+        try { dv.draw(new Canvas(bm)); } catch (Throwable t) { shotDone(false); return; }
+        saveShotAsync(bm);
+    }
+
+    private void saveShotAsync(final Bitmap bm) {
+        new Thread(new Runnable() { public void run() {
+            boolean ok = false;
+            try { ok = saveShot(bm); } catch (Throwable t) { }
+            try { bm.recycle(); } catch (Throwable t) { }
+            shotDone(ok);
+        } }).start();
+    }
+
+    /** Lưu PNG vào Pictures/Screenshots (ứng dụng Ảnh tự xếp vào mục "Ảnh chụp màn hình"). */
+    private boolean saveShot(Bitmap bm) throws Exception {
+        String nm = "Screenshot_" + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".png";
+        if (Build.VERSION.SDK_INT >= 29) {
+            ContentValues v = new ContentValues();
+            v.put(MediaStore.Images.Media.DISPLAY_NAME, nm);
+            v.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+            v.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Screenshots");
+            v.put(MediaStore.Images.Media.IS_PENDING, 1);
+            Uri u = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+            if (u == null) return false;
+            OutputStream os = getContentResolver().openOutputStream(u);
+            boolean ok = bm.compress(Bitmap.CompressFormat.PNG, 100, os);
+            os.close();
+            v.clear(); v.put(MediaStore.Images.Media.IS_PENDING, 0);
+            getContentResolver().update(u, v, null, null);
+            return ok;
+        }
+        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Screenshots"); dir.mkdirs();
+        File f = new File(dir, nm);
+        FileOutputStream os2 = new FileOutputStream(f);
+        boolean ok2 = bm.compress(Bitmap.CompressFormat.PNG, 100, os2);
+        os2.close();
+        if (!ok2) return false;
+        try {
+            ContentValues v2 = new ContentValues();
+            v2.put(MediaStore.Images.Media.DISPLAY_NAME, nm);
+            v2.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+            v2.put(MediaStore.Images.Media.DATA, f.getAbsolutePath());
+            getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v2);
+        } catch (Exception e) { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); }
+        return true;
+    }
+
+    /* ================= Tìm tệp trong máy (thanh tìm kiếm vuông) ================= */
+    private JSONArray findFiles(String q) {
+        JSONArray arr = new JSONArray();
+        q = q == null ? "" : q.trim();
+        if (q.length() < 2) return arr;
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+            && !(Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager())
+            && !(Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED)) return arr;
+        java.util.HashSet<String> seen = new java.util.HashSet<String>();
+        try {
+            String like = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+            Cursor c = getContentResolver().query(MediaStore.Files.getContentUri("external"),
+                new String[]{MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED},
+                MediaStore.MediaColumns.DISPLAY_NAME + " LIKE ? ESCAPE '\\' AND " + MediaStore.MediaColumns.MIME_TYPE + " IS NOT NULL",
+                new String[]{like}, MediaStore.MediaColumns.DATE_MODIFIED + " DESC");
+            if (c != null) {
+                try {
+                    while (c.moveToNext() && arr.length() < 30) {
+                        String path = c.getString(1);
+                        if (path == null || path.contains("/.") || path.contains("/Android/data/") || path.contains("/Android/obb/") || !seen.add(path)) continue;
+                        File f = new File(path);
+                        if (!f.isFile()) continue;
+                        JSONObject o = new JSONObject();
+                        o.put("n", c.getString(0)); o.put("p", path); o.put("s", c.getLong(2)); o.put("t", c.getLong(3));
+                        arr.put(o);
+                    }
+                } finally { c.close(); }
+            }
+        } catch (Exception e) { }
+        /* MediaStore chưa lập chỉ mục tệp nào khớp: duyệt thư mục (chỉ khi được cấp quyền mọi tệp) */
+        if (arr.length() == 0 && (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager())) {
+            try {
+                final String lq = q.toLowerCase(java.util.Locale.ROOT);
+                java.util.ArrayDeque<File> dq = new java.util.ArrayDeque<File>();
+                java.util.ArrayDeque<Integer> dp = new java.util.ArrayDeque<Integer>();
+                dq.add(Environment.getExternalStorageDirectory()); dp.add(0);
+                int visited = 0; long end = System.currentTimeMillis() + 3500;
+                while (!dq.isEmpty() && arr.length() < 30 && visited < 15000 && System.currentTimeMillis() < end) {
+                    File d = dq.poll(); int depth = dp.poll();
+                    File[] l = d.listFiles(); if (l == null) continue;
+                    for (File f : l) {
+                        visited++;
+                        String nm = f.getName();
+                        if (nm.startsWith(".")) continue;
+                        if (f.isDirectory()) { if (depth < 6 && !nm.equals("Android")) { dq.add(f); dp.add(depth + 1); } }
+                        else if (nm.toLowerCase(java.util.Locale.ROOT).contains(lq) && arr.length() < 30) {
+                            JSONObject o = new JSONObject();
+                            o.put("n", nm); o.put("p", f.getAbsolutePath()); o.put("s", f.length()); o.put("t", f.lastModified() / 1000);
+                            arr.put(o);
+                        }
+                    }
+                }
+            } catch (Exception e) { }
+        }
+        return arr;
     }
 
     /** Mở app "Ổ mềm" = Drive 3 hồ sơ (màn hình chọn Ảnh / Video / Tệp). */
@@ -1519,6 +1658,17 @@ public class MainActivity extends Activity {
             } catch (Exception e) { }
             return arr.toString();
         }
+        /** Nút chụp ảnh màn hình: chụp xong gọi window.shotDone(true/false). */
+        @JavascriptInterface public void takeScreenshot() { runOnUiThread(new Runnable() { public void run() { captureScreen(); } }); }
+        /** Tìm tệp theo tên trong máy; kết quả (JSON) trả về qua window.fsCb(id, json). */
+        @JavascriptInterface public void searchFiles(final String q, final int cb) {
+            new Thread(new Runnable() { public void run() {
+                final String json = findFiles(q).toString();
+                runOnUiThread(new Runnable() { public void run() {
+                    if (web != null) web.evaluateJavascript("window.fsCb&&window.fsCb(" + cb + "," + JSONObject.quote(json) + ")", null);
+                } });
+            } }).start();
+        }
         /** Mở app "Ổ mềm" (Drive 3 hồ sơ: Ảnh / Video / Tệp) ở màn hình riêng; thoát thì quay về Desktop Mini. */
         @JavascriptInterface public void openDrive3() { runOnUiThread(new Runnable() { public void run() { openDriveHome(); } }); }
         /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */
@@ -2080,8 +2230,9 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() { public void run() {
                 float d = getResources().getDisplayMetrics().density;
                 gkHideNow();
-                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) e.getValue().setVisibility(View.GONE);
+                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } }
                 WebView v = extGet(key, url);
+                try { v.onResume(); } catch (Exception x) { }
                 FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
                 lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
                 v.setLayoutParams(lp); v.setVisibility(View.VISIBLE);
@@ -2090,7 +2241,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void extHide(final String key) {
             runOnUiThread(new Runnable() { public void run() {
-                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) e.getValue().setVisibility(View.GONE);
+                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } }
             }});
         }
         @JavascriptInterface public void extReload(final String key) {

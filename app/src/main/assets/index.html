@@ -785,10 +785,37 @@ a.btn.pri{color:#fff}
 .laps li{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 
 /* Dock */
-.dock{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px;max-width:calc(100% - 12px);
+.dock{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px;max-width:calc(100% - 2*(var(--base) + 24px));
   background:var(--glass);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);transition:transform .25s ease}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
+/* Nút tìm kiếm (trái) và nút chụp ảnh màn hình (phải): vuông, cùng cỡ và cùng hàng với icon Dock; Dock chừa chỗ hai bên nên không bao giờ che chúng */
+.qs,.qshot{position:absolute;bottom:17px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
+.qshot{right:12px;width:var(--base);border:0;padding:0;display:grid;place-items:center;transition:transform .12s ease-out}
+.qshot:active{transform:scale(.92)}
+.qshot svg{width:58%;height:58%}
+.qs{left:12px;width:var(--base);display:flex;align-items:center;transition:width .22s ease}
+.qs.open{width:min(380px,calc(100% - 24px));z-index:9;border-radius:calc(var(--base)*.3);background:var(--win)}
+.qsb{flex:none;width:var(--base);height:100%;border:0;padding:0;background:none;color:inherit;display:grid;place-items:center;border-radius:inherit}
+.qsb svg{width:56%;height:56%}
+.qsi,.qsx{display:none}
+.qs.open .qsi{display:block;flex:1;min-width:0;height:100%;border:0;outline:0;background:none;color:inherit;font:inherit;font-size:15px;padding:0 4px 0 0}
+.qs.open .qsx{display:grid;place-items:center;flex:none;width:calc(var(--base)*.7);height:100%;border:0;background:none;color:inherit;font-size:22px;opacity:.7}
+.qsres{position:absolute;left:0;right:0;bottom:calc(100% + 8px);max-height:min(52vh,420px);overflow-y:auto;padding:6px;border-radius:18px;background:var(--win);color:var(--fg);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);-webkit-overflow-scrolling:touch}
+.qsres[hidden]{display:none}
+.qsh{padding:6px 10px 3px;font-size:11px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.04em}
+.qsr{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:12px;background:none;color:inherit;text-align:left;font:inherit}
+.qsr:hover,.qsr:active{background:var(--field)}
+.qsr .ic,.qsr .qsa,.qsr .qsf{flex:none;width:34px;height:34px;border-radius:22.5%}
+.qsr .qsa{object-fit:cover}
+.qsr .qsf{display:grid;place-items:center;background:#6b7280;color:#fff;font-size:10px;font-weight:700;overflow:hidden}
+.qsr span.qst{flex:1;min-width:0;display:flex;flex-direction:column}
+.qsr b{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qsr small{font-size:11px;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qsn{padding:10px;font-size:13px;opacity:.7}
+.stage.shotting .qs,.stage.shotting .qshot{visibility:hidden}
+.shotflash{position:absolute;inset:0;z-index:45;background:#fff;opacity:0;pointer-events:none;animation:shotfl .35s ease-out}
+@keyframes shotfl{0%{opacity:.85}100%{opacity:0}}
 @media (min-width:561px){.dock{touch-action:none}}
 @media (max-width:560px){.dock{touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}}
 .dk{position:relative;flex:none;width:var(--base);height:var(--base);}
@@ -1038,6 +1065,13 @@ body.native .stage{border-radius:0;min-height:0}
 
   <nav class="dock" id="dock" aria-label="Dock"></nav>
   <div class="hotz" id="hotz"></div>
+  <div class="qs" id="qs">
+    <button class="qsb" id="qsb" type="button" aria-label="Tìm kiếm ứng dụng và tệp trong máy" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 15l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <input class="qsi" id="qsi" type="text" placeholder="Tìm ứng dụng, tệp trong máy" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Tìm ứng dụng và tệp trong máy">
+    <button class="qsx" id="qsx" type="button" aria-label="Đóng tìm kiếm">×</button>
+    <div class="qsres" id="qsres" hidden></div>
+  </div>
+  <button class="qshot" id="qshot" type="button" aria-label="Chụp ảnh màn hình"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/></svg></button>
 
   <div class="lp" id="lp" hidden>
     <button class="lpx" id="lpx" type="button" aria-label="Đóng">✕</button>
@@ -1408,7 +1442,8 @@ function syncDock(){$$('.dk',dock).forEach(d=>d.classList.toggle('run',!!wins[d.
 function setBadge(id,n){const b=dockBtn(id);if(!b)return;const e=$('.bdg',b);e.hidden=!n;e.textContent=n>99?'99+':n}
 function fitDock(){
   const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
-  let base=Math.floor((sw-40-(tot-1)*6-seps*8-12)/n);
+  /* chừa chỗ hai bên cho nút tìm kiếm và nút chụp màn hình (mỗi bên rộng bằng 1 icon + 24px) */
+  let base=Math.floor((sw-100-(tot-1)*6-seps*8)/(n+2));
   const ps=pref('dockSize',54);
   /* màn rộng (>560px): cho icon nhỏ tới 30px để Dock vẫn vừa, không chuyển sang chế độ cuộn (chế độ cuộn tắt hiệu ứng phóng đại) */
   const flo=window.matchMedia('(max-width:560px)').matches?44:30;
@@ -1419,7 +1454,7 @@ function fitDock(){
   dock.classList.remove('scroll');
   /* tính theo bề rộng cuối cùng của các ô (không đo DOM: ô đang mở rộng/thu lại có bề rộng giữa chừng); mỗi vạch ngăn rộng 1px + lề 2×2px */
   const need=n*base+(tot-1)*6+seps*5+20;
-  if(need>sw-12+1)dock.classList.add('scroll'); else dock.scrollLeft=0;
+  if(need>sw-2*(base+24)+1)dock.classList.add('scroll'); else dock.scrollLeft=0;
 }
 function fitCalc(w){
   const sr=stage.getBoundingClientRect(), wide=sr.width>sr.height*1.25, a=APPS.calc;
@@ -3888,6 +3923,93 @@ sq.addEventListener('keydown',e=>{
   else if(e.key==='ArrowUp'&&hits.length){sel=(sel-1+hits.length)%hits.length;mark();e.preventDefault()}
   else if(e.key==='Enter'&&hits.length){const h=hits[sel];closeAllPopups();h.fn()}
 });
+
+/* ---------- Nút tìm kiếm (ứng dụng + tệp trong máy) và nút chụp ảnh màn hình ---------- */
+{
+  const qs=$('#qs'), qsb=$('#qsb'), qsi=$('#qsi'), qsx=$('#qsx'), qres=$('#qsres'), shotBtn=$('#qshot');
+  const QA=window.AndroidLauncher;
+  let devApps=null, hitsQ=[], fsTok=0, fsTimer=0, fsN=0; const fsCbs={};
+  window.fsCb=function(id,json){const f=fsCbs[id]; delete fsCbs[id]; if(!f)return; let r=[]; try{r=JSON.parse(json)}catch(e){} f(r)};
+  const loadDev=()=>{if(!devApps){try{devApps=QA&&QA.getApps?JSON.parse(QA.getApps()):[]}catch(e){devApps=[]}} return devApps};
+  const fmtSize=n=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+  const FCOL={jpg:'#e0457b',jpeg:'#e0457b',png:'#e0457b',gif:'#e0457b',webp:'#e0457b',heic:'#e0457b',mp4:'#d9534f',mkv:'#d9534f',webm:'#d9534f',mov:'#d9534f',mp3:'#8e5ad7',m4a:'#8e5ad7',wav:'#8e5ad7',flac:'#8e5ad7',pdf:'#e5493a',doc:'#2b6fd6',docx:'#2b6fd6',xls:'#1f9d55',xlsx:'#1f9d55',ppt:'#e07b1f',pptx:'#e07b1f',zip:'#a07a3c',rar:'#a07a3c',apk:'#3ddc84',txt:'#6b7280',md:'#6b7280'};
+  const shortPath=p=>{const d=p.replace(/\/[^\/]*$/,'').replace(/^\/storage\/emulated\/0/,'Bộ nhớ trong').replace(/^\/sdcard/,'Bộ nhớ trong');return d};
+  function qsRows(files,pending){
+    let h='',n=0; hitsQ=[];
+    const apps=[];
+    LP_APPS.forEach(id=>{if(APPS[id]&&norm(APPS[id].name).indexOf(qsTerm)>=0)apps.push({k:'app',id:id})});
+    loadDev().forEach(a=>{if(norm(a.label).indexOf(qsTerm)>=0)apps.push({k:'dev',a:a})});
+    apps.slice(0,10).forEach(x=>{
+      hitsQ.push(x);
+      h+=(n===0?'<div class="qsh">Ứng dụng</div>':'')+'<button class="qsr" type="button" data-i="'+(hitsQ.length-1)+'">'+(x.k==='app'?iconHTML(x.id)+'<span class="qst"><b>'+esc(APPS[x.id].name)+'</b><small>Ứng dụng Desktop Mini</small></span>':'<img class="qsa" alt="" src="'+esc(x.a.icon||'')+'"><span class="qst"><b>'+esc(x.a.label)+'</b><small>Ứng dụng trên máy</small></span>')+'</button>';
+      n++;
+    });
+    let fh='';
+    (files||[]).forEach((f,i)=>{
+      hitsQ.push({k:'file',f:f});
+      const ext=(f.n.indexOf('.')>0?f.n.split('.').pop():'').toLowerCase();
+      fh+='<button class="qsr" type="button" data-i="'+(hitsQ.length-1)+'"><span class="qsf" style="background:'+(FCOL[ext]||'#6b7280')+'">'+esc((ext||'tệp').slice(0,4).toUpperCase())+'</span><span class="qst"><b>'+esc(f.n)+'</b><small>'+esc(fmtSize(f.s||0))+' • '+esc(shortPath(f.p))+'</small></span></button>';
+    });
+    if(fh)h+='<div class="qsh">Tệp trong máy</div>'+fh;
+    else if(pending)h+='<div class="qsh">Tệp trong máy</div><div class="qsn">Đang tìm…</div>';
+    else if(qsTerm.length>=2&&QA&&QA.searchFiles)h+=(n?'<div class="qsh">Tệp trong máy</div>':'')+'<div class="qsn">'+(n?'Không có tệp nào khớp':'Không có kết quả')+'</div>';
+    else if(!n)h+='<div class="qsn">Gõ ít nhất 2 chữ để tìm tệp</div>';
+    qres.innerHTML=h; qres.hidden=false;
+  }
+  let qsTerm='';
+  function qsRender(){
+    const raw=qsi.value.trim(); qsTerm=norm(raw);
+    clearTimeout(fsTimer); const tok=++fsTok;
+    if(!qsTerm){qres.hidden=true;qres.innerHTML='';return}
+    const canFiles=!!(QA&&QA.searchFiles)&&raw.length>=2;
+    qsRows([],canFiles);
+    if(!canFiles)return;
+    fsTimer=setTimeout(()=>{
+      const id=++fsN; fsCbs[id]=r=>{if(tok!==fsTok||!qs.classList.contains('open'))return; qsRows(r,false)};
+      try{QA.searchFiles(raw,id)}catch(e){delete fsCbs[id];qsRows([],false)}
+    },280);
+  }
+  function qsOpen(){closeAllPopups();if(lpOn)closeLP();qs.classList.add('open');qsb.setAttribute('aria-expanded','true');qsi.value='';qres.hidden=true;setTimeout(()=>qsi.focus(),0)}
+  function qsClose(){if(!qs.classList.contains('open'))return;qs.classList.remove('open');qsb.setAttribute('aria-expanded','false');qsi.blur();qsi.value='';qres.hidden=true;qres.innerHTML='';fsTok++;clearTimeout(fsTimer)}
+  qsb.addEventListener('click',e=>{e.stopPropagation();if(qs.classList.contains('open'))qsClose();else qsOpen()});
+  qsx.addEventListener('click',e=>{e.stopPropagation();qsClose()});
+  qsi.addEventListener('input',qsRender);
+  qsi.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){qsClose();return}
+    if(e.key==='Enter'){const f=$('.qsr',qres);if(f)f.click()}
+  });
+  qres.addEventListener('click',e=>{
+    e.stopPropagation();
+    const b=e.target.closest('.qsr'); if(!b)return;
+    const x=hitsQ[+b.dataset.i]; if(!x)return;
+    qsClose();
+    if(x.k==='app')openApp(x.id);
+    else if(x.k==='dev')extLaunch(x.a.pkg);
+    else if(x.k==='file'){
+      let m=''; try{m=QA.openFileMsg?QA.openFileMsg(x.f.p):(QA.openFile(x.f.p)?'':'Không mở được tệp')}catch(err){m='Không mở được tệp'}
+      if(m)notify({app:'Tìm kiếm',title:'Không mở được tệp',body:m,icon:'files'});
+    }
+  });
+  /* chạm ra ngoài thì thu lại thành hình vuông */
+  document.addEventListener('pointerdown',e=>{if(qs.classList.contains('open')&&!e.target.closest('#qs'))qsClose()},true);
+
+  /* Chụp ảnh màn hình: ẩn hai nút một nhịp rồi nhờ Android chụp cả cửa sổ, lưu vào Pictures/Screenshots */
+  let shotBusy=false;
+  window.shotDone=function(ok){
+    shotBusy=false; stage.classList.remove('shotting');
+    if(ok){
+      if(!reduce){const f=document.createElement('div');f.className='shotflash';stage.appendChild(f);setTimeout(()=>f.remove(),420)}
+      notify({app:'Ảnh chụp màn hình',title:'Đã lưu ảnh chụp màn hình',body:'Xem trong ứng dụng Ảnh › Ảnh chụp màn hình',icon:'photos',fn:()=>openApp('photos')});
+    }else notify({app:'Ảnh chụp màn hình',title:'Không chụp được màn hình',body:'Hãy cấp quyền ảnh/tệp cho Desktop Mini rồi thử lại.',icon:'settings'});
+  };
+  shotBtn.addEventListener('click',e=>{
+    e.stopPropagation(); if(shotBusy)return;
+    closeAllPopups(); qsClose();
+    if(!QA||!QA.takeScreenshot){notify({app:'Ảnh chụp màn hình',title:'Chỉ chụp được trong ứng dụng Android',icon:'settings'});return}
+    shotBusy=true; stage.classList.add('shotting');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>{try{QA.takeScreenshot()}catch(x){window.shotDone(false)}},70)));
+  });
+}
 
 /* ---------- Launchpad ---------- */
 const lp=$('#lp');
