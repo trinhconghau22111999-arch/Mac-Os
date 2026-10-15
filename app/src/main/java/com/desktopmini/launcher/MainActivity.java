@@ -754,8 +754,12 @@ public class MainActivity extends Activity {
     @Override public void onBackPressed() { if (extFullView != null) { extHideFull(); return; } web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
 
     /** Mở trình duyệt mặc định của app ("Duyệt web"); có url thì mở thẳng trang đó trong thẻ mới. */
-    void openWeb(String url) {
+    /** WebView của trang Desktop (cho vùng Dock trong suốt của "Duyệt web" chuyển cú chạm sang). */
+    static WebView dockWeb() { return inst == null ? null : inst.web; }
+    void openWeb(String url) { openWeb(url, 0); }
+    void openWeb(String url, int reserve) {
         Intent i = new Intent(this, WebBrowserActivity.class);
+        if (reserve > 0) i.putExtra("reserve", reserve);
         if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) i.setData(Uri.parse(url));
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try { startActivity(i); } catch (Exception e) { }
@@ -2121,6 +2125,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openDrive3() { runOnUiThread(new Runnable() { public void run() { openDriveHome(); } }); }
         /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */
         @JavascriptInterface public void openWebBrowser(String url) { openWeb(url); }
+        /** Mở "Duyệt web" dạng khung phía trên, chừa `reserve` px ở đáy để thấy và bấm được Dock. */
+        @JavascriptInterface public void openWebBrowserDocked(String url, int reserve) { openWeb(url, reserve); }
+        /** Đóng màn hình "Duyệt web" nếu đang mở (khi bấm mở app khác trên Dock). */
+        @JavascriptInterface public void closeWebBrowser() {
+            runOnUiThread(new Runnable() { public void run() { try { WebBrowserActivity w = WebBrowserActivity.current; if (w != null) w.finish(); } catch (Exception e) { } } });
+        }
         /** Mở app con "YouTube" (chỉ YouTube, không thanh địa chỉ). */
         @JavascriptInterface public void openYouTube() { openYt(); }
         /** Nút mic trên thanh tìm kiếm Google của Desktop. */
