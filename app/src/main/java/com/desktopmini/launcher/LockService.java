@@ -147,81 +147,72 @@ public class LockService extends AccessibilityService {
         } else removeButton();
     }
 
+    /** Thanh "Desktop" cố định sát cạnh dưới màn hình, che thanh điều hướng/đa nhiệm của hệ thống. Chỉ bấm, không kéo. */
     private class DeskButton extends View {
         private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG),
             ic = new Paint(Paint.ANTI_ALIAS_FLAG), tx = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rf = new RectF();
-        private float sx, sy; private int ox, oy; private boolean moved;
         DeskButton(Context c) {
             super(c);
-            bg.setColor(0xE024262E); bg.setStyle(Paint.Style.FILL);
+            bg.setColor(0xFF000000); bg.setStyle(Paint.Style.FILL);
             ring.setColor(0x59FFFFFF); ring.setStyle(Paint.Style.STROKE); ring.setStrokeWidth(dp(1));
-            ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.8f));
+            ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.5f));
             ic.setStrokeCap(Paint.Cap.ROUND); ic.setStrokeJoin(Paint.Join.ROUND);
-            tx.setColor(0xFFFFFFFF); tx.setTextAlign(Paint.Align.CENTER); tx.setTextSize(dp(8.5f)); tx.setFakeBoldText(true);
-            setAlpha(0.88f);
+            tx.setColor(0xFFFFFFFF); tx.setTextAlign(Paint.Align.LEFT); tx.setTextSize(dp(13)); tx.setFakeBoldText(true);
             setContentDescription("Desktop");
         }
         @Override protected void onDraw(Canvas c) {
-            float w = getWidth(), hh = getHeight(), cx = w / 2, cy = hh / 2, r = Math.min(w, hh) / 2 - dp(1);
-            c.drawCircle(cx, cy, r, bg); c.drawCircle(cx, cy, r, ring);
-            rf.set(cx - dp(12), cy - dp(19), cx + dp(12), cy - dp(6));
-            c.drawRoundRect(rf, dp(3), dp(3), ic);
-            c.drawLine(cx, cy - dp(6), cx, cy - dp(3), ic);
-            c.drawLine(cx - dp(5), cy - dp(3), cx + dp(5), cy - dp(3), ic);
-            c.drawText("Desktop", cx, cy + dp(13), tx);
+            float w = getWidth(), hh = getHeight(), cx = w / 2, cy = hh / 2;
+            c.drawRect(0, 0, w, hh, bg);
+            c.drawLine(0, 0, w, 0, ring);
+            /* biểu tượng màn hình máy tính + chữ "Desktop" nằm giữa thanh */
+            float tw = tx.measureText("Desktop"), iw = dp(22), gap = dp(8), x0 = cx - (iw + gap + tw) / 2;
+            float ih = dp(15);
+            rf.set(x0, cy - ih / 2 - dp(1), x0 + iw, cy + ih / 2 - dp(3));
+            c.drawRoundRect(rf, dp(2.5f), dp(2.5f), ic);
+            c.drawLine(x0 + iw / 2, cy + ih / 2 - dp(3), x0 + iw / 2, cy + ih / 2, ic);
+            c.drawLine(x0 + iw / 2 - dp(4), cy + ih / 2, x0 + iw / 2 + dp(4), cy + ih / 2, ic);
+            c.drawText("Desktop", x0 + iw + gap, cy + dp(4.5f), tx);
         }
         @Override public boolean onTouchEvent(MotionEvent ev) {
-            if (btnLp == null) return false;
             switch (ev.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                    sx = ev.getRawX(); sy = ev.getRawY(); ox = btnLp.x; oy = btnLp.y; moved = false; setAlpha(1f); return true;
-                case MotionEvent.ACTION_MOVE: {
-                    float ddx = ev.getRawX() - sx, ddy = ev.getRawY() - sy;
-                    if (!moved && Math.hypot(ddx, ddy) > ViewConfiguration.get(getContext()).getScaledTouchSlop()) moved = true;
-                    if (moved) {
-                        Point s = realSize(); int sz = btnLp.width;
-                        btnLp.x = Math.max(0, Math.min(s.x - sz, Math.round(ox + ddx)));
-                        btnLp.y = Math.max(0, Math.min(s.y - sz, Math.round(oy + ddy)));
-                        try { wm.updateViewLayout(this, btnLp); } catch (Exception e) { }
-                    }
-                    return true;
-                }
+                case MotionEvent.ACTION_DOWN: setAlpha(0.7f); return true;
                 case MotionEvent.ACTION_UP:
-                    setAlpha(0.88f);
-                    if (moved) savePos(); else goDesktop();
+                    setAlpha(1f);
+                    if (ev.getX() >= 0 && ev.getX() <= getWidth() && ev.getY() >= 0 && ev.getY() <= getHeight()) goDesktop();
                     return true;
-                case MotionEvent.ACTION_CANCEL:
-                    setAlpha(0.88f); if (moved) savePos(); return true;
+                case MotionEvent.ACTION_CANCEL: setAlpha(1f); return true;
             }
             return true;
         }
     }
 
+    /** Chiều cao thanh điều hướng của hệ thống (đúng theo hướng màn hình), tối thiểu 40dp để chắc chắn che kín. */
+    private int navBarHeight() {
+        int h = 0;
+        try {
+            boolean land = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            int id = getResources().getIdentifier(land ? "navigation_bar_height_landscape" : "navigation_bar_height", "dimen", "android");
+            if (id <= 0) id = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+            if (id > 0) h = getResources().getDimensionPixelSize(id);
+        } catch (Exception e) { }
+        return Math.max(h, dp(40));
+    }
+
     private void addButton() {
         if (wm == null) return;
         final DeskButton v = new DeskButton(this);
-        int sz = dp(56);
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(sz, sz,
+        Point s = realSize(); int bh = navBarHeight();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(s.x, bh,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.LEFT;
-        Point s = realSize();
-        SharedPreferences sp = getSharedPreferences(PK, 0);
-        float fx = sp.getFloat("fx", 1f), fy = sp.getFloat("fy", 0.62f); /* mặc định: sát mép phải, hơi thấp hơn giữa */
-        lp.x = Math.round(Math.max(0f, Math.min(1f, fx)) * Math.max(0, s.x - sz));
-        lp.y = Math.round(Math.max(0f, Math.min(1f, fy)) * Math.max(0, s.y - sz));
+        lp.x = 0; lp.y = s.y - bh; /* cố định sát cạnh dưới, không di chuyển */
         try { wm.addView(v, lp); btn = v; btnLp = lp; } catch (Exception e) { btn = null; btnLp = null; }
     }
     private void removeButton() {
         if (btn != null) { try { wm.removeView(btn); } catch (Exception e) { } btn = null; btnLp = null; }
-    }
-    private void savePos() {
-        if (btnLp == null) return;
-        Point s = realSize(); int sz = btnLp.width;
-        float fx = s.x - sz > 0 ? btnLp.x / (float) (s.x - sz) : 1f, fy = s.y - sz > 0 ? btnLp.y / (float) (s.y - sz) : 0.62f;
-        getSharedPreferences(PK, 0).edit().putFloat("fx", fx).putFloat("fy", fy).apply();
     }
     /** Bấm nút: đưa Desktop Mini lên trước (MainActivity tự thu nhỏ mọi cửa sổ để hiện màn hình Desktop). */
     private void goDesktop() {
