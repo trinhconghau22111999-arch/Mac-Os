@@ -30,8 +30,12 @@ import java.util.concurrent.ConcurrentHashMap;
 final class DriveCookies {
     private DriveCookies() { }
 
+    /**
+     * Ổ mềm luôn chạy NHÚNG trong cửa sổ Desktop Mini (như YouTube / Duyệt web, chừa Dock) trên mọi đời Android,
+     * nên mọi máy đều tách 3 hồ sơ bằng cách đổi cookie trong cùng 1 process (không mở Activity toàn màn hình riêng nữa).
+     */
     static boolean enabled() {
-        return Build.VERSION.SDK_INT < 28;
+        return true;
     }
 
     private static final String PREFS = "legacy_profile_cookies";

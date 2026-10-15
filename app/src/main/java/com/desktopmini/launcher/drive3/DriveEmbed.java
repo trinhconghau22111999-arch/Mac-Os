@@ -4,8 +4,7 @@ import android.content.Context;
 
 /**
  * Cầu nối cho "Ổ mềm" chạy NHÚNG trong cửa sổ của Desktop Mini (thấy Dock) thay vì màn hình Android riêng.
- * Chỉ dùng khi {@link #enabled()} (Android dưới 9, ví dụ Lenovo Yoga Book 7.1.1): các hồ sơ chạy chung process chính
- * và tách đăng nhập bằng cách đổi cookie (DriveCookies). Android 9 trở lên vẫn dùng 3 process riêng (Photo/Video/FileActivity).
+ * Luôn bật trên mọi đời Android: các hồ sơ chạy chung process chính và tách đăng nhập bằng cách đổi cookie (DriveCookies).
  */
 public final class DriveEmbed {
     private DriveEmbed() { }
