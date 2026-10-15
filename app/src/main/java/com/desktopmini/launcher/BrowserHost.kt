@@ -533,14 +533,8 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
 
     // Ve man hinh chinh Android; app van chay nen, mo lai se giu nguyen cac tab.
     private fun goHome() {
-        try {
-            // Quay về màn hình Desktop Mini (launcher của app) rồi đóng trình duyệt
-            startActivity(Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            })
-        } catch (e: Exception) {
-            moveTaskToBack(true)
-        }
+        // Nhúng trong Desktop Mini: đóng cửa sổ Duyệt web; màn hình riêng: đóng màn hình, về Desktop Mini
+        finish()
     }
 
     private fun hideKeyboard() {
