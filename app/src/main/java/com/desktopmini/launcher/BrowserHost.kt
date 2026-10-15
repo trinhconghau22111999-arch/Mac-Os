@@ -759,6 +759,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             // Tien trinh hien thi bi he thong giet (het RAM / trang qua nang): neu khong xu ly thi ca app bi van.
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
                 val v = view ?: return true
+                CrashLog.log(act, "WebView mất tiến trình hiển thị (didCrash=" + (detail?.didCrash()) + ")", RuntimeException(tab.url))
                 runOnUiThread { recoverCrashedWebView(tab, v) }
                 return true
             }

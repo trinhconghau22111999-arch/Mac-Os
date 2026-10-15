@@ -1152,6 +1152,9 @@ const MONTHS=['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
 const DAYS=['CN','T2','T3','T4','T5','T6','T7'];
 const DAYSL=['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
 const bus={l:{},on(e,f){(this.l[e]=this.l[e]||[]).push(f)},emit(e,a){(this.l[e]||[]).forEach(f=>f(a))}};
+/* Ghi lỗi JavaScript ra tệp nhật ký (Download/DesktopMini-loi.txt) để chẩn đoán */
+window.addEventListener('error',e=>{try{const A=window.AndroidLauncher; if(A&&A.logError)A.logError('error',String(e.message)+' @ '+String(e.filename).split('/').pop()+':'+e.lineno+':'+e.colno)}catch(x){}});
+window.addEventListener('unhandledrejection',e=>{try{const A=window.AndroidLauncher; if(A&&A.logError)A.logError('promise',String(e.reason&&(e.reason.stack||e.reason)))}catch(x){}});
 /* Khung nội dung gốc (WebView/Gecko nhúng) bám theo cửa sổ: bình thường dò mỗi 90ms, còn khi đang kéo/đổi cỡ cửa sổ thì ép đồng bộ ngay mỗi khung hình để không bị trễ, giật */
 const NSYNC=new Set(); let nsRaf=0;
 function kickSync(){if(nsRaf)return;nsRaf=requestAnimationFrame(()=>{nsRaf=0;NSYNC.forEach(f=>{try{f()}catch(e){}})})}

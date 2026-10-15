@@ -216,6 +216,9 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         inst = this;
+        CrashLog.install(getApplicationContext());
+        final String lastCrash = CrashLog.takeLastCrash(this);
+        if (lastCrash != null) gkToast("Lần trước app bị lỗi: " + lastCrash + "\nChi tiết: " + CrashLog.where(this));
         new Thread(new Runnable() { public void run() { try { TrashStore.purgeOld(MainActivity.this); } catch (Exception e) { } } }).start();   /* Thùng rác: dọn mục quá 7 ngày */
         assetLoader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -2494,6 +2497,9 @@ public class MainActivity extends Activity {
                 return "";
             } catch (Exception e) { return "Lỗi khi chuyển tệp"; }
         }
+        /* ---- Nhật ký lỗi ---- */
+        @JavascriptInterface public void logError(String where, String msg) { CrashLog.logJs(MainActivity.this, where, msg); }
+        @JavascriptInterface public String crashLogPath() { return CrashLog.where(MainActivity.this); }
         /* ---- Thùng rác thật (giữ 7 ngày) ---- */
         @JavascriptInterface public boolean trashFile(String path) {
             try {
@@ -2751,7 +2757,7 @@ public class MainActivity extends Activity {
                     lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
                     gkView.setLayoutParams(lp); gkView.setVisibility(View.VISIBLE);
                     gkPush();
-                } catch (Throwable t) { gkToast("Không mở được trình duyệt: " + t); }
+                } catch (Throwable t) { CrashLog.log(MainActivity.this, "Trình duyệt Gecko không mở được (gkShow)", t); gkToast("Không mở được trình duyệt: " + t + "\nChi tiết: " + CrashLog.where(MainActivity.this)); }
             }});
         }
         @JavascriptInterface public void gkHide() { runOnUiThread(new Runnable() { public void run() { gkHideNow(); } }); }
@@ -2779,10 +2785,16 @@ public class MainActivity extends Activity {
                 gkHideNow();
                 for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
                 if ("webandr".equals(key)) {
-                    View bv = browserGet(url).getRoot();
-                    FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
-                    bl.leftMargin = Math.round(x * d); bl.topMargin = Math.round(y * d);
-                    bv.setLayoutParams(bl); bv.setVisibility(View.VISIBLE);
+                    try {
+                        View bv = browserGet(url).getRoot();
+                        FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
+                        bl.leftMargin = Math.round(x * d); bl.topMargin = Math.round(y * d);
+                        bv.setLayoutParams(bl); bv.setVisibility(View.VISIBLE);
+                    } catch (Throwable t) {
+                        CrashLog.log(MainActivity.this, "Duyệt web không mở được (extShow webandr)", t);
+                        browserHost = null;
+                        gkToast("Duyệt web không mở được: " + t + "\nChi tiết: " + CrashLog.where(MainActivity.this));
+                    }
                     return;
                 }
                 browserHide();
