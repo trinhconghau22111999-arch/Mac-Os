@@ -161,6 +161,7 @@ class YouTubeActivity : Activity() {
                 customCallback = callback
                 view.setBackgroundColor(Color.BLACK)
                 root.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                LockService.setVideoFull(true)
                 @Suppress("DEPRECATION")
                 window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN
                         or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
@@ -219,6 +220,7 @@ class YouTubeActivity : Activity() {
         val v = customView ?: return
         root.removeView(v)
         customView = null
+        LockService.setVideoFull(false)
         customCallback?.onCustomViewHidden()
         customCallback = null
         @Suppress("DEPRECATION")
@@ -247,6 +249,7 @@ class YouTubeActivity : Activity() {
     }
 
     override fun onDestroy() {
+        if (customView != null) LockService.setVideoFull(false)
         try { root.removeView(web); web.destroy() } catch (e: Exception) { }
         super.onDestroy()
     }

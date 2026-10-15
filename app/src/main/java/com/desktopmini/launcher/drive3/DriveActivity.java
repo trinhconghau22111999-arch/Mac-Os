@@ -574,6 +574,7 @@ public abstract class DriveActivity extends Activity {
                 customView = view;
                 customCb = cb;
                 root.addView(view, new FrameLayout.LayoutParams(-1, -1));
+                com.desktopmini.launcher.LockService.setVideoFull(true);
             }
 
             @Override
@@ -581,6 +582,7 @@ public abstract class DriveActivity extends Activity {
                 if (customView == null) return;
                 root.removeView(customView);
                 customView = null;
+                com.desktopmini.launcher.LockService.setVideoFull(false);
                 if (customCb != null) customCb.onCustomViewHidden();
             }
         });

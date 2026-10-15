@@ -3995,6 +3995,9 @@ if(window.AndroidLauncher){(function(){
   window.nativeHome=function(){
     try{if(overlaysOpen())return;Object.keys(wins).forEach(id=>{const w=wins[id];if(!w.classList.contains('min'))minWin(w)})}catch(e){}
   };
+  window.nativeMS=function(){ /* vuốt lên từ thanh Desktop: mở đa nhiệm */
+    try{overlaysOpen();tryOpenMS()}catch(e){}
+  };
   window.nativeOpenApp=function(id){
     try{overlaysOpen();openApp(id)}catch(e){}
   };

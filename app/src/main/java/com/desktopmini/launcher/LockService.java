@@ -47,6 +47,15 @@ public class LockService extends AccessibilityService {
     /* Khóa thanh hệ thống: tự đóng thanh thông báo (kéo từ trên xuống) và màn hình đa nhiệm ngay khi chúng vừa mở */
     private volatile boolean barLock = true, recentsOpen = false;
     private long lastClose = 0;
+    /* Thanh Desktop: đang có video phát toàn màn hình (do các cửa sổ web của app báo) -> cho phép nhấn đúp để ẩn thanh */
+    private static volatile boolean videoFull = false;
+    private boolean barHidden = false;
+    /** Các màn hình web của app gọi khi bắt đầu / kết thúc xem video toàn màn hình. Hết video thì thanh tự hiện lại. */
+    public static void setVideoFull(final boolean on) {
+        videoFull = on;
+        final LockService s = inst;
+        if (s != null && !on) s.h.post(new Runnable() { public void run() { s.setBarHidden(false); } });
+    }
     private final Runnable recheckRecents = new Runnable() { public void run() {
         /* Nếu sau một nhịp ngắn đa nhiệm vẫn còn mở (máy không nhận lệnh đóng) thì bấm Back một lần để thoát */
         if (recentsOpen && barLock) { recentsOpen = false; try { performGlobalAction(GLOBAL_ACTION_BACK); } catch (Exception e) { } }
@@ -92,6 +101,7 @@ public class LockService extends AccessibilityService {
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
         if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
+        videoFull = false; setBarHidden(false); /* app khác lên trước: không còn video của mình ở toàn màn hình */
         setLauncherFront(false);
     }
     @Override public void onInterrupt() { }
@@ -167,6 +177,11 @@ public class LockService extends AccessibilityService {
         }
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), hh = getHeight(), cx = w / 2, cy = hh / 2;
+            if (barHidden) { /* thanh đang ẩn: chỉ còn vạch mờ nhỏ ở đáy để biết chỗ chạm đúp / vuốt lên */
+                bg.setColor(0x66FFFFFF); rf.set(cx - dp(18), hh - dp(6), cx + dp(18), hh - dp(3));
+                c.drawRoundRect(rf, dp(1.5f), dp(1.5f), bg); bg.setColor(0xFF000000);
+                return;
+            }
             c.drawRect(0, 0, w, hh, bg);
             Bitmap pic = barPic();
             if (pic != null) {
@@ -187,13 +202,31 @@ public class LockService extends AccessibilityService {
             c.drawLine(x0 + iw / 2 - dp(4), cy + ih / 2, x0 + iw / 2 + dp(4), cy + ih / 2, ic);
             c.drawText("Desktop", x0 + iw + gap, cy + dp(4.5f), tx);
         }
+        private float dX, dY; private long lastTapUp = 0;
         @Override public boolean onTouchEvent(MotionEvent ev) {
             switch (ev.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN: setAlpha(0.7f); return true;
-                case MotionEvent.ACTION_UP:
-                    setAlpha(1f);
-                    if (ev.getX() >= 0 && ev.getX() <= getWidth() && ev.getY() >= 0 && ev.getY() <= getHeight()) goDesktop();
+                case MotionEvent.ACTION_DOWN:
+                    dX = ev.getRawX(); dY = ev.getRawY();
+                    if (!barHidden) setAlpha(0.7f);
                     return true;
+                case MotionEvent.ACTION_UP: {
+                    setAlpha(1f);
+                    float up = dY - ev.getRawY(), dx = Math.abs(ev.getRawX() - dX);
+                    long now = android.os.SystemClock.uptimeMillis();
+                    if (up > dp(40) && up > dx) { /* vuốt lên từ thanh */
+                        lastTapUp = 0;
+                        if (barHidden) setBarHidden(false); else goMultitask();
+                        return true;
+                    }
+                    int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+                    if (up > slop || up < -slop || dx > slop) { lastTapUp = 0; return true; } /* kéo lệch, không phải chạm */
+                    boolean dbl = lastTapUp > 0 && now - lastTapUp <= ViewConfiguration.getDoubleTapTimeout();
+                    lastTapUp = dbl ? 0 : now;
+                    if (barHidden) { if (dbl) setBarHidden(false); return true; }
+                    if (videoFull) { if (dbl) setBarHidden(true); return true; } /* đang xem video: chạm 1 lần không làm gì, chờ chạm đúp */
+                    goDesktop();
+                    return true;
+                }
                 case MotionEvent.ACTION_CANCEL: setAlpha(1f); return true;
             }
             return true;
@@ -240,7 +273,27 @@ public class LockService extends AccessibilityService {
         try { wm.addView(v, lp); btn = v; btnLp = lp; } catch (Exception e) { btn = null; btnLp = null; }
     }
     private void removeButton() {
+        barHidden = false;
         if (btn != null) { try { wm.removeView(btn); } catch (Exception e) { } btn = null; btnLp = null; }
+    }
+    /** Ẩn thanh (chỉ còn dải mỏng ở đáy) hoặc hiện lại đủ chiều cao. */
+    private void setBarHidden(boolean b) {
+        if (barHidden == b) return;
+        barHidden = b;
+        if (btn == null || btnLp == null || wm == null) return;
+        try {
+            btnLp.height = b ? dp(14) : navBarHeight();
+            btnLp.y = realSize().y - btnLp.height;
+            wm.updateViewLayout(btn, btnLp);
+            btn.invalidate();
+        } catch (Exception e) { }
+    }
+    /** Vuốt lên từ thanh: đưa app lên trước và mở màn hình đa nhiệm. */
+    private void goMultitask() {
+        try {
+            startActivity(new Intent(this, MainActivity.class).putExtra("openMS", true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+        } catch (Exception e) { goDesktop(); }
     }
     /** Bấm nút: đưa Desktop Mini lên trước (MainActivity tự thu nhỏ mọi cửa sổ để hiện màn hình Desktop). */
     private void goDesktop() {

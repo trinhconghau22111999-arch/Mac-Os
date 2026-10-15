@@ -758,6 +758,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
+        if (i != null && i.getBooleanExtra("openMS", false)) { web.evaluateJavascript("window.nativeMS&&window.nativeMS()", null); return; } /* vuốt lên từ thanh Desktop */
         String oa = i == null ? null : i.getStringExtra("openApp");
         if (oa != null) web.evaluateJavascript("window.nativeOpenApp&&window.nativeOpenApp(" + JSONObject.quote(oa) + ")", null);
         else web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null);
@@ -1033,7 +1034,7 @@ public class MainActivity extends Activity {
     void extHideFull() {
         if (extFullView == null) return;
         try { root.removeView(extFullView); } catch (Exception e) { }
-        extFullView = null;
+        extFullView = null; LockService.setVideoFull(false);
         if (extFullCb != null) { try { extFullCb.onCustomViewHidden(); } catch (Exception e) { } extFullCb = null; }
     }
 
@@ -1271,7 +1272,7 @@ public class MainActivity extends Activity {
                     @Override public void onShowCustomView(View view, CustomViewCallback cb) {
                         if (view == null) return;
                         if (extFullView != null) { cb.onCustomViewHidden(); return; }
-                        extFullView = view; extFullCb = cb;
+                        extFullView = view; extFullCb = cb; LockService.setVideoFull(true);
                         view.setBackgroundColor(0xFF000000);
                         root.addView(view, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
                     }

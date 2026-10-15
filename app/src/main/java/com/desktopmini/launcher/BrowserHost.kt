@@ -826,6 +826,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
                 customCallback = callback
                 view.setBackgroundColor(Color.BLACK)
                 rootFrame.addView(view, FrameLayout.LayoutParams(MATCH, MATCH))
+                LockService.setVideoFull(true)
             }
 
             override fun onHideCustomView() {
@@ -869,6 +870,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         val v = customView ?: return
         rootFrame.removeView(v)
         customView = null
+        LockService.setVideoFull(false)
         customCallback?.onCustomViewHidden()
         customCallback = null
     }
