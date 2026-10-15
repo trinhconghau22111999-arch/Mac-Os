@@ -185,10 +185,26 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setAllowFileAccess(true);
+        /* Khóa quyền: file:///android_asset vẫn đọc được bình thường (không bị setAllowFileAccess chi phối),
+           nhưng trang không đọc được tệp khác trên máy / content:// kể cả khi có nội dung lạ lọt vào */
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
+        s.setAllowFileAccessFromFileURLs(false);
+        s.setAllowUniversalAccessFromFileURLs(false);
         web.setBackgroundColor(0x00000000);
         web.setFocusable(true); web.setFocusableInTouchMode(true); web.requestFocus();
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            /* Trang chính chỉ được ở trong file:///android_asset/. Mọi điều hướng khác bị chặn (link ngoài mở ở app/trình duyệt riêng, không nạp vào trang có cầu AndroidLauncher) */
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                if (!req.isForMainFrame()) return false;
+                String u = req.getUrl().toString();
+                if (u.startsWith("file:///android_asset/") || u.startsWith("about:")) return false;
+                if (u.startsWith("http://") || u.startsWith("https://")) {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e) { }
+                }
+                return true;
+            }
+        });
         web.setWebChromeClient(new android.webkit.WebChromeClient() {
             @Override public void onPermissionRequest(final android.webkit.PermissionRequest q) {
                 runOnUiThread(new Runnable() { public void run() {
@@ -563,10 +579,31 @@ public class MainActivity extends Activity {
     }
 
     /** Cầu nối nút mic cho cửa sổ web nhúng (YouTube, Duyệt web): nhớ cửa sổ nào bấm để trả kết quả đúng nơi. */
+
+    /** Chuẩn hóa đường dẫn từ trang web trước khi thao tác tệp: lấy đường dẫn thật (xóa ../ và liên kết tượng trưng),
+     *  chỉ cho phép trong bộ nhớ ngoài (/storage, /mnt, thẻ nhớ), chặn thư mục dữ liệu riêng của app (cookie, đăng nhập, cơ sở dữ liệu). Sai thì trả null. */
+    File safeFile(String path) {
+        if (path == null || path.length() == 0 || path.indexOf('\0') >= 0) return null;
+        try {
+            File f = new File(path).getCanonicalFile();
+            String c = f.getPath();
+            String data = new File(getApplicationInfo().dataDir).getCanonicalPath();
+            if (c.equals(data) || c.startsWith(data + "/") || c.startsWith("/data/") || c.equals("/data")) return null;
+            String ext = Environment.getExternalStorageDirectory().getCanonicalPath();
+            if (c.equals(ext) || c.startsWith(ext + "/") || c.startsWith("/storage/") || c.startsWith("/mnt/")) return f;
+        } catch (Exception e) { }
+        return null;
+    }
+
     private class WebVoice {
         final String k;
         WebVoice(String k) { this.k = k; }
-        @JavascriptInterface public void startVoiceSearch() { runOnUiThread(new Runnable() { public void run() { voiceKey = k; launchVoiceSearch(); } }); }
+        /** Chỉ nhận lệnh từ trang https đang hiển thị trong đúng WebView của mình (YouTube thì phải đúng tên miền YouTube), chặn trang khác lợi dụng cầu để bật mic. */
+        @JavascriptInterface public void startVoiceSearch() { runOnUiThread(new Runnable() { public void run() {
+            WebView wv = ext.get(k); String u = wv == null ? null : wv.getUrl();
+            if (u == null || !u.startsWith("https://")) return;
+            if ("youtube".equals(k) && !ytAllowed(Uri.parse(u))) return;
+            voiceKey = k; launchVoiceSearch(); } }); }
     }
 
     /** Nút mic của thanh tìm kiếm Google trên Desktop: xin quyền micro rồi mở bộ nhận dạng giọng nói của Android; kết quả trả về JS qua nativeVoiceResult(text). */
@@ -806,8 +843,29 @@ public class MainActivity extends Activity {
         if (extFullCb != null) { try { extFullCb.onCustomViewHidden(); } catch (Exception e) { } extFullCb = null; }
     }
 
+    /** Tối đa số trang web nhúng (Zalo, Facebook, Drive, YouTube, Office...) sống cùng lúc, không tính "Gõ văn bản". Mở thêm thì trang ẩn lâu nhất bị đóng trước. */
+    private static final int EXT_MAX = 3;
+    private void capExt(String keep) {
+        if (extFullView != null) return;
+        try { if (((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive()) return; } catch (Exception e) { }
+        while (true) {
+            int n = 0; String oldest = null; long ot = Long.MAX_VALUE;
+            for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) {
+                String k = e.getKey(); if ("word".equals(k)) continue;
+                n++;
+                if (k.equals(keep) || e.getValue().getVisibility() == View.VISIBLE) continue;
+                Long t = extHiddenAt.get(k); long tt = t == null ? 0L : t;
+                if (tt < ot) { ot = tt; oldest = k; }
+            }
+            if (n < EXT_MAX || oldest == null) return;
+            WebView v = ext.remove(oldest); zooms.remove(oldest); extHiddenAt.remove(oldest);
+            if (v != null) { try { v.loadUrl("about:blank"); root.removeView(v); v.destroy(); } catch (Exception e) { } }
+        }
+    }
+
     private WebView extGet(final String key, String url) {
         WebView v = ext.get(key);
+        if (v == null && !"word".equals(key)) capExt(key);
         if (v == null && "word".equals(key)) {
             /* "Gõ văn bản": trình soạn thảo kiểu Word chạy offline trong cửa sổ (phần lõi dùng chung ở WordHost) */
             v = new WebView(this);
@@ -1993,7 +2051,8 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String listDir(String path) {
             try {
-                File dir = new File(path); JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
+                File dir = safeFile(path); JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
+                if (dir == null) { res.put("error", "Đường dẫn không hợp lệ"); res.put("list", arr); return res.toString(); }
                 File[] fs = dir.listFiles();
                 if (fs == null) { res.put("error", filesOk() ? "Không đọc được thư mục này" : "Chưa cấp quyền truy cập tệp"); res.put("list", arr); return res.toString(); }
                 Arrays.sort(fs, new Comparator<File>() { public int compare(File a, File b) {
@@ -2008,7 +2067,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public boolean shareFile(String path) {
             try {
-                File f = new File(path);
+                File f = safeFile(path); if (f == null) return false;
                 String mime = mimeOf(f.getName());
                 Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
                 Intent i = new Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -2021,7 +2080,9 @@ public class MainActivity extends Activity {
                 if (newName == null) return false;
                 newName = newName.trim();
                 if (newName.length() == 0 || newName.contains("/") || newName.startsWith(".")) return false;
-                File f = new File(path), t = new File(f.getParentFile(), newName);
+                File f = safeFile(path); if (f == null || f.getParentFile() == null) return false;
+                File t = new File(f.getParentFile(), newName);
+                if (newName.contains("..") || newName.indexOf('\0') >= 0) return false;
                 if (t.exists()) return false;
                 boolean ok = f.renameTo(t);
                 if (ok) { try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t))); } catch (Exception e) { } }
@@ -2066,7 +2127,8 @@ public class MainActivity extends Activity {
         /** Chuyển tệp/thư mục vào thư mục khác. Trả "" nếu xong, ngược lại là lý do lỗi. */
         @JavascriptInterface public String moveFile(String src, String destDir) {
             try {
-                File f = new File(src), d = new File(destDir);
+                File f = safeFile(src), d = safeFile(destDir);
+                if (f == null || d == null) return "Đường dẫn không hợp lệ";
                 if (!f.exists()) return "Không tìm thấy tệp nguồn";
                 if (!d.isDirectory()) return "Thư mục đích không hợp lệ";
                 File t = new File(d, f.getName());
@@ -2096,7 +2158,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public boolean deleteFile(String path) {
             try {
-                File f = new File(path);
+                File f = safeFile(path); if (f == null) return false;
                 if (f.isDirectory()) { File[] k = f.listFiles(); if (k != null && k.length > 0) return false; }
                 boolean ok = f.delete();
                 if (ok) { try { MediaStore.Files.getContentUri("external"); sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); } catch (Exception e) { } }
@@ -2148,7 +2210,8 @@ public class MainActivity extends Activity {
         /** Trả "" nếu mở được, ngược lại là lý do để hiện cho người dùng. */
         @JavascriptInterface public String openFileMsg(String path) {
             try {
-                File f = new File(path);
+                File f = safeFile(path);
+                if (f == null) return "Đường dẫn không hợp lệ";
                 if (!f.exists()) return "Không tìm thấy tệp";
                 if (f.isDirectory()) return "Đây là thư mục";
                 String ext = extOf(f.getName());
@@ -2169,7 +2232,7 @@ public class MainActivity extends Activity {
         /** "Mở bằng…": luôn hiện hộp chọn ứng dụng. */
         @JavascriptInterface public boolean openFileWith(String path) {
             try {
-                File f = new File(path);
+                File f = safeFile(path); if (f == null) return false;
                 Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
                 Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mimeOf(f.getName())).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 Intent c = Intent.createChooser(v, "Mở bằng");
@@ -2186,7 +2249,8 @@ public class MainActivity extends Activity {
                 JSONObject res = new JSONObject();
                 File out = null; boolean ok = false;
                 try {
-                    File z = new File(path), parent = z.getParentFile();
+                    File z = safeFile(path); if (z == null || z.getParentFile() == null) throw new java.io.IOException("Đường dẫn không hợp lệ");
+                    File parent = z.getParentFile();
                     String base = z.getName(); int d = base.lastIndexOf('.'); if (d > 0) base = base.substring(0, d);
                     out = new File(parent, base); int k = 2;
                     while (out.exists()) { out = new File(parent, base + " " + k); k++; }

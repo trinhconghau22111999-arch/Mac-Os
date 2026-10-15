@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:light}html,body{margin:0}
+<style>:root{--bl:20px;color-scheme:light}html,body{margin:0}
 /* Ghi âm */
 .rc{position:relative;display:flex;flex-direction:column;height:100%;padding:36px 16px 12px;background:#131218;color:#efe9fb;overflow:hidden;container-type:size;-webkit-user-select:none;user-select:none}
 .rc .rcm{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
@@ -179,7 +179,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .bram:empty{display:none}
 @media (max-width:560px){.opt{display:none}}
 
-.pop{position:absolute;top:30px;z-index:7;min-width:230px;padding:6px;border-radius:12px;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
+.pop{position:absolute;top:30px;z-index:7;min-width:230px;padding:6px;border-radius:12px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);
   box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 16px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;text-shadow:none;font-size:13px}
 #ctx{z-index:14}
 .mn{text-align:left;padding:4px 10px;border-radius:6px;display:flex;justify-content:space-between;gap:24px}
@@ -189,7 +189,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .pop hr{border:0;border-top:1px solid var(--line);margin:5px 4px;width:calc(100% - 8px)}
 
 /* Trung tâm điều khiển */
-.cc{position:absolute;top:32px;right:8px;z-index:7;width:min(300px,calc(100% - 16px));padding:12px;border-radius:24px;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
+.cc{position:absolute;top:32px;right:8px;z-index:7;width:min(300px,calc(100% - 16px));padding:12px;border-radius:24px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);
   box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 16px 40px rgba(0,0,0,.3);display:grid;grid-template-columns:1fr 1fr;gap:10px;text-shadow:none}
 .tile{display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:var(--field);text-align:left;min-width:0}
 .tile .ci{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(120,120,128,.4);color:#fff;flex:none}
@@ -206,7 +206,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .npb svg{width:14px;height:14px;fill:currentColor}
 
 /* Thông báo */
-.nc{position:absolute;top:30px;right:8px;bottom:8px;z-index:7;width:min(340px,calc(100% - 16px));overflow:auto;padding:14px;border-radius:24px;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
+.nc{position:absolute;top:30px;right:8px;bottom:8px;z-index:7;width:min(340px,calc(100% - 16px));overflow:auto;padding:14px;border-radius:24px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);
   box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 16px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:12px;text-shadow:none}
 .nch{display:flex;justify-content:space-between;align-items:center;font-size:15px}
 .nlist{display:flex;flex-direction:column;gap:8px}
@@ -228,12 +228,12 @@ ul,ol{margin:0;padding:0;list-style:none}
 .mc7 i{font-style:normal;padding:2px 0}
 .mc7 i.td{background:#ff3b30;color:#fff;border-radius:50%;font-weight:700}
 .banners{position:absolute;top:34px;right:10px;z-index:9;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100% - 20px));pointer-events:none}
-.bn{pointer-events:auto;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 12px 30px rgba(0,0,0,.3);border-radius:20px;animation:bnin .38s cubic-bezier(.2,.9,.3,1)}
+.bn{pointer-events:auto;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 12px 30px rgba(0,0,0,.3);border-radius:20px;animation:bnin .38s cubic-bezier(.2,.9,.3,1)}
 .bn.out{opacity:0;transform:translateX(40px);transition:opacity .3s,transform .3s}
 @keyframes bnin{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
 
 /* Spotlight */
-.spot{position:absolute;z-index:8;left:50%;top:16%;transform:translateX(-50%);width:min(580px,calc(100% - 24px));border-radius:26px;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
+.spot{position:absolute;z-index:8;left:50%;top:16%;transform:translateX(-50%);width:min(580px,calc(100% - 24px));border-radius:26px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);
   box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 24px 60px rgba(0,0,0,.35);overflow:hidden}
 .sin{display:flex;align-items:center;gap:12px;padding:14px 18px}
 .sin svg{width:22px;height:22px;fill:var(--muted);flex:none}
@@ -262,19 +262,19 @@ ul,ol{margin:0;padding:0;list-style:none}
 .lpd i.on{background:#fff}
 
 /* Chuyển ứng dụng, Xem nhanh */
-.sw{position:absolute;z-index:13;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:10px;padding:14px;border-radius:26px;background:var(--glass);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);box-shadow:0 0 0 1px var(--glass-line) inset,0 20px 50px rgba(0,0,0,.4);max-width:calc(100% - 20px);overflow:auto}
+.sw{position:absolute;z-index:13;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:10px;padding:14px;border-radius:26px;background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 1px var(--glass-line) inset,0 20px 50px rgba(0,0,0,.4);max-width:calc(100% - 20px);overflow:auto}
 .swi{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;border-radius:16px;color:var(--fg);font-size:12px;min-width:76px}
 .swi .ic{width:56px;height:56px}
 .swi[aria-current="true"]{background:var(--sel)}
 .ql{position:absolute;inset:0;z-index:14;display:grid;place-items:center;background:rgba(0,0,0,.28)}
-.qlp{width:min(340px,calc(100% - 32px));padding:28px 20px 20px;border-radius:24px;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);box-shadow:0 0 0 1px var(--glass-line) inset,0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.qlp{width:min(340px,calc(100% - 32px));padding:28px 20px 20px;border-radius:24px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 1px var(--glass-line) inset,0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
 .qli{--u:20px;margin-bottom:10px;height:calc(var(--u)*5);display:grid;place-items:center}
 .qlp b{font-size:15px;word-break:break-word}
 .qlp span,.qlp small{color:var(--muted)}
 .qlp em{font-style:normal;font-size:11.5px;color:var(--muted);margin-top:10px}
 
 /* Màn hình khóa và nguồn */
-.lock{position:absolute;inset:0;z-index:40;color:#fff;display:flex;flex-direction:column;align-items:center;padding:7% 20px 22px;background:rgba(10,14,34,.5);backdrop-filter:blur(48px) saturate(1.4);-webkit-backdrop-filter:blur(40px) saturate(1.4);text-shadow:0 1px 6px rgba(0,0,0,.25)}
+.lock{position:absolute;inset:0;z-index:40;color:#fff;display:flex;flex-direction:column;align-items:center;padding:7% 20px 22px;background:rgba(10,14,34,.5);backdrop-filter:blur(48px) saturate(1.4);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.4);text-shadow:0 1px 6px rgba(0,0,0,.25)}
 .lock.out{opacity:0;transform:translateY(-36px) scale(1.04);transition:opacity .4s,transform .4s}
 .lt{font-size:min(96px,20vw);font-weight:200;line-height:1;font-variant-numeric:tabular-nums}
 .ld{font-size:19px;margin-top:6px;opacity:.9}
@@ -354,7 +354,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 .tg i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
 .tg[aria-checked="true"]{background:#34c759}
 .tg[aria-checked="true"] i{transform:translateX(16px)}
-.side{background:var(--side);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);padding:56px 10px 10px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.side{background:var(--side);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);padding:56px 10px 10px;display:flex;flex-direction:column;gap:2px;overflow:auto}
 .side h4{margin:6px 10px 4px;font-size:11.5px;font-weight:600;color:var(--muted)}
 .si{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:8px;text-align:left;width:100%}
 .si svg{width:16px;height:16px;fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -456,7 +456,7 @@ ul,ol{margin:0;padding:0;list-style:none}
   .cal .cnav button{padding-inline:8px;font-size:13px;white-space:nowrap}
 }
 .cal .cnav button{white-space:nowrap}
-.evp{position:absolute;z-index:6;width:240px;padding:12px;border-radius:16px;background:var(--glass);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);box-shadow:0 0 0 1px var(--glass-line) inset,0 12px 30px rgba(0,0,0,.3)}
+.evp{position:absolute;z-index:6;width:240px;padding:12px;border-radius:16px;background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(1.8);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.8);box-shadow:0 0 0 1px var(--glass-line) inset,0 12px 30px rgba(0,0,0,.3)}
 .evp ul{margin:8px 0;display:flex;flex-direction:column;gap:4px}
 .evp li{display:flex;justify-content:space-between;gap:8px;padding:3px 8px;border-radius:6px;background:rgba(10,122,255,.14)}
 .evp li button{opacity:.6}
@@ -465,7 +465,7 @@ ul,ol{margin:0;padding:0;list-style:none}
 
 /* Ghi chú */
 .nts{display:grid;grid-template-columns:220px minmax(0,1fr);height:100%}
-.nl{background:var(--side);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);display:flex;flex-direction:column;min-height:0}
+.nl{background:var(--side);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);display:flex;flex-direction:column;min-height:0}
 .nl .bar{padding-left:78px}.nl .bar .t{white-space:nowrap}
 .ned .sv{height:28px;padding:0 12px;border-radius:14px;background:var(--accent);color:#fff;font-weight:600;font-size:13px;flex:none}
 .ned .sv.ok{background:#28c840}
@@ -665,7 +665,7 @@ a.btn.pri{color:#fff}
 .mb2{display:none}
 .mtx{padding-top:14px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
 .mbx{display:none}
-.cmp{position:absolute;inset:0;z-index:6;background:var(--glass);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);display:grid;place-items:center;padding:12px}
+.cmp{position:absolute;inset:0;z-index:6;background:var(--glass);backdrop-filter:blur(var(--bl));-webkit-backdrop-filter:blur(var(--bl));display:grid;place-items:center;padding:12px}
 .cf{width:min(520px,100%);height:min(380px,100%);background:var(--win);border-radius:18px;box-shadow:0 0 0 1px var(--line),0 20px 50px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
 .cfh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
 .cf label{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);color:var(--muted)}
@@ -788,11 +788,11 @@ a.btn.pri{color:#fff}
 
 /* Dock */
 .dock{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px;max-width:calc(100% - 2*(var(--base) + 24px));
-  background:var(--glass);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);transition:transform .25s ease}
+  background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);transition:transform .25s ease}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
 /* Nút tìm kiếm (trái) và nút chụp ảnh màn hình (phải): vuông, cùng cỡ và cùng hàng với icon Dock; Dock chừa chỗ hai bên nên không bao giờ che chúng */
-.qs,.qshot{position:absolute;bottom:17px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
+.qs,.qshot{position:absolute;bottom:17px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
 .qshot{right:12px;width:var(--base);border:0;padding:0;display:grid;place-items:center;transition:transform .12s ease-out}
 .qshot:active{transform:scale(.92)}
 .qshot svg{width:58%;height:58%}
@@ -803,7 +803,7 @@ a.btn.pri{color:#fff}
 .qsi,.qsx{display:none}
 .qs.open .qsi{display:block;flex:1;min-width:0;height:100%;border:0;outline:0;background:none;color:inherit;font:inherit;font-size:15px;padding:0 4px 0 0}
 .qs.open .qsx{display:grid;place-items:center;flex:none;width:calc(var(--base)*.7);height:100%;border:0;background:none;color:inherit;font-size:22px;opacity:.7}
-.qsres{position:absolute;left:0;right:0;bottom:calc(100% + 8px);max-height:min(52vh,420px);overflow-y:auto;padding:6px;border-radius:18px;background:var(--win);color:var(--fg);backdrop-filter:blur(36px) saturate(1.9);-webkit-backdrop-filter:blur(36px) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);-webkit-overflow-scrolling:touch}
+.qsres{position:absolute;left:0;right:0;bottom:calc(100% + 8px);max-height:min(52vh,420px);overflow-y:auto;padding:6px;border-radius:18px;background:var(--win);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);-webkit-overflow-scrolling:touch}
 .qsres[hidden]{display:none}
 .qsh{padding:6px 10px 3px;font-size:11px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.04em}
 .qsr{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:12px;background:none;color:inherit;text-align:left;font:inherit}
@@ -843,7 +843,7 @@ a.btn.pri{color:#fff}
 @keyframes dkicout{from{transform:none;opacity:1}to{transform:translateY(16px) scale(.4);opacity:0}}
 @keyframes bounce{0%{transform:translateY(0)}25%{transform:translateY(-24px)}50%{transform:translateY(0)}75%{transform:translateY(-12px)}100%{transform:translateY(0)}}
 .dk::after{content:attr(data-label);position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%) translateY(calc(var(--lift,0px) * -1));padding:4px 11px;border-radius:9px;background:var(--glass);color:var(--fg);
-  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);box-shadow:0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.25);font-size:13px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s}
+  backdrop-filter:blur(var(--bl));-webkit-backdrop-filter:blur(var(--bl));box-shadow:0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.25);font-size:13px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s}
 .dk:hover::after,.dk:focus-visible::after{opacity:1}
 .dk .dot{position:absolute;left:50%;bottom:-7px;margin-left:-2px;width:4px;height:4px;border-radius:50%;background:var(--fg);opacity:0}
 .dk.run .dot{opacity:.8}
@@ -885,7 +885,7 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .chip.on{background:rgba(52,199,89,.2);color:#1f9d45}
 .cal-bar .onl{margin-right:6px;padding:0 10px;height:26px;border-radius:13px;border:0;background:rgba(127,127,127,.16);color:inherit;font:inherit;font-size:12px;cursor:pointer}
 .evp li.onl span{color:#1f9d45}.evp li.onl em{font-style:normal;font-variant-numeric:tabular-nums;opacity:.8}
-.icp{position:absolute;right:10px;top:48px;z-index:9;width:min(340px,calc(100% - 20px));padding:14px;border-radius:16px;background:var(--glass);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid var(--line);box-shadow:0 12px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:8px;color:var(--fg)}
+.icp{position:absolute;right:10px;top:48px;z-index:9;width:min(340px,calc(100% - 20px));padding:14px;border-radius:16px;background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(180%);-webkit-backdrop-filter:blur(var(--bl)) saturate(180%);border:1px solid var(--line);box-shadow:0 12px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:8px;color:var(--fg)}
 .icp[hidden]{display:none}
 .icp p{margin:0;font-size:12px;color:var(--muted)}
 .icp input{height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--field);color:inherit;font:inherit;font-size:12px;min-width:0}
@@ -982,7 +982,7 @@ body.native .stage{border-radius:0;min-height:0}
 .msall:active{background:rgba(255,255,255,.32)}
 .mshint{position:absolute;left:0;right:0;bottom:calc(var(--base) + 110px);text-align:center;color:rgba(255,255,255,.75);font-size:12px;pointer-events:none}
 /* Chạm giữ màn hình nền */
-.dsh{position:absolute;left:50%;bottom:calc(var(--base) + 44px);transform:translateX(-50%);z-index:9;display:flex;gap:4px;padding:14px 10px 12px;border-radius:28px;background:rgba(40,44,60,.38);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.16);max-width:calc(100% - 12px);animation:dshin .2s ease-out}
+.dsh{position:absolute;left:50%;bottom:calc(var(--base) + 44px);transform:translateX(-50%);z-index:9;display:flex;gap:4px;padding:14px 10px 12px;border-radius:28px;background:rgba(40,44,60,.38);backdrop-filter:blur(var(--bl)) saturate(1.6);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.6);box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.16);max-width:calc(100% - 12px);animation:dshin .2s ease-out}
 @keyframes dshin{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
 .dsi{display:flex;flex-direction:column;align-items:center;gap:7px;width:78px;color:#fff;font-size:12.5px;line-height:1.15;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.4)}
 .dsi i{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.24);display:grid;place-items:center}
@@ -1007,7 +1007,7 @@ body.native .stage{border-radius:0;min-height:0}
 
 /* Chọn trình duyệt thật */
 .bpk{position:absolute;inset:0;z-index:14;display:grid;place-items:center;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.bps{width:min(340px,90%);max-height:78%;display:flex;flex-direction:column;gap:6px;padding:18px 14px 12px;border-radius:22px;background:var(--glass);color:var(--fg);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.bps{width:min(340px,90%);max-height:78%;display:flex;flex-direction:column;gap:6px;padding:18px 14px 12px;border-radius:22px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 20px 60px rgba(0,0,0,.45)}
 .bps b{font-size:16px;padding:0 6px}
 .bps small{color:var(--muted);font-size:12px;padding:0 6px 6px}
 .bpl{overflow:auto;display:flex;flex-direction:column;gap:2px}
@@ -1154,6 +1154,17 @@ function nsTick(){
 }
 function nsStart(){if(!nsTimer&&NSYNC.size)nsTimer=setTimeout(nsTick,90)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){clearTimeout(nsTimer);nsTimer=0;nsStart();kickSync()}});
+/* Bộ hẹn giờ chung cho việc định kỳ (đồng hồ, đồng bộ cài đặt, pin, RAM): 1 setTimeout/giây thay cho 4 setInterval riêng.
+   Ra nền hoặc tắt màn hình (document.hidden): dừng hẳn, không gọi cầu Java nữa; quay lại thì chạy bù tất cả ngay. */
+const DMEV=[]; let dmEvT=0;
+function dmEvTick(){
+  dmEvT=0; if(document.hidden)return;
+  const now=Date.now();
+  DMEV.forEach(t=>{if(now-t.last>=t.ms-50){t.last=now;try{t.fn()}catch(e){}}});
+  dmEvT=setTimeout(dmEvTick,1000);
+}
+function dmEvery(fn,ms){DMEV.push({fn:fn,ms:ms,last:Date.now()}); if(!dmEvT&&!document.hidden)dmEvT=setTimeout(dmEvTick,1000)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){clearTimeout(dmEvT);dmEvT=0;DMEV.forEach(t=>{t.last=0});dmEvTick()}});
 let P=jget('dm-prefs',{});
 const pref=(k,d)=>k in P?P[k]:d;
 const setPref=(k,v)=>{P[k]=v;jset('dm-prefs',P);bus.emit('ui')};
@@ -1246,6 +1257,41 @@ bus.on('fs',()=>{
   b.dataset.full=FS.trash.length?'1':'';
 });
 
+/* Định dạng ngày dùng chung: toLocaleDateString tạo bộ định dạng mới mỗi lần gọi (rất chậm trên WebView cũ khi thư mục có hàng nghìn tệp) */
+const fmtDay=(()=>{let f=null;try{f=new Intl.DateTimeFormat('vi-VN')}catch(e){}return ms=>f?f.format(ms):new Date(ms).toLocaleDateString('vi-VN')})();
+/* Nạp lười: mã các app con lớn (Máy tính, Cài đặt, Ghi âm, Webcam, Trình duyệt, Ảnh, Terminal) nằm ở assets/js/<tên>.js,
+   chỉ tải khi mở app lần đầu để lần khởi động đầu tiên parse ít mã hơn. Hàm "build..." ở đây chỉ là hàm giữ chỗ.
+   Tệp js/<tên>.js đặt mã trong một hàm bọc (window.__LZ.<tên>); ta lấy phần thân rồi eval TRỰC TIẾP ở đây để mã chạy trong cùng phạm vi với phần còn lại. */
+const LZ={};
+function lazyReal(file,fn){
+  const st=LZ[file]; if(st.fns)return st.fns;
+  const wrap=window.__LZ&&window.__LZ[file]; if(typeof wrap!=='function')throw new Error('thiếu '+file);
+  const src=String(wrap);
+  st.fns=eval(src.slice(src.indexOf('{')+1,src.lastIndexOf('}'))+'\n;({'+LZFN[file]+'})');
+  delete window.__LZ[file];
+  return st.fns;
+}
+const LZFN={calc:'buildCalc',settings:'buildSettings',recorder:'buildRecorder',camera:'buildCamera',browser:'buildBrowser',photos:'buildPhotos',terminal:'buildTerminal'};
+function lazyBuild(file,fn,b,w,a){
+  let inner=null,dead=false;
+  const run=()=>{
+    if(dead)return;
+    try{inner=lazyReal(file)[fn](b,w,a)||{}}catch(e){console.error(e);b.textContent='Không mở được ứng dụng'}
+  };
+  const st=LZ[file]||(LZ[file]={ok:false,q:[],loading:false,fns:null});
+  if(st.ok)run();
+  else{
+    st.q.push(run);
+    if(!st.loading){
+      st.loading=true;
+      const sc=document.createElement('script'); sc.src='js/'+file+'.js';
+      sc.onload=()=>{st.ok=true;st.loading=false;st.q.splice(0).forEach(f=>f())};
+      sc.onerror=()=>{st.loading=false;st.q.splice(0);b.textContent='Không nạp được ứng dụng'};
+      document.head.appendChild(sc);
+    }
+  }
+  return {open(x){if(inner&&inner.open)inner.open(x)},destroy(){dead=true;if(inner&&inner.destroy)inner.destroy()}};
+}
 /* ---------- Ứng dụng (đăng ký) ---------- */
 const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
@@ -2032,104 +2078,9 @@ function buildDrive3Stub(b){
   return {};
 }
 
-/* ---------- Máy tính ---------- */
-function buildCalc(b,w){
-  b.innerHTML='<div class="calc"><div class="bar"><button class="hbtn" type="button" aria-label="Lịch sử phép tính"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4v4.5H8M12 7.5V12l3 2"/></svg></button></div><div class="expr" aria-live="polite"></div><div class="disp"><span>0</span></div><div class="keys"></div><div class="chist" hidden><div class="chh"><b>Lịch sử</b><span><button type="button" class="hclr">Xóa</button><button type="button" class="hx" aria-label="Đóng">✕</button></span></div><ol class="chl"></ol></div></div>';
-  const calcEl=$('.calc',b), disp=$('.disp',b), ds=$('span',disp), keys=$('.keys',b), exprEl=$('.expr',b);
-  const hist=$('.chist',b), hl=$('.chl',b), HK='dm-calchist';
-  let done='';
-  let cur='0', prev=null, op=null, fresh=false, opBtn=null;
-  let HIST=[]; try{const v=JSON.parse(lsGet(HK)||'[]');if(Array.isArray(v))HIST=v}catch(e){}
-  const saveHist=()=>{try{lsSet(HK,JSON.stringify(HIST))}catch(e){}};
-  function fmt(s){
-    if(s==='Lỗi')return s;
-    let neg=s[0]==='-'; if(neg)s=s.slice(1);
-    const p=s.split('.'), i=p[0];
-    let out=/^\d+$/.test(i)?Number(i).toLocaleString('vi-VN'):i;
-    if(p.length>1)out+=','+p[1];
-    return (neg?'-':'')+out;
-  }
-  /* Chữ kết quả to hết cỡ theo chiều cao cửa sổ, tự thu nhỏ khi số dài */
-  function fit(){
-    const H=calcEl.clientHeight, W=disp.clientWidth-16; if(!H||W<=0)return;
-    let sz=H>340?Math.max(44,Math.min(150,H*0.2)):Math.max(30,Math.min(96,H*0.12)), n=0;
-    disp.style.fontSize=sz+'px';
-    while(ds.offsetWidth>W&&sz>16&&n++<40){sz*=0.93;disp.style.fontSize=sz+'px'}
-  }
-  const render=()=>{
-    const t=fmt(cur);ds.textContent=t;
-    let e=done;
-    if(!e&&op!==null&&prev!==null)e=fmt(prev)+' '+op+(fresh?'':' '+t);
-    exprEl.textContent=e||'\u00a0';
-    fit();
-  };
-  const ro=window.ResizeObserver?new ResizeObserver(()=>fit()):null; if(ro)ro.observe(calcEl);
-  /* Lịch sử: ghi lại sau mỗi lần bấm "=" */
-  const hfmt=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())+' · '+pad(d.getDate())+'/'+pad(d.getMonth()+1)};
-  function drawHist(){
-    hl.innerHTML=HIST.length?HIST.map((h,i)=>'<li data-i="'+i+'"><small>'+esc(h.e)+'</small><em>'+esc(h.r)+'</em><small>'+hfmt(h.t)+'</small></li>').join(''):'<li class="non">Chưa có phép tính nào</li>';
-  }
-  function addHist(e,raw){
-    if(raw==='Lỗi')return;
-    HIST.unshift({e:e,r:fmt(raw),raw:raw,t:Date.now()}); if(HIST.length>500)HIST.length=500; saveHist();
-  }
-  $('.hbtn',b).addEventListener('click',()=>{drawHist();hist.hidden=false});
-  $('.hx',b).addEventListener('click',()=>{hist.hidden=true});
-  $('.hclr',b).addEventListener('click',()=>{HIST=[];saveHist();drawHist()});
-  hl.addEventListener('click',e=>{
-    const li=e.target.closest('li[data-i]'); if(!li)return;
-    const h=HIST[+li.dataset.i]; if(!h)return;
-    cur=h.raw; prev=null; op=null; fresh=true; done=''; clearOp(); hist.hidden=true; render();
-  });
-  const clearOp=()=>{if(opBtn){opBtn.classList.remove('on');opBtn=null}};
-  function compute(){
-    const a=parseFloat(prev), c=parseFloat(cur); let r;
-    if(op==='+')r=a+c; else if(op==='−')r=a-c; else if(op==='×')r=a*c; else r=c===0?NaN:a/c;
-    return isFinite(r)?String(+r.toPrecision(12)):'Lỗi';
-  }
-  const btns={};
-  function press(l){
-    const btn=btns[l];
-    if(l!=='='&&l!=='%')done='';
-    if(/^\d$/.test(l)){
-      if(cur==='Lỗi'||fresh){cur=l;fresh=false}else cur=cur==='0'?l:(cur.replace(/[-.]/g,'').length>=12?cur:cur+l);
-      clearOp();
-    }else if(l===','){
-      if(cur==='Lỗi'||fresh){cur='0.';fresh=false}else if(cur.indexOf('.')<0)cur+='.';
-    }else if(l==='AC'){cur='0';prev=null;op=null;fresh=false;done='';clearOp()}
-    else if(l==='D'){if(cur==='Lỗi'||fresh)cur='0';else{cur=cur.slice(0,-1);if(cur===''||cur==='-')cur='0'}}
-    else if(l==='%'){if(cur!=='Lỗi')cur=String(+(parseFloat(cur)/100).toPrecision(12))}
-    else if(l==='='){if(op!==null&&prev!==null){const a=prev,o=op,c=cur;cur=compute();done=fmt(a)+' '+o+' '+fmt(c)+' =';addHist(done,cur);prev=null;op=null;fresh=true}clearOp()}
-    else{
-      if(op!==null&&prev!==null&&!fresh){cur=compute()}
-      prev=cur; op=l; fresh=true; clearOp(); opBtn=btn; btn.classList.add('on');
-    }
-    render();
-  }
-  [['AC','fn'],['D','fn'],['%','fn'],['÷','op'],['7',''],['8',''],['9',''],['×','op'],['4',''],['5',''],['6',''],['−','op'],['1',''],['2',''],['3',''],['+','op'],['0','wide'],[',',''],['=','op']].forEach(k=>{
-    const e=document.createElement('button'); e.className='k '+k[1]; e.textContent=k[0]==='D'?'⌫':k[0]; btns[k[0]]=e;
-    e.addEventListener('click',()=>press(k[0]));
-    keys.appendChild(e);
-  });
-  const KM={'+':'+','-':'−','*':'×','/':'÷','Enter':'=','=':'=',',':',','.':',','%':'%','Escape':'AC','Backspace':'D','c':'AC','C':'AC'};
-  const kd=e=>{
-    if(!w.isConnected||!w.classList.contains('focus'))return;
-    if(e.target.closest&&e.target.closest('input,textarea'))return;
-    const l=/^\d$/.test(e.key)?e.key:KM[e.key];
-    if(l){e.preventDefault();press(l)}
-  };
-  document.addEventListener('keydown',kd);
-  render();
-  return {destroy(){document.removeEventListener('keydown',kd);if(ro)ro.disconnect()}};
-}
-
+function buildCalc(b,w){return lazyBuild('calc','buildCalc',b,w)}
 /* ---------- Cài đặt hệ thống ---------- */
-const SVK=[['alarm','Âm báo thức'],['ring','Chuông cuộc gọi'],['notif','Âm thanh thông báo']];
-function svRows(){
-  const A=window.AndroidLauncher; if(!A||!A.getStreamVol)return '';
-  return SVK.map(k=>{let v=-1;try{v=A.getStreamVol(k[0])}catch(e){} if(v<0)return '';
-    return '<div class="rw"><span><b>'+k[1]+'</b><small>'+v+'%</small></span><span class="rc2"><input type="range" class="rg sv" data-sv="'+k[0]+'" min="0" max="100" value="'+v+'" aria-label="'+k[1]+'"></span></div>'}).join('');
-}
+function buildSettings(b,w,arg){return lazyBuild('settings','buildSettings',b,w,arg)}
 function nativeRows(){
   const A=window.AndroidLauncher; if(!A||!A.getInfo)return null;
   let o={}; try{o=JSON.parse(A.getInfo())}catch(e){return null}
@@ -2145,426 +2096,8 @@ function nativeRows(){
   R.push(['Ngôn ngữ',navigator.language||'vi']);
   return R;
 }
-function buildSettings(b,w,arg){
-  const NAV=[['wifi','Wi-Fi','#2f8bff'],['bt','Bluetooth','#2f8bff'],['ap','Giao diện','#5b5fe0'],['wp','Hình nền','#2fb3d6'],['dk','Màn hình nền và Dock','#4a4d57'],['dp','Màn hình','#2f8bff'],['sd','Âm thanh','#ff3b5c'],['bt2','Pin','#34c759'],['lk','Mật khẩu màn hình','#8e8e93'],['us','Người dùng','#8e8e93'],['pm','Quyền truy cập','#34c759'],['ab','Giới thiệu','#8e8e93']];
-  const rw=(l,c,s)=>'<div class="rw"><span><b>'+l+'</b>'+(s?'<small>'+s+'</small>':'')+'</span><span class="rc2">'+c+'</span></div>';
-  const sld=(id,v,lo,hi)=>'<input type="range" class="rg" data-s="'+id+'" min="'+lo+'" max="'+hi+'" value="'+v+'" aria-label="'+id+'">';
-  b.innerHTML='<div class="sset"><nav class="side"></nav><div class="main"><div class="bar"><strong class="t pt"></strong></div><div class="pane"></div></div></div>';
-  const nav=$('.side',b), pane=$('.pane',b), pt=$('.pt',b); let key=(arg&&arg.pane)||'ap';
-  NAV.forEach(n=>{
-    const s=document.createElement('button'); s.className='si'; s.dataset.p=n[0];
-    s.innerHTML='<i class="sq" style="--c:'+n[2]+'"></i><span>'+n[1]+'</span>';
-    s.addEventListener('click',()=>{key=n[0];render()});
-    nav.appendChild(s);
-  });
-  function info(){
-    const nr=nativeRows(); if(nr)return [['Hệ thống','Desktop Bắp OS 26']].concat(nr);
-    const nv=navigator, sc=window.screen;
-    return [['Hệ thống','Desktop Bắp OS 26'],['Lõi',(nv.userAgentData&&nv.userAgentData.platform)||nv.platform||'Không rõ'],['Ngôn ngữ',nv.language||'vi'],['Màn hình',sc.width+' × '+sc.height],['Số lõi xử lý',nv.hardwareConcurrency||'Không rõ'],['Bộ nhớ',nv.deviceMemory?nv.deviceMemory+' GB':'Không rõ']];
-  }
-  function panel(){
-    const dm=themeMode(), wl=lsGet('dm-photowall')?'':stage.dataset.wall;
-    switch(key){
-      case 'pm':{
-        const A=window.AndroidLauncher; if(!A)return ['Quyền truy cập','<div class="grp"><div class="rw"><span><b>Chỉ có trong app Android</b><small>Bản web không có quyền hệ thống để cấp.</small></span></div></div>'];
-        let st={}; try{st=JSON.parse(A.getStatus())}catch(e){}
-        const R=[['write','Sửa cài đặt hệ thống','Đổi độ sáng màn hình'],['notif','Đọc thông báo','Hiện thông báo của ứng dụng khác'],['a11y','Trợ năng','Khóa màn hình, menu tắt máy/khởi động lại'],['files','Truy cập mọi tệp','Ứng dụng Tệp và Tải xuống'],['calendar','Lịch','Đọc sự kiện trong lịch của máy'],['dnd','Không làm phiền','Chỉnh âm lượng chuông và thông báo']];
-        return ['Quyền truy cập','<div class="grp">'+R.map(r=>rw(r[1],st[r[0]]?'<span style="color:#34c759">Đã cấp</span>':'<button class="btn" data-setup="'+r[0]+'">Cấp quyền</button>',r[2])).join('')+'</div>'];
-      }
-      case 'wifi':{
-        const A=window.AndroidLauncher;
-        if(!A||!A.getWifiInfo)return ['Wi-Fi','<div class="grp">'+rw('Wi-Fi',tgl(pref('wifi',true),'wifi','Wi-Fi'),navigator.onLine?'Đã kết nối':'Không có kết nối mạng')+'</div>'];
-        let o={}; try{o=JSON.parse(A.getWifiInfo())}catch(e){}
-        if(Date.now()-(window._wfScan||0)>9000){window._wfScan=Date.now();try{A.wifiScan()}catch(e){}}
-        const on=!!o.on, L=o.list||[], cn=L.filter(n=>n.connected), ot=L.filter(n=>!n.connected);
-        const bars=l=>'<span style="letter-spacing:1px;color:var(--muted)">'+'▂▄▆█'.slice(0,Math.max(1,Math.min(4,l+1)))+'</span>';
-        const net=n=>'<div class="rw" data-wf="'+esc(n.ssid)+'" style="cursor:pointer"><span><b>'+esc(n.ssid)+'</b><small>'+(n.connected?'Đã kết nối':(n.saved?'Đã lưu · chưa kết nối':'Chưa kết nối'))+'</small></span><span class="rc2"'+(n.connected?' style="color:#34c759"':'')+'>'+(n.secure?'🔒 ':'')+bars(n.level)+'</span></div>';
-        const hd=t=>'<p style="margin:16px 6px 6px;color:var(--muted);font-size:12px">'+t+'</p>';
-        let h='<div class="grp">'+rw('Wi-Fi',tgl(on,'wifi','Wi-Fi'),!on?'Đã tắt':(cn.length?'Đã kết nối: '+esc(cn[0].ssid):'Chưa kết nối mạng nào'))+'</div>';
-        if(on){
-          if(cn.length)h+=hd('Đang kết nối')+'<div class="grp">'+cn.map(net).join('')+'</div>';
-          if(ot.length)h+=hd('Mạng khác')+'<div class="grp">'+ot.map(net).join('')+'</div>';
-          if(!o.loc)h+=hd('Cấp quyền Vị trí cho Desktop Mini (Cài đặt → Quyền) để thấy danh sách mạng xung quanh.');
-          else if(!ot.length)h+=hd('Đang quét mạng… Nếu vẫn trống, hãy bật Vị trí của máy.');
-        }
-        return ['Wi-Fi',h];
-      }
-      case 'bt':{
-        const A=window.AndroidLauncher;
-        if(!A||!A.getBtInfo)return ['Bluetooth','<div class="grp">'+rw('Bluetooth',tgl(pref('bt',true),'bt','Bluetooth'),pref('bt',true)?'Đang bật':'Đã tắt')+'</div>'];
-        let o={}; try{o=JSON.parse(A.getBtInfo())}catch(e){}
-        if(o.none)return ['Bluetooth','<div class="grp"><div class="rw"><span><b>Máy không có Bluetooth</b></span></div></div>'];
-        if(o.on&&Date.now()-(window._btScan||0)>20000){window._btScan=Date.now();try{A.btScan()}catch(e){}}
-        const on=!!o.on, P2=o.paired||[], F=o.found||[], cn=P2.filter(d=>d.connected), ds=P2.filter(d=>!d.connected);
-        const dev=(d,st,c)=>'<div class="rw" data-bt="1" style="cursor:pointer"><span><b>'+esc(d.name)+'</b><small>'+st+'</small></span><span class="rc2"'+(c?' style="color:#34c759"':'')+'>'+(c?'●':'')+'</span></div>';
-        const hd=t=>'<p style="margin:16px 6px 6px;color:var(--muted);font-size:12px">'+t+'</p>';
-        let h='<div class="grp">'+rw('Bluetooth',tgl(on,'bt','Bluetooth'),!on?'Đã tắt':(cn.length?'Đang kết nối '+cn.length+' thiết bị':'Đang bật · chưa kết nối thiết bị nào'))+'</div>';
-        if(on){
-          if(cn.length)h+=hd('Đã kết nối')+'<div class="grp">'+cn.map(d=>dev(d,'Đã kết nối',true)).join('')+'</div>';
-          if(ds.length)h+=hd('Đã ghép đôi · chưa kết nối')+'<div class="grp">'+ds.map(d=>dev(d,'Chưa kết nối',false)).join('')+'</div>';
-          if(F.length)h+=hd('Thiết bị xung quanh')+'<div class="grp">'+F.map(d=>dev(d,'Chưa ghép đôi',false)).join('')+'</div>';
-          if(o.perm===false)h+=hd('Cấp quyền Bluetooth cho Desktop Mini để thấy thiết bị đã ghép đôi.');
-          else if(!P2.length&&!F.length)h+=hd(o.loc?'Chưa có thiết bị nào. Đang tìm thiết bị xung quanh…':'Cấp quyền Vị trí cho Desktop Mini (Cài đặt → Quyền) để tìm thiết bị xung quanh.');
-        }
-        return ['Bluetooth',h];
-      }
-      case 'ap':return ['Giao diện','<div class="tiles"><button class="ap" data-m="auto" aria-pressed="'+(dm==='auto')+'"><span class="th a"></span><span>Tự động</span></button><button class="ap" data-m="light" aria-pressed="'+(dm==='light')+'"><span class="th l"></span><span>Sáng</span></button><button class="ap" data-m="dark" aria-pressed="'+(dm==='dark')+'"><span class="th d"></span><span>Tối</span></button></div>'];
-      case 'wp':return ['Hình nền','<div class="tiles"><button class="ap" data-n="1" aria-pressed="'+(wl==='1')+'"><span class="wl w1"></span><span>Biển</span></button><button class="ap" data-n="2" aria-pressed="'+(wl==='2')+'"><span class="wl w2"></span><span>Hoàng hôn</span></button><button class="ap" data-n="3" aria-pressed="'+(wl==='3')+'"><span class="wl w3"></span><span>Đêm</span></button>'+(NA()&&NA().getPhotos?'<button class="ap" data-pick="1" aria-pressed="'+(!!lsGet('dm-photowall'))+'"><span class="wl" style="background:linear-gradient(135deg,#5b6577,#2b303b);display:grid;place-items:center;font-size:30px;color:#fff">▣</span><span>Ảnh trên máy</span></button>':'')+'</div>'];
-      case 'dk':return ['Màn hình nền và Dock','<div class="grp">'+rw('Kích thước',sld('dockSize',pref('dockSize',54),36,72))+rw('Phóng đại',tgl(pref('magnify',true),'magnify','Phóng đại'))+rw('Thanh tìm kiếm Google',tgl(pref('gbar',true),'gbar','Thanh tìm kiếm Google'),'Hiện thanh tìm kiếm Google trên màn hình nền, tìm bằng ứng dụng Duyệt web')+rw('Chế độ nhẹ (máy yếu)',tgl(pref('lite',false),'lite','Chế độ nhẹ'),'Tắt hiệu ứng mờ kính và bóng lớn để mượt hơn trên máy cấu hình thấp')+rw('Tự động ẩn và hiện Dock',tgl(pref('hideDock',false),'hideDock','Tự động ẩn Dock'),'Rê chuột xuống đáy màn hình để hiện')+rw('Nút Desktop nổi trên ứng dụng khác',tgl(pref('dockFloat',true),'dockFloat','Nút Desktop nổi'),'Hiện nút tròn "Desktop" trên ứng dụng khác: bấm 1 lần để về màn hình Desktop, nhấn giữ rồi kéo để đổi vị trí. Cần bật dịch vụ trợ năng. Muốn ẩn luôn thanh trạng thái và thanh điều hướng của hệ thống (Android 10 trở xuống) cần cấp quyền WRITE_SECURE_SETTINGS qua adb')+'</div>'];
-      case 'dp':return ['Màn hình','<div class="grp">'+rw('Độ sáng',sld('bright',pref('bright',100),1,100))+rw('Tự xoay màn hình',tgl(rotOn(),'rot','Tự xoay màn hình'),rotOn()?'Đang bật':'Đã tắt')+rw('Độ sáng thấp nhất khi không dùng',tgl(stoOn(),'sto','Độ sáng thấp nhất khi không dùng'),stoOn()?'Sau '+stoMin()+' phút không chạm, màn hình hạ xuống độ sáng thấp nhất; chạm lại để sáng như cũ':'Đã tắt')+(stoOn()?rw('Thời gian chờ',['5','10','30'].map(m=>'<button type="button" data-sto="'+m+'" aria-pressed="'+(stoMin()===+m)+'">'+m+' phút</button>').join('').replace(/^/,'<span class="nv seg3">')+'</span>'):'')+'</div>'];
-      case 'sd':return ['Âm thanh','<div class="grp">'+rw('Âm lượng đầu ra',sld('vol',pref('vol',60),0,100),pref('vol',60)+'%')+svRows()+'</div>'+(svRows()?'<small class="svn" hidden style="display:block;margin:8px 4px;opacity:.7">Không đổi được âm lượng này. Hãy tắt chế độ Không làm phiền của máy rồi thử lại.</small>':'')];
-      case 'bt2':{
-        const A=window.AndroidLauncher, ps=!!(A&&A.isPowerSave&&A.isPowerSave());
-        return ['Pin','<div class="grp">'+rw('Mức pin',Math.round(BAT.level*100)+'%',BAT.charging?'Đang sạc':(BAT.real?'Đang dùng pin':'Giá trị mẫu, trình duyệt không cung cấp thông tin pin'))+(A&&A.isPowerSave?rw('Tiết kiệm pin',tgl(ps,'psave','Tiết kiệm pin'),ps?'Đang bật: giảm hoạt động nền để dùng được lâu hơn':'Đang tắt'):'')+'</div>'];
-      }
-      case 'lk':{
-        const o=lk(), pm=pref('lockPm','pin'), AL=window.AndroidLauncher; let isHome=false; try{isHome=!!(AL&&AL.isHomeDefault&&AL.isHomeDefault())}catch(e){}
-        const st=k=>o[k]?'<span style="color:#34c759;margin-right:8px">Đã đặt</span>':'<span style="opacity:.6;margin-right:8px">Chưa đặt</span>';
-        const bt=k=>'<button class="btn" data-lk="set:'+k+'">'+(o[k]?'Đổi':'Đặt')+'</button>'+(o[k]?'<button class="btn" data-lk="del:'+k+'" style="margin-left:6px">Xóa</button>':'');
-        const seg='<span class="nv seg3"><button type="button" data-lk="pm:pin" aria-pressed="'+(pm==='pin')+'">Mã PIN</button><button type="button" data-lk="pm:pat" aria-pressed="'+(pm==='pat')+'">Hình vẽ</button></span>';
-        return ['Mật khẩu màn hình','<div class="grp">'+rw('Mật khẩu ký tự',st('pw')+bt('pw'),'Dùng khi màn hình nằm ngang')+rw('Kiểu mở khóa khi màn hình dọc',seg,'Chọn 1 trong 2')+rw(pm==='pin'?'Mã PIN':'Hình vẽ',st(pm)+bt(pm),'Dùng khi màn hình để dọc')+rw('Khóa khi tắt màn hình',tgl(pref('lockOnOff',true),'lockOnOff','Khóa khi tắt màn hình'),'Bật lại màn hình phải nhập mới vào được')+(AL?rw('Màn hình chính mặc định',isHome?'<span style="color:#34c759">Đang bật</span>':'<button class="btn" data-setup="home">Đặt mặc định</button>',isHome?'Nút Home luôn về Desktop Mini':'Chưa đặt: nút Home vẫn về launcher cũ'):'')+'</div><small style="display:block;margin:10px 4px;opacity:.7">'+(isHome?'Desktop Mini đang là màn hình chính, nên mật khẩu chặn được người khác dùng màn hình chính khi bật lại máy. ':'')+'Mật khẩu chỉ khóa giao diện Desktop Mini, không thay thế khóa màn hình của Android: người khác vẫn mở được ứng dụng khác qua thanh thông báo hoặc màn hình đa nhiệm. Nên giữ khóa màn hình Android song song. Nên đặt cả mật khẩu ký tự và mã PIN/hình vẽ; nếu kiểu cần dùng chưa đặt thì hệ thống dùng kiểu đã đặt. Quên mật khẩu: xóa dữ liệu ứng dụng trong Cài đặt Android'+(isHome?' (vào qua thanh thông báo → biểu tượng bánh răng, hoặc ngăn kéo ứng dụng của launcher cũ)':'')+'.</small>'];
-      }
-      case 'us':return ['Người dùng','<div class="grp">'+rw('Tên hiển thị','<input class="txt" id="un" value="'+esc(userName())+'" aria-label="Tên hiển thị" maxlength="24">')+rw('Hiện màn hình khóa khi mở',tgl(pref('lockOnStart',false),'lockOnStart','Hiện màn hình khóa khi mở'))+'</div>'];
-      default:return ['Giới thiệu','<div class="grp">'+info().map(r=>rw(r[0],esc(String(r[1])))).join('')+'</div>'];
-    }
-  }
-  pane.addEventListener('click',e=>{const x=e.target.closest('[data-setup]');if(x&&window.AndroidLauncher)AndroidLauncher.openSetup(x.dataset.setup);
-    const so=e.target.closest('[data-sto]');if(so){setStoMin(+so.dataset.sto);render();return}
-    const l=e.target.closest('[data-lk]');if(l){const [act,k]=l.dataset.lk.split(':');if(act==='pm'){setPref('lockPm',k);render()}else if(act==='set')lkSetFlow(k,render);else if(act==='del')lkDelFlow(k,render)}});
-  function render(){
-    const p=panel(), sc0=pane.scrollTop, sc1=$('.main',b).scrollTop; pt.textContent=p[0]; pane.innerHTML='<h2>'+p[0]+'</h2>'+p[1]; pane.scrollTop=sc0; $('.main',b).scrollTop=sc1;
-    $$('.si',nav).forEach(s=>s.setAttribute('aria-current',s.dataset.p===key?'true':'false'));
-    $$('[data-m]',pane).forEach(x=>x.addEventListener('click',()=>setTheme(x.dataset.m)));
-    $$('[data-n]',pane).forEach(x=>x.addEventListener('click',()=>setWall(x.dataset.n)));
-    $$('[data-pick]',pane).forEach(x=>x.addEventListener('click',()=>pickPhotoWall()));
-    $$('.tg[data-t="psave"]',pane).forEach(x=>x.addEventListener('click',e=>{
-      e.stopImmediatePropagation();
-      const A=window.AndroidLauncher; let on=false; try{on=A.isPowerSave()}catch(err){}
-      try{A.setPowerSave(!on)}catch(err){}
-      setTimeout(()=>bus.emit('ui'),600);
-    },true));
-    $$('[data-wf]',pane).forEach(x=>x.addEventListener('click',()=>{const A=window.AndroidLauncher;let ok=false;try{ok=A.connectWifi(x.dataset.wf)}catch(e){} if(ok)setTimeout(()=>bus.emit('ui'),2000);else{try{A.openPanel('wifi')}catch(e){}}}));
-    $$('[data-bt]',pane).forEach(x=>x.addEventListener('click',()=>{try{window.AndroidLauncher.openPanel('bt')}catch(e){}}));
-    $$('.tg',pane).forEach(x=>x.addEventListener('click',()=>{const k=x.dataset.t;if(k==='rot'){toggleRot();render();return}if(k==='sto'){toggleSto();render();return}setPref(k,!pref(k,k==='wifi'||k==='bt'||k==='magnify'||k==='gbar'||k==='lockOnOff'||k==='dockFloat'))}));
-    $$('.sv',pane).forEach(x=>{
-      const A=window.AndroidLauncher, sm=x.closest('.rw').querySelector('small'), nt=$('.svn',pane); let t=null;
-      x.addEventListener('input',()=>{
-        sm.textContent=x.value+'%';
-        let ok=false; try{ok=A.setStreamVol(x.dataset.sv,+x.value)}catch(e){}
-        if(nt)nt.hidden=ok;
-        clearTimeout(t); t=setTimeout(()=>{try{A.playSound(x.dataset.sv)}catch(e){}},350);
-      });
-    });
-    $$('.rg:not(.sv)',pane).forEach(x=>x.addEventListener('input',()=>{setPrefQuiet(x.dataset.s,+x.value);const sm=x.closest('.rw').querySelector('small');if(sm&&x.dataset.s==='vol')sm.textContent=x.value+'%'}));
-    const un=$('#un',pane); if(un){un.addEventListener('input',()=>{lsSet('dm-user',un.value.trim()||'Người dùng')});un.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')un.blur()});un.addEventListener('pointerdown',e=>e.stopPropagation())}
-  }
-  function setPrefQuiet(k,v){P[k]=v;jset('dm-prefs',P);applyPrefs();bus.emit('slider')}
-  live(w,'ui',()=>{const f=document.activeElement;/* đang kéo thanh trượt hoặc đang gõ chữ thì không vẽ lại, nếu không ô nhập bị mất focus và bàn phím tắt */if(f&&((f.classList&&f.classList.contains('rg'))||f.tagName==='INPUT'||f.tagName==='TEXTAREA'||f.tagName==='SELECT'))return;render()});
-  render();
-  return {open(a){if(a&&a.pane){key=a.pane;render()}}};
-}
-
-/* ---------- Ghi âm ---------- */
-const RECDB=(()=>{
-  let db=null, mem=[], useMem=false;
-  const open=()=>new Promise(res=>{
-    if(db||useMem)return res();
-    try{
-      const q=indexedDB.open('dm-rec',1);
-      q.onupgradeneeded=()=>{q.result.createObjectStore('r',{keyPath:'id'})};
-      q.onsuccess=()=>{db=q.result;res()};
-      q.onerror=()=>{useMem=true;res()};
-      q.onblocked=()=>{useMem=true;res()};
-    }catch(e){useMem=true;res()}
-  });
-  const tx=(mode,fn)=>new Promise(res=>{
-    try{const t=db.transaction('r',mode);const r=fn(t.objectStore('r'));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>res(null);t.onabort=()=>res(null)}catch(e){res(null)}
-  });
-  return {
-    memOnly:()=>useMem,
-    async all(){await open();if(useMem)return mem.slice();return (await tx('readonly',s=>s.getAll()))||[]},
-    async put(x){await open();if(useMem){const i=mem.findIndex(y=>y.id===x.id);if(i<0)mem.push(x);else mem[i]=x;return}await tx('readwrite',s=>s.put(x))},
-    async del(id){await open();if(useMem){mem=mem.filter(y=>y.id!==id);return}await tx('readwrite',s=>s.delete(id))}
-  };
-})();
-function buildRecorder(b,w){
-  const PAUSE='<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>', PLAY='<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>', RATES=[1,1.5,2,0.5];
-  const fmt=ms=>{ms=Math.max(0,Math.floor(ms));return pad(Math.floor(ms/60000))+':'+pad(Math.floor(ms/1000)%60)+'.'+(Math.floor(ms/100)%10)};
-  const rl=r=>(r===0.5?'0.5':String(r))+'x';
-  b.innerHTML='<div class="rc"><div class="rcm"><div class="rcx"><h2>Máy ghi âm</h2><div class="rcw"><canvas class="rcv"></canvas></div><div class="rctime">00:00.0</div><div class="rcbt"><button type="button" class="rcb rcp" aria-label="Tạm dừng" disabled>'+PAUSE+'</button><button type="button" class="rcb rcr" aria-label="Ghi âm"><i></i></button></div></div><div class="rcs"><div class="rch">Bản ghi đã lưu</div><div class="rcl"></div></div></div></div>';
-  const root=$('.rc',b), cv=$('.rcv',b), cx=cv.getContext('2d'), tm=$('.rctime',b), bp=$('.rcp',b), br=$('.rcr',b), ls=$('.rcl',b);
-  let st='idle', stream=null, mr=null, ac=null, an=null, buf=null, acc=0, t0=0, tmr=null, raf=0, lastP=0, hist=[], items=[], cur=null, menuIt=null;
-  const menu=document.createElement('div'); menu.className='rcmenu'; menu.hidden=true;
-  menu.innerHTML='<button type="button" data-a="ren">Đổi tên</button><button type="button" data-a="shr">Chia sẻ</button><button type="button" class="dg" data-a="del">Xoá bản ghi</button>';
-  root.appendChild(menu);
-  const warn=(t,m)=>notify({app:'Ghi âm',title:t,body:m,icon:'recorder'});
-  const elapsed=()=>acc+(st==='rec'?Date.now()-t0:0);
-
-  /* sóng âm */
-  function size(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1,W=Math.max(1,Math.round(r.width*d)),H=Math.max(1,Math.round(r.height*d));if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}return d}
-  function draw(){
-    raf=0; if(!w.isConnected)return;
-    const d=size(), W=cv.width, H=cv.height, bw=3*d, gap=2*d, step=bw+gap, max=Math.max(1,Math.floor((W-40*d)/step));
-    cx.clearRect(0,0,W,H);
-    if(an&&st==='rec'){
-      if(!buf||buf.length!==an.fftSize)buf=new Uint8Array(an.fftSize);
-      an.getByteTimeDomainData(buf);
-      const t=performance.now();
-      if(t-lastP>55){lastP=t;let m=0;for(let i=0;i<buf.length;i++){const v=Math.abs(buf[i]-128);if(v>m)m=v}hist.push(m/128);while(hist.length>max)hist.shift()}
-    }
-    cx.strokeStyle='rgba(180,76,255,.35)'; cx.lineWidth=d; cx.beginPath(); cx.moveTo(20*d,H/2); cx.lineTo(W-20*d,H/2); cx.stroke();
-    cx.fillStyle='#b44cff'; cx.shadowColor='rgba(180,76,255,.8)'; cx.shadowBlur=8*d;
-    const x0=W-20*d-hist.length*step;
-    hist.forEach((a,i)=>{const h=Math.max(2*d,Math.min(1,a*2.2)*(H-24*d));cx.fillRect(x0+i*step,(H-h)/2,bw,h)});
-    cx.shadowBlur=0;
-    if(st!=='idle')raf=requestAnimationFrame(draw);
-  }
-  function ui(){
-    br.classList.toggle('on',st!=='idle');
-    br.setAttribute('aria-label',st==='idle'?'Ghi âm':'Dừng và lưu');
-    bp.disabled=st==='idle';
-    bp.innerHTML=st==='pause'?PLAY:PAUSE;
-    bp.setAttribute('aria-label',st==='pause'?'Tiếp tục':'Tạm dừng');
-  }
-
-  /* ghi */
-  async function start(){
-    if(st!=='idle')return;
-    if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)){warn('Không ghi âm được','Thiết bị này không hỗ trợ ghi âm trong ứng dụng.');return}
-    let s; try{s=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){warn('Không mở được micro',(e&&e.name==='NotFoundError'?'Không tìm thấy micro hoặc micro đang được app khác dùng.':e&&e.name==='NotReadableError'?'Micro đang bị app khác chiếm dùng.':'Hãy cấp quyền Micro cho Desktop Mini rồi thử lại.')+(e&&e.name?' ('+e.name+')':''));return}
-    if(!w.isConnected||st!=='idle'){s.getTracks().forEach(t=>t.stop());return}
-    const types=['audio/webm;codecs=opus','audio/mp4','audio/webm'];
-    const mt=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
-    const cs=[]; let rec;
-    try{rec=mt?new MediaRecorder(s,{mimeType:mt}):new MediaRecorder(s)}catch(e){s.getTracks().forEach(t=>t.stop());warn('Không ghi âm được','Không khởi tạo được bộ ghi âm.');return}
-    stream=s; mr=rec; hist=[];
-    rec.ondataavailable=e=>{if(e.data&&e.data.size)cs.push(e.data)};
-    rec.onstop=()=>save(rec,cs,mt);
-    rec.start(250);
-    try{ac=new (window.AudioContext||window.webkitAudioContext)();an=ac.createAnalyser();an.fftSize=512;ac.createMediaStreamSource(s).connect(an)}catch(e){an=null}
-    acc=0; t0=Date.now(); st='rec';
-    tmr=setInterval(()=>{if(w.isConnected)tm.textContent=fmt(elapsed())},100);
-    if(!raf)draw();
-    ui();
-  }
-  function stopRec(){
-    if(st==='idle'||!mr)return;
-    const dur=elapsed(); mr._dur=dur;
-    st='idle'; clearInterval(tmr); tmr=null;
-    try{if(mr.state!=='inactive')mr.stop()}catch(e){}
-    try{stream.getTracks().forEach(t=>t.stop())}catch(e){}
-    try{if(ac)ac.close()}catch(e){}
-    ac=null; an=null; stream=null; mr=null; hist=[];
-    if(w.isConnected){tm.textContent='00:00.0';ui();if(!raf)draw()}
-  }
-  function togglePause(){
-    if(!mr)return;
-    try{
-      if(st==='rec'){mr.pause();acc+=Date.now()-t0;st='pause'}
-      else if(st==='pause'){mr.resume();t0=Date.now();st='rec'}
-    }catch(e){}
-    ui();
-  }
-  async function save(rec,cs,mt){
-    const type=rec.mimeType||mt||'audio/webm', blob=new Blob(cs,{type:type});
-    if(!blob.size)return;
-    const n=(jget('dm-recn',0)||0)+1; jset('dm-recn',n);
-    const d=new Date();
-    const it={id:Date.now(),name:'Bản ghi '+n+' — '+pad(d.getHours())+':'+pad(d.getMinutes()),dur:rec._dur||0,mime:type,blob:blob,t:Date.now()};
-    items.unshift(it);
-    await RECDB.put(it);
-    if(w.isConnected)renderList();
-  }
-
-  /* danh sách và phát */
-  const rowOf=it=>ls.querySelector('[data-id="'+it.id+'"]');
-  function renderList(){
-    if(!items.length){ls.innerHTML='<div class="rce">Chưa có bản ghi nào</div>';return}
-    ls.innerHTML=items.map(it=>'<div class="rci" data-id="'+it.id+'"><div class="rcn">'+esc(it.name)+'</div><div class="rcc"><button type="button" class="rcpl" aria-label="Phát">'+PLAY+'</button><div class="rcpr"><b><i></i></b></div><span class="rctm">'+fmt(it.dur)+'</span><button type="button" class="rcsp" aria-label="Tốc độ phát">'+rl(it.sp||1)+'</button><button type="button" class="rcmn" aria-label="Tuỳ chọn">&#8942;</button></div></div>').join('');
-    if(cur){cur.el=rowOf(cur.it);paint()}
-  }
-  function paint(){
-    if(!cur||!cur.el||!cur.el.isConnected)return;
-    const a=cur.a, d=(cur.it.dur/1000)||1, f=Math.min(1,a.currentTime/d);
-    $('.rcpr i',cur.el).style.width=(f*100)+'%';
-    $('.rctm',cur.el).textContent=fmt((a.paused&&a.currentTime===0)?cur.it.dur:a.currentTime*1000);
-    $('.rcpl',cur.el).innerHTML=a.paused?PLAY:PAUSE;
-  }
-  function stopPlay(){
-    if(!cur)return;
-    const c=cur; cur=null;
-    try{c.a.pause()}catch(e){} URL.revokeObjectURL(c.url);
-    const el=c.el;
-    if(el&&el.isConnected){$('.rcpr i',el).style.width='0';$('.rctm',el).textContent=fmt(c.it.dur);$('.rcpl',el).innerHTML=PLAY}
-  }
-  function ensure(it){
-    if(cur&&cur.it===it)return cur;
-    stopPlay();
-    const url=URL.createObjectURL(it.blob), a=new Audio(url);
-    a.playbackRate=it.sp||1;
-    cur={it:it,a:a,url:url,el:rowOf(it)};
-    a.ontimeupdate=paint; a.onplay=paint; a.onpause=paint;
-    a.onended=()=>{a.currentTime=0;paint()};
-    return cur;
-  }
-  function toggle(it){const c=ensure(it);if(c.a.paused){const p=c.a.play();if(p&&p.catch)p.catch(()=>{})}else c.a.pause()}
-  function seek(it,e){
-    const bar=e.target.closest('.rcpr'), r=bar.getBoundingClientRect(), f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
-    const c=ensure(it); try{c.a.currentTime=f*(it.dur/1000)}catch(x){} paint();
-  }
-  function speed(it){
-    it.sp=RATES[(RATES.indexOf(it.sp||1)+1)%RATES.length];
-    if(cur&&cur.it===it)cur.a.playbackRate=it.sp;
-    const el=rowOf(it); if(el)$('.rcsp',el).textContent=rl(it.sp);
-  }
-
-  /* menu ⋮ */
-  function openMenu(it,btn){
-    menuIt=it; menu.hidden=false;
-    const rr=root.getBoundingClientRect(), br2=btn.getBoundingClientRect();
-    menu.style.left=Math.max(8,Math.min(rr.width-198,br2.right-rr.left-190))+'px';
-    const mh=menu.offsetHeight||134; let top=br2.bottom-rr.top+4; if(top+mh>rr.height-8)top=Math.max(8,br2.top-rr.top-mh-4);
-    menu.style.top=top+'px';
-  }
-  function rename(it){
-    const row=rowOf(it); if(!row)return;
-    const n=$('.rcn',row), inp=document.createElement('input');
-    inp.className='rcin'; inp.value=it.name; inp.maxLength=40; inp.setAttribute('aria-label','Tên bản ghi'); inp.autocomplete='off';
-    n.replaceWith(inp); inp.focus(); inp.select();
-    let done=false;
-    const ok=()=>{if(done)return;done=true;const v=inp.value.trim();if(v&&v!==it.name){it.name=v;RECDB.put(it)}renderList()};
-    inp.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')ok();else if(e.key==='Escape'){done=true;renderList()}});
-    inp.addEventListener('blur',ok);
-    inp.addEventListener('pointerdown',e=>e.stopPropagation());
-  }
-  function share(it){
-    const A=window.AndroidLauncher, ext=/mp4/.test(it.mime)?'m4a':'webm', nm=it.name.replace(/[\\/:*?"<>|]+/g,'_');
-    if(A&&A.shareAudio){
-      const fr=new FileReader();
-      fr.onload=()=>{let ok=false;try{ok=A.shareAudio(fr.result,nm,it.mime)}catch(e){}if(!ok)warn('Không chia sẻ được','Thử lại sau.')};
-      fr.readAsDataURL(it.blob); return;
-    }
-    try{
-      const f=new File([it.blob],nm+'.'+ext,{type:it.mime});
-      if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return}
-    }catch(e){}
-    const a=document.createElement('a'); a.href=URL.createObjectURL(it.blob); a.download=nm+'.'+ext; a.click();
-  }
-  function remove(it){
-    if(cur&&cur.it===it)stopPlay();
-    items=items.filter(x=>x!==it); RECDB.del(it.id); renderList();
-  }
-
-  br.addEventListener('click',()=>{st==='idle'?start():stopRec()});
-  bp.addEventListener('click',togglePause);
-  ls.addEventListener('click',e=>{
-    const row=e.target.closest('.rci'); if(!row)return;
-    const it=items.find(x=>String(x.id)===row.dataset.id); if(!it)return;
-    if(e.target.closest('.rcpl'))toggle(it);
-    else if(e.target.closest('.rcsp'))speed(it);
-    else if(e.target.closest('.rcmn'))openMenu(it,e.target.closest('.rcmn'));
-    else if(e.target.closest('.rcpr'))seek(it,e);
-  });
-  menu.addEventListener('click',e=>{
-    const a=e.target.closest('[data-a]'); if(!a||!menuIt)return;
-    const it=menuIt; menu.hidden=true; menuIt=null;
-    if(a.dataset.a==='ren')rename(it); else if(a.dataset.a==='shr')share(it); else remove(it);
-  });
-  b.addEventListener('pointerdown',e=>{if(!menu.hidden&&!e.target.closest('.rcmenu')&&!e.target.closest('.rcmn'))menu.hidden=true},true);
-  ls.addEventListener('scroll',()=>{menu.hidden=true});
-
-  renderList(); draw();
-  RECDB.all().then(a=>{items=a.sort((x,y)=>y.t-x.t);if(w.isConnected)renderList()});
-  return {destroy(){
-    if(st!=='idle')stopRec();
-    clearInterval(tmr); cancelAnimationFrame(raf); stopPlay();
-  }};
-}
-
-/* ---------- Webcam ---------- */
-function buildCamera(b,w){
-  const SWI='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.5-5.8L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.5 5.8L4 15.5M4 20v-4.5h4.5"/></svg>';
-  b.innerHTML='<div class="cm"><h2>Webcam</h2><div class="cmv"><video class="cmvid" playsinline muted autoplay></video><div class="cmmsg" hidden></div><div class="cmblink"></div></div><div class="cmst"></div><div class="cmbt"><button type="button" class="cmth" aria-label="Ảnh vừa chụp"><img alt=""></button><button type="button" class="cmsh" aria-label="Chụp ảnh"><i></i></button><button type="button" class="cmsw" aria-label="Đổi camera trước/sau">'+SWI+'</button></div></div>';
-  const vid=$('.cmvid',b), msg=$('.cmmsg',b), blk=$('.cmblink',b), st=$('.cmst',b), th=$('.cmth',b), thi=$('img',th), sh=$('.cmsh',b), sw=$('.cmsw',b);
-  let stream=null, face=lsGet('dm-camface')==='user'?'user':'environment', tok=0, pend=0, saved=false;
-  const warn=(t,m)=>notify({app:'Webcam',title:t,body:m,icon:'camera'});
-  const say=t=>{msg.textContent=t||'';msg.hidden=!t};
-  function stopStream(){
-    tok++;
-    if(stream){try{stream.getTracks().forEach(t=>t.stop())}catch(e){}stream=null}
-    try{vid.srcObject=null}catch(e){}
-  }
-  /* Camera trước: lật gương cả khung xem trước lẫn ảnh lưu. Camera sau: giữ nguyên */
-  async function open(){
-    stopStream(); const my=tok; pend=my; say('');
-    st.textContent=face==='user'?'Camera trước':'Camera sau'; vid.classList.toggle('mir',face==='user');
-    try{
-      if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){say('Thiết bị này không hỗ trợ camera trong ứng dụng.');return}
-      let s;
-      try{s=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:face},width:{ideal:2560},height:{ideal:1920}}})}
-      catch(e){if(my===tok)say('Chưa mở được Camera. Hãy cấp quyền Camera cho Desktop Mini rồi bấm vào đây để thử lại.');return}
-      if(my!==tok||!w.isConnected){s.getTracks().forEach(t=>t.stop());return}
-      stream=s; vid.srcObject=s;
-      const p=vid.play(); if(p&&p.catch)p.catch(()=>{});
-    }finally{if(pend===my)pend=0}
-  }
-  let shotSeq=0, lastSeq=0, lastId=0;
-  function blink(){blk.classList.add('on');setTimeout(()=>blk.classList.remove('on'),120)}
-  function shoot(){
-    if(!stream||!vid.videoWidth)return;
-    const vw=vid.videoWidth, vh=vid.videoHeight, mir=face==='user';
-    /* Chụp ngay khung hình hiện tại (nhanh), phần mã hóa JPEG và lưu chạy nền để chụp tiếp được liền */
-    const c=document.createElement('canvas'); c.width=vw; c.height=vh;
-    const g=c.getContext('2d');
-    if(mir){g.translate(vw,0);g.scale(-1,1)}
-    g.drawImage(vid,0,0,vw,vh);
-    blink();
-    try{
-      const k=96/Math.max(vw,vh), t=document.createElement('canvas');
-      t.width=Math.max(1,Math.round(vw*k)); t.height=Math.max(1,Math.round(vh*k));
-      t.getContext('2d').drawImage(c,0,0,t.width,t.height);
-      thi.src=t.toDataURL('image/jpeg',0.7); th.classList.add('has');
-    }catch(e){}
-    const A=window.AndroidLauncher, seq=++shotSeq;
-    const done=url=>{
-      if(!url){warn('Không chụp được','Thử lại.');return}
-      if(A&&A.savePhoto){
-        let p=''; try{p=A.savePhoto(url)}catch(e){}
-        if(!p){warn('Không lưu được ảnh','Kiểm tra quyền truy cập ảnh/tệp rồi thử lại.');return}
-        const m=/\/(\d+)$/.exec(String(p));
-        if(seq>=lastSeq){lastSeq=seq;lastId=m?+m[1]:0}
-        saved=true; bus.emit('files');
-      }else{
-        const a=document.createElement('a'); a.href=url; a.download='IMG_'+Date.now()+'.jpg'; a.click();
-      }
-    };
-    if(c.toBlob){
-      c.toBlob(bl=>{
-        if(!bl){done('');return}
-        const fr=new FileReader(); fr.onload=()=>done(String(fr.result)); fr.onerror=()=>done(''); fr.readAsDataURL(bl);
-      },'image/jpeg',0.9);
-    }else{
-      let u=''; try{u=c.toDataURL('image/jpeg',0.9)}catch(e){}
-      setTimeout(()=>done(u),0);
-    }
-  }
-  sh.addEventListener('click',shoot);
-  sw.addEventListener('click',()=>{face=face==='user'?'environment':'user';lsSet('dm-camface',face);open()});
-  th.addEventListener('click',()=>{if(!th.classList.contains('has')||!saved)return;if(lastId)openApp('photos',{pid:lastId,name:'Ảnh vừa chụp'});else openApp('photos')});
-  msg.addEventListener('click',open);
-  /* Nhả camera khi app ra nền hoặc cửa sổ bị thu nhỏ để không giữ camera và đèn báo */
-  const onVis=()=>{if(document.hidden)stopStream();else if(w.isConnected&&!w.classList.contains('min'))open()};
-  document.addEventListener('visibilitychange',onVis);
-  const mon=setInterval(()=>{
-    if(!w.isConnected)return;
-    const mn=w.classList.contains('min');
-    if(mn&&stream)stopStream();
-    else if(!mn&&!stream&&!pend&&!document.hidden&&msg.hidden)open();
-  },700);
-  open();
-  return {destroy(){clearInterval(mon);document.removeEventListener('visibilitychange',onVis);stopStream()}};
-}
-
+function buildRecorder(b,w){return lazyBuild('recorder','buildRecorder',b,w)}
+function buildCamera(b,w){return lazyBuild('camera','buildCamera',b,w)}
 /* ---------- Thùng rác ---------- */
 function buildTrash(b,w){
   b.innerHTML='<div class="app"><div class="bar"><strong class="t">Thùng rác</strong><span class="grow"></span><button class="btn rs">Đặt lại</button><button class="btn em">Dọn sạch</button></div><div class="fl list"></div></div>';
@@ -2697,7 +2230,7 @@ function buildRealFiles(b,w,arg,mode){
         const nm=f.n||'(không tên)';
         if(grid)return '<button class="mt" data-i="'+i+'" data-full="'+f.id+'" aria-label="'+esc(nm)+'"><img alt="" data-id="'+f.id+'">'+(kind==='vid'?'<span class="mdur">'+fmtDur(f.d)+'</span>':'')+'</button>';
         const ext=nm.indexOf('.')>0?nm.split('.').pop().toLowerCase().slice(0,4):'âm';
-        return '<button class="rfi" data-i="'+i+'" data-full="'+f.id+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(nm)+'</b><small>'+fmtSize(f.s)+(f.d?' · '+fmtDur(f.d):'')+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
+        return '<button class="rfi" data-i="'+i+'" data-full="'+f.id+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(nm)+'</b><small>'+fmtSize(f.s)+(f.d?' · '+fmtDur(f.d):'')+' · '+fmtDay(f.m)+'</small></span></button>';
       };
       const addChunk=()=>{
         const end=Math.min(items.length,shown+(grid?240:150)); let h='';
@@ -2774,7 +2307,7 @@ function buildRealFiles(b,w,arg,mode){
     ft.textContent=r.list.length+' mục';
     list.innerHTML=r.list.length?r.list.map((f,i)=>{
       const ext=f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp';
-      return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+fmtSize(f.s)+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
+      return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+fmtSize(f.s)+' · '+fmtDay(f.m)+'</small></span></button>';
     }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
     const opn=f=>{if(f.p){openPath(f.p,f.n,f);return} if(!A.openDownload(f.id,f.t))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
     $$('.rfi',list).forEach(x=>{
@@ -2793,7 +2326,7 @@ function buildRealFiles(b,w,arg,mode){
     ft.textContent=r.list.length+' mục';
     list.innerHTML=r.list.length?r.list.map((f,i)=>{
       const ext=f.d?'folder':(f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp');
-      return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+(f.d?'Thư mục':fmtSize(f.s))+' · '+new Date(f.m).toLocaleDateString('vi-VN')+'</small></span></button>';
+      return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+(f.d?'Thư mục':fmtSize(f.s))+' · '+fmtDay(f.m)+'</small></span></button>';
     }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
     $$('.rfi',list).forEach(x=>{
       const f=r.list[+x.dataset.i], full=path.replace(/\/$/,'')+'/'+f.n;
@@ -3086,73 +2619,7 @@ function beep(){
   });
 }
 
-/* ---------- Trình duyệt ---------- */
-function buildBrowser(b,w){
-  const FAV=[['Wikipedia','https://vi.wikipedia.org','#4a4d57'],['GitHub','https://github.com','#24292f'],['Anthropic','https://www.anthropic.com','#d97757'],['MDN','https://developer.mozilla.org','#1b6ac9'],['OpenStreetMap','https://www.openstreetmap.org','#3a9d54'],['Hacker News','https://news.ycombinator.com','#ff6600']];
-  let tabs=[{id:1,hist:['dm://start'],pos:0}], act=1, nid=2; const visited=[];
-  b.innerHTML='<div class="app br"><div class="bbar"><div class="nv"><button class="bk" aria-label="Quay lại"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg></button><button class="fw" aria-label="Tiến tới"><svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></svg></button></div><label class="addr"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5L14 14"/></svg><input type="text" aria-label="Địa chỉ" placeholder="Tìm kiếm hoặc nhập tên trang web" autocomplete="off"></label><button class="ib rl" aria-label="Tải lại"><svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button><button class="ib nt2" aria-label="Thẻ mới"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></button></div><div class="tabs"></div><div class="pg"></div></div>';
-  const tabsEl=$('.tabs',b), pg=$('.pg',b), addr=$('.addr input',b), bk=$('.bk',b), fw=$('.fw',b);
-  const tab=()=>tabs.find(t=>t.id===act), url=()=>tab().hist[tab().pos];
-  function label(u){
-    if(u==='dm://start')return 'Trang chủ'; if(u==='dm://gioi-thieu')return 'Giới thiệu'; if(u==='dm://lich-su')return 'Lịch sử';
-    if(u.indexOf('dm://search')===0)return 'Tìm: '+decodeURIComponent(u.split('q=')[1]||'');
-    try{return new URL(u).host}catch(e){return u}
-  }
-  function resolve(text){
-    text=text.trim(); if(!text)return null;
-    if(text.indexOf('dm://')===0)return text;
-    if(/^https?:\/\/\S+$/i.test(text))return text;
-    if(/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(text))return 'https://'+text;
-    return 'dm://search?q='+encodeURIComponent(text);
-  }
-  function nav(text){
-    const u=resolve(text); if(!u)return;
-    const t=tab(); t.hist=t.hist.slice(0,t.pos+1); t.hist.push(u); t.pos=t.hist.length-1; visited.unshift(u); render();
-  }
-  function localHits(term){
-    const n=norm(term), out=[];
-    LP_APPS.forEach(id=>{if(norm(APPS[id].name).indexOf(n)>=0)out.push({t:APPS[id].name,s:'Ứng dụng',fn:()=>openApp(id)})});
-    return out.slice(0,8);
-  }
-  function page(u){
-    if(u==='dm://start')return '<div class="bst"><h1>Trang chủ</h1><form class="bsf"><input type="text" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Tìm kiếm" autocomplete="off"></form><h3>Mục yêu thích</h3><div class="favs">'+FAV.map(f=>'<a class="fv" href="'+f[1]+'" target="_blank" rel="noopener noreferrer"><i style="background:'+f[2]+'">'+f[0][0]+'</i><span>'+f[0]+'</span></a>').join('')+'</div><p class="note">Trang web bên ngoài sẽ mở trong thẻ trình duyệt thật, vì cửa sổ này không nhúng được trang web khác.</p><div class="lks"><button class="lnk" data-go="dm://gioi-thieu">Giới thiệu</button><button class="lnk" data-go="dm://lich-su">Lịch sử</button></div></div>';
-    if(u==='dm://gioi-thieu')return '<div class="bst"><h1>Giới thiệu</h1><p>Đây là trình duyệt mô phỏng trong Desktop Mini. Nó có thẻ, lịch sử, tìm kiếm trong máy và liên kết ra web thật.</p></div>';
-    if(u==='dm://lich-su')return '<div class="bst"><h1>Lịch sử</h1>'+(visited.length?'<ul class="hl">'+visited.map(v=>'<li><button class="lnk" data-go="'+esc(v)+'">'+esc(label(v))+'</button></li>').join('')+'</ul>':'<p>Chưa có trang nào.</p>')+'</div>';
-    if(u.indexOf('dm://search')===0){
-      const q=decodeURIComponent(u.split('q=')[1]||''), hits=localHits(q);
-      return '<div class="bst"><h1>Kết quả cho "'+esc(q)+'"</h1><div class="sbtn"><a class="btn" href="https://www.google.com/search?q='+encodeURIComponent(q)+'" target="_blank" rel="noopener noreferrer">Tìm trên web</a><a class="btn" href="https://vi.wikipedia.org/w/index.php?search='+encodeURIComponent(q)+'" target="_blank" rel="noopener noreferrer">Tìm trên Wikipedia</a></div><h3>Trong máy này</h3>'+(hits.length?'<ul class="hl">'+hits.map((h,i)=>'<li><button class="lnk" data-hit="'+i+'">'+esc(h.t)+'</button> <small>'+esc(h.s)+'</small></li>').join('')+'</ul>':'<p>Không có ứng dụng hay tệp nào khớp.</p>')+'</div>';
-    }
-    let host=u; try{host=new URL(u).host}catch(e){}
-    return '<div class="bst"><h1>'+esc(host)+'</h1><p>Trang web bên ngoài không nhúng được vào cửa sổ này.</p><a class="btn pri" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">Mở trong thẻ mới</a></div>';
-  }
-  function render(){
-    const u=url(), t=tab();
-    tabsEl.hidden=tabs.length<2; tabsEl.innerHTML='';
-    tabs.forEach(x=>{
-      const e=document.createElement('div'); e.className='tb2'; e.setAttribute('aria-current',String(x.id===act));
-      e.innerHTML='<button class="tt">'+esc(label(x.hist[x.pos]))+'</button><button class="tx" aria-label="Đóng thẻ">×</button>';
-      $('.tt',e).addEventListener('click',()=>{act=x.id;render()});
-      $('.tx',e).addEventListener('click',()=>{tabs=tabs.filter(y=>y!==x);if(!tabs.length)tabs=[{id:nid++,hist:['dm://start'],pos:0}];if(!tabs.find(y=>y.id===act))act=tabs[0].id;render()});
-      tabsEl.appendChild(e);
-    });
-    addr.value=u==='dm://start'?'':(u.indexOf('dm://search')===0?decodeURIComponent(u.split('q=')[1]||''):(u.indexOf('dm://')===0?label(u):u));
-    bk.disabled=t.pos===0; fw.disabled=t.pos>=t.hist.length-1;
-    pg.innerHTML=page(u);
-    $$('[data-go]',pg).forEach(x=>x.addEventListener('click',()=>nav(x.dataset.go)));
-    const hits=u.indexOf('dm://search')===0?localHits(decodeURIComponent(u.split('q=')[1]||'')):[];
-    $$('[data-hit]',pg).forEach(x=>x.addEventListener('click',()=>hits[+x.dataset.hit].fn()));
-    const sf=$('.bsf',pg); if(sf)sf.addEventListener('submit',e=>{e.preventDefault();nav($('input',sf).value)});
-  }
-  addr.addEventListener('keydown',e=>{if(e.key==='Enter')nav(addr.value)});
-  addr.addEventListener('focus',()=>addr.select());
-  bk.addEventListener('click',()=>{const t=tab();if(t.pos>0){t.pos--;render()}});
-  fw.addEventListener('click',()=>{const t=tab();if(t.pos<t.hist.length-1){t.pos++;render()}});
-  $('.rl',b).addEventListener('click',render);
-  $('.nt2',b).addEventListener('click',()=>{const t={id:nid++,hist:['dm://start'],pos:0};tabs.push(t);act=t.id;render()});
-  render();
-  return {};
-}
-
+function buildBrowser(b,w){return lazyBuild('browser','buildBrowser',b,w)}
 /* ---------- Thư ---------- */
 const H3=3600e3;
 const MAIL0=[
@@ -3225,291 +2692,7 @@ function buildMail(b,w){
 
 /* ---------- Ảnh ---------- */
 const PH=[['#ffd3a5','#fd6585','#fff3b0','#7b4b94','#432371','Hoàng hôn trên đồi'],['#cfd9df','#e2ebf0','#ffffff','#7aa0b8','#3d6b8c','Bình minh sương mù'],['#89f7fe','#66a6ff','#fffbd5','#2b7a78','#17252a','Biển buổi sáng'],['#a18cd1','#fbc2eb','#fff6b7','#5d4a9c','#2d1f5e','Chiều tím'],['#f6d365','#fda085','#ffffff','#b5532f','#6b2d1a','Đồi cát'],['#84fab0','#8fd3f4','#fdfcdc','#2e8b57','#14532d','Đồng cỏ xanh'],['#1e3c72','#2a5298','#fff8c4','#142850','#0a1128','Đêm trên núi'],['#ff9a9e','#fad0c4','#fff1a8','#c44569','#6a1b4d','Hồng phai'],['#a1c4fd','#c2e9fb','#ffffff','#4f6fa8','#243b6b','Trời trong'],['#fbc7d4','#9796f0','#fff5c0','#5b4b9a','#2c2160','Mây tím'],['#ffecd2','#fcb69f','#ffffff','#c97b5a','#7a3e2b','Nắng chiều'],['#d4fc79','#96e6a1','#ffffe0','#3f9b5f','#1b4d34','Rừng sớm']];
-let SCN=0;
-function scene(i){
-  if(PH[i%PH.length].pid)return '<img class="rp" data-pid="'+PH[i%PH.length].pid+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block;background:#8e8e93">';
-  const p=PH[i%PH.length], u='ph'+(SCN++);
-  return '<svg viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="'+u+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+p[0]+'"/><stop offset="1" stop-color="'+p[1]+'"/></linearGradient></defs><rect width="160" height="120" fill="url(#'+u+')"/><circle cx="'+(40+(i*37)%90)+'" cy="'+(34+(i*11)%22)+'" r="'+(9+(i%3)*3)+'" fill="'+p[2]+'" opacity=".95"/><path d="M0 '+(84-(i%4)*4)+' Q40 '+(60+(i%5)*3)+' 80 80 T160 '+(72-(i%3)*5)+' V120 H0Z" fill="'+p[3]+'"/><path d="M0 100 Q50 '+(82-(i%4)*3)+' 100 98 T160 92 V120 H0Z" fill="'+p[4]+'"/></svg>';
-}
-function buildPhotos(b,w,arg){
-  let fav=jget('dm-pfav',[]), tab='all', view=-1;
-  b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><span class="cn phc"></span></div><div class="pgs"><div class="pgd"></div></div></div><div class="pv" hidden></div></div>';
-  const side=$('.side',b), pgs=$('.pgs',b), pgd=$('.pgd',b), pv=$('.pv',b), pht=$('.pht',b), phc=$('.phc',b);
-  let pio=null, ptq=[], ptb=false, pgShown=0;
-  [['all','Tất cả ảnh'],['fav','Yêu thích'],['cam','Ảnh chụp'],['shot','Ảnh chụp màn hình']].forEach(x=>{
-    const s=document.createElement('button'); s.className='si'; s.dataset.t=x[0]; s.innerHTML='<span>'+x[1]+'</span>';
-    s.addEventListener('click',()=>{tab=x[0];view=-1;pgShown=0;pgs.scrollTop=0;render()}); side.appendChild(s);
-  });
-  const TABN={all:'Tất cả ảnh',fav:'Yêu thích',cam:'Ảnh chụp',shot:'Ảnh chụp màn hình'}, TABE={all:'Chưa có ảnh nào',fav:'Chưa có ảnh yêu thích',cam:'Chưa có ảnh chụp',shot:'Chưa có ảnh chụp màn hình'};
-  const ids=()=>PH.map((_,i)=>i).filter(i=>tab==='all'||(tab==='fav'?fav.indexOf(i)>=0:PH[i].k===tab));
-  /* Lưới ảnh dạng thư viện như app Tệp: ô vuông, ảnh nạp từng phần khi cuộn tới */
-  function ptPump(){
-    if(ptb)return; const j=ptq.shift(); if(!j)return; ptb=true;
-    setTimeout(()=>{
-      if(j.isConnected&&j.__vis){
-        let d=''; try{d=PHA().getPhotoData(+j.dataset.pid,240)}catch(e){}
-        if(d){j.src=d;j.classList.add('ld')}
-      }else j.__q=0;
-      ptb=false; ptPump();
-    },0);
-  }
-  function renderGrid(){
-    $$('.si',side).forEach(s=>s.setAttribute('aria-current',String(s.dataset.t===tab)));
-    const l=ids(); pht.textContent=TABN[tab]||'Tất cả ảnh'; phc.textContent=l.length+' ảnh';
-    const st=pgs.scrollTop;
-    if(pio){pio.disconnect();pio=null} ptq.length=0; ptb=false; pgs.onscroll=null;
-    if(!l.length){pgd.innerHTML='<div class="none">'+(TABE[tab]||TABE.all)+'</div>';return}
-    pgd.innerHTML='';
-    const tile=i=>{
-      const p=PH[i], real=!!p.pid;
-      return '<button class="pt" data-i="'+i+'" aria-label="'+esc(String(p[5]||''))+'">'+(real?'<img alt="" data-pid="'+p.pid+'">':scene(i))+(fav.indexOf(i)>=0?'<em>♥</em>':'')+'</button>';
-    };
-    pio=new IntersectionObserver(es=>es.forEach(e=>{
-      const el=e.target; el.__vis=e.isIntersecting;
-      if(e.isIntersecting&&!el.__q&&!el.classList.contains('ld')){el.__q=1;ptq.push(el);ptPump()}
-    }),{root:pgs,rootMargin:'240px'});
-    let shown=0;
-    const addChunk=to=>{
-      const end=Math.min(l.length,to); let h='';
-      for(let k=shown;k<end;k++)h+=tile(l[k]);
-      pgd.insertAdjacentHTML('beforeend',h); shown=end; pgShown=Math.max(pgShown,shown);
-      if(pio)$$('img[data-pid]:not([data-o])',pgd).forEach(im=>{im.dataset.o='1';pio.observe(im)});
-    };
-    addChunk(Math.max(240,pgShown));
-    if(st)pgs.scrollTop=st;
-    pgs.onscroll=()=>{if(shown<l.length&&pgs.scrollTop+pgs.clientHeight>pgs.scrollHeight-700)addChunk(shown+240)};
-  }
-  pgd.addEventListener('click',e=>{const x=e.target.closest('.pt');if(x){view=+x.dataset.i;renderViewer()}});
-  function render(){renderGrid();renderViewer()}
-
-  /* ---------- Trình xem + chỉnh sửa ảnh ---------- */
-  const PHA=()=>window.AndroidLauncher||null, RED='#ff3b30';
-  let ED=null;
-  const TOOLS=[
-    ['crop','Cắt','Cắt ảnh','<path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/>'],
-    ['rot','Xoay','Xoay ảnh','<path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/>'],
-    ['flip','Lật','Lật ảnh','<path d="M12 3v18M8 7L3 12l5 5V7zM16 7l5 5-5 5V7z"/>'],
-    ['rect','Vuông','Đánh dấu vuông','<rect x="4" y="5" width="16" height="14" rx="1.5"/>'],
-    ['oval','Tròn','Đánh dấu tròn','<circle cx="12" cy="12" r="8"/>'],
-    ['pen','Vẽ','Vẽ','<path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19l-4 1zM14 7l3 3"/>'],
-    ['del','Xóa','Xóa ảnh','<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12M10 11v5M14 11v5"/>'],
-    ['share','Chia sẻ','Chia sẻ ảnh','<path d="M12 15V3M8 7l4-4 4 4M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>']
-  ];
-  const cloneCv=c=>{const n=document.createElement('canvas');n.width=c.width;n.height=c.height;n.getContext('2d').drawImage(c,0,0);return n};
-  function dispRect(){
-    const r=ED.cv.getBoundingClientRect(), s=Math.min(r.width/ED.cv.width,r.height/ED.cv.height), dw=ED.cv.width*s, dh=ED.cv.height*s;
-    return {x:r.left+(r.width-dw)/2,y:r.top+(r.height-dh)/2,w:dw,h:dh,s:s};
-  }
-  const toImg=e=>{const d=dispRect();return [(e.clientX-d.x)/d.s,(e.clientY-d.y)/d.s]};
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const edited=()=>!!ED&&(ED.edited||ED.hist.length>0);
-  function pushHist(base){ED.hist.push(base||cloneCv(ED.cv));if(ED.hist.length>6)ED.hist.shift();ED.edited=true}
-  function restore(c){ED.cv.width=c.width;ED.cv.height=c.height;ED.ctx.drawImage(c,0,0)}
-  function undo(){if(!ED||!ED.hist.length)return;exitMode();restore(ED.hist.pop());ED.edited=ED.hist.length>0;syncBar()}
-  function revert(){if(!ED)return;exitMode();restore(ED.orig);ED.hist=[];ED.edited=false;syncBar()}
-
-  function renderViewer(){
-    ED=null;
-    if(view<0){pv.hidden=true;return}
-    pv.hidden=false;
-    pv.innerHTML='<div class="pvh"><button class="btn pvx">Xong</button><span class="grow"></span><b>'+PH[view][5]+'</b><span class="grow"></span><button class="ib pvf" aria-label="Yêu thích" aria-pressed="'+(fav.indexOf(view)>=0)+'"><svg viewBox="0 0 16 16"><path d="M8 13.6S2.2 10.2 2.2 6.3A3 3 0 0 1 8 5a3 3 0 0 1 5.8 1.3C13.8 10.2 8 13.6 8 13.6z"/></svg></button></div>'+
-      '<div class="pvm"><button class="ib pvp" aria-label="Ảnh trước"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg></button><div class="pvi"><div class="pvl">Đang tải ảnh…</div></div><button class="ib pvn" aria-label="Ảnh sau"><svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></svg></button></div>'+
-      '<div class="pvmb" hidden></div>'+
-      '<div class="pvt">'+TOOLS.map(t=>'<button type="button" data-t="'+t[0]+'" aria-label="'+t[2]+'" aria-pressed="false"><svg viewBox="0 0 24 24">'+t[3]+'</svg><span>'+t[1]+'</span></button>').join('')+'</div>';
-    const l=ids(), pos=l.indexOf(view);
-    $('.pvx',pv).addEventListener('click',()=>{view=-1;renderViewer()});
-    $('.pvf',pv).addEventListener('click',e=>{const k=fav.indexOf(view);if(k>=0)fav.splice(k,1);else fav.push(view);jset('dm-pfav',fav);e.currentTarget.setAttribute('aria-pressed',String(fav.indexOf(view)>=0));renderGrid()});
-    $('.pvp',pv).addEventListener('click',()=>{view=l[(pos-1+l.length)%l.length];renderViewer()});
-    $('.pvn',pv).addEventListener('click',()=>{view=l[(pos+1)%l.length];renderViewer()});
-    $('.pvt',pv).addEventListener('click',e=>{const b=e.target.closest('button[data-t]');if(b)tool(b.dataset.t)});
-    $('.pvmb',pv).addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(b)barAct(b.dataset.a)});
-    loadEd();
-  }
-  function loadEd(){
-    const i=view, p=PH[i%PH.length], A=PHA(), box=$('.pvi',pv);
-    const fail=()=>{if(view===i&&box.isConnected)box.innerHTML='<div class="pvl">Không mở được ảnh</div>'};
-    const done=img=>{
-      if(view!==i||!box.isConnected)return;
-      const cv=document.createElement('canvas'); cv.width=img.naturalWidth||img.width; cv.height=img.naturalHeight||img.height; cv.className='pvc';
-      cv.getContext('2d').drawImage(img,0,0);
-      box.innerHTML=''; box.appendChild(cv);
-      ED={cv:cv,ctx:cv.getContext('2d'),hist:[],mode:null,pid:p.pid||0,edited:false,orig:cloneCv(cv),crop:null};
-      bindCanvas(); syncBar();
-    };
-    setTimeout(()=>{
-      let src='';
-      try{
-        if(p.pid&&A&&A.getPhotoData)src=A.getPhotoData(+p.pid,1440);
-        else src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(scene(i).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" '));
-      }catch(x){}
-      if(!src){fail();return}
-      const im=new Image(); im.onload=()=>done(im); im.onerror=fail; im.src=src;
-    },30);
-  }
-  function setStroke(){ED.ctx.strokeStyle=RED;ED.ctx.lineWidth=Math.max(3,Math.round(Math.max(ED.cv.width,ED.cv.height)/190));ED.ctx.lineCap='round';ED.ctx.lineJoin='round'}
-  function bindCanvas(){
-    const cv=ED.cv; let st=null;
-    const shape=()=>{
-      const c=ED.ctx, x=Math.min(st.x0,st.x1), y=Math.min(st.y0,st.y1), w=Math.abs(st.x1-st.x0), h=Math.abs(st.y1-st.y0);
-      setStroke(); c.beginPath();
-      if(ED.mode==='rect')c.rect(x,y,w,h); else c.ellipse(x+w/2,y+h/2,Math.max(1,w/2),Math.max(1,h/2),0,0,Math.PI*2);
-      c.stroke();
-    };
-    cv.addEventListener('pointerdown',e=>{
-      if(!ED||ED.cv!==cv||['rect','oval','pen'].indexOf(ED.mode)<0)return;
-      e.preventDefault(); try{cv.setPointerCapture(e.pointerId)}catch(x){}
-      const p=toImg(e); st={x0:p[0],y0:p[1],x1:p[0],y1:p[1],base:cloneCv(cv),moved:false};
-      if(ED.mode==='pen'){setStroke();ED.ctx.beginPath();ED.ctx.moveTo(p[0],p[1])}
-    });
-    cv.addEventListener('pointermove',e=>{
-      if(!st)return; const p=toImg(e); st.x1=p[0]; st.y1=p[1];
-      if(Math.abs(st.x1-st.x0)+Math.abs(st.y1-st.y0)>6)st.moved=true;
-      if(ED.mode==='pen'){ED.ctx.lineTo(p[0],p[1]);ED.ctx.stroke();ED.ctx.beginPath();ED.ctx.moveTo(p[0],p[1])}
-      else{ED.ctx.drawImage(st.base,0,0);if(st.moved)shape()}
-    });
-    const end=()=>{
-      if(!st)return; const s=st; st=null;
-      if(s.moved){pushHist(s.base)}else ED.ctx.drawImage(s.base,0,0);
-      syncBar();
-    };
-    cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
-  }
-  function exitMode(){
-    if(!ED)return;
-    if(ED.crop){if(ED.crop.ro)ED.crop.ro.disconnect();ED.crop.ov.remove();ED.crop=null}
-    ED.mode=null;
-  }
-  function setMode(m){
-    if(!ED)return; const same=ED.mode===m; exitMode();
-    if(!same){ED.mode=m; if(m==='crop')startCrop()}
-    syncBar();
-    if(ED.crop){ED.crop.place();requestAnimationFrame(()=>{if(ED&&ED.crop)ED.crop.place()})}
-  }
-  function startCrop(){
-    const box=$('.pvi',pv), W=ED.cv.width, H=ED.cv.height, r={x:W*.05,y:H*.05,w:W*.9,h:H*.9};
-    const ov=document.createElement('div'); ov.className='cbox'; ov.innerHTML='<i data-h="tl"></i><i data-h="tr"></i><i data-h="bl"></i><i data-h="br"></i>'; box.appendChild(ov);
-    const place=()=>{const d=dispRect(), br=box.getBoundingClientRect(); ov.style.left=(d.x-br.left+r.x*d.s)+'px'; ov.style.top=(d.y-br.top+r.y*d.s)+'px'; ov.style.width=(r.w*d.s)+'px'; ov.style.height=(r.h*d.s)+'px'};
-    ED.crop={r:r,ov:ov,place:place,ro:null}; place();
-    if(window.ResizeObserver){const ro=new ResizeObserver(()=>{if(ED&&ED.crop)ED.crop.place()}); ro.observe(box); ED.crop.ro=ro}
-    let drag=null;
-    ov.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();try{ov.setPointerCapture(e.pointerId)}catch(x){}drag={h:e.target.dataset.h||'move',p:toImg(e),r0:{x:r.x,y:r.y,w:r.w,h:r.h}}});
-    ov.addEventListener('pointermove',e=>{
-      if(!drag)return; const p=toImg(e), dx=p[0]-drag.p[0], dy=p[1]-drag.p[1], o=drag.r0, MIN=24;
-      if(drag.h==='move'){r.x=clamp(o.x+dx,0,W-o.w);r.y=clamp(o.y+dy,0,H-o.h)}
-      else{
-        let x1=o.x,y1=o.y,x2=o.x+o.w,y2=o.y+o.h;
-        if(drag.h[1]==='l')x1=clamp(o.x+dx,0,x2-MIN); else x2=clamp(x2+dx,x1+MIN,W);
-        if(drag.h[0]==='t')y1=clamp(o.y+dy,0,y2-MIN); else y2=clamp(y2+dy,y1+MIN,H);
-        r.x=x1;r.y=y1;r.w=x2-x1;r.h=y2-y1;
-      }
-      place();
-    });
-    const up=()=>{drag=null}; ov.addEventListener('pointerup',up); ov.addEventListener('pointercancel',up);
-  }
-  function applyCrop(){
-    if(!ED||!ED.crop)return; const r=ED.crop.r, x=Math.round(r.x), y=Math.round(r.y), w=Math.max(1,Math.round(r.w)), h=Math.max(1,Math.round(r.h));
-    exitMode(); pushHist(); const c=cloneCv(ED.cv);
-    ED.cv.width=w; ED.cv.height=h; ED.ctx.drawImage(c,x,y,w,h,0,0,w,h); syncBar();
-  }
-  function rotate(){
-    exitMode(); pushHist(); const c=cloneCv(ED.cv), cv=ED.cv;
-    cv.width=c.height; cv.height=c.width; ED.ctx.save(); ED.ctx.translate(cv.width,0); ED.ctx.rotate(Math.PI/2); ED.ctx.drawImage(c,0,0); ED.ctx.restore(); syncBar();
-  }
-  function flip(){
-    exitMode(); pushHist(); const c=cloneCv(ED.cv);
-    ED.ctx.save(); ED.ctx.translate(ED.cv.width,0); ED.ctx.scale(-1,1); ED.ctx.drawImage(c,0,0); ED.ctx.restore(); syncBar();
-  }
-  function tool(t){
-    if(!ED&&t!=='del')return;
-    if(t==='rot')rotate(); else if(t==='flip')flip();
-    else if(t==='del')askDelete(); else if(t==='share')openShare();
-    else setMode(t);
-  }
-  function barAct(a){
-    if(a==='capply')applyCrop(); else if(a==='mdone'||a==='ccancel'){exitMode();syncBar()}
-    else if(a==='undo')undo(); else if(a==='revert')revert(); else if(a==='save')saveCopy();
-  }
-  function syncBar(){
-    const bar=$('.pvmb',pv); if(!bar)return;
-    $$('.pvt button',pv).forEach(b=>b.setAttribute('aria-pressed',String(!!ED&&b.dataset.t===ED.mode)));
-    if(!ED){bar.hidden=true;return}
-    const m=ED.mode, ed=edited(), hint={crop:'Kéo khung để chọn vùng cắt',rect:'Kéo trên ảnh để vẽ khung vuông',oval:'Kéo trên ảnh để vẽ khung tròn',pen:'Vẽ tự do trên ảnh'}[m]||'';
-    if(!m&&!ed){bar.hidden=true;return}
-    let h=hint?'<span class="mh">'+hint+'</span>':'';
-    if(m==='crop')h+='<button type="button" data-a="ccancel">Hủy</button><button type="button" class="pr" data-a="capply">Cắt</button>';
-    else{
-      if(ED.hist.length)h+='<button type="button" data-a="undo">Hoàn tác</button>';
-      if(m)h+='<button type="button" data-a="mdone">Xong</button>';
-      else if(ed)h+='<button type="button" data-a="revert">Về gốc</button><button type="button" class="pr" data-a="save">Lưu bản sao</button>';
-    }
-    bar.innerHTML=h; bar.hidden=false;
-  }
-  const jpg=()=>ED.cv.toDataURL('image/jpeg',.92);
-  function saveCopy(){
-    const A=PHA(); let ok=false;
-    if(A&&A.saveImage){try{ok=A.saveImage(jpg())}catch(x){}}
-    notify({app:'Ảnh',title:ok?'Đã lưu bản sao':'Chưa lưu được ảnh',body:ok?'Ảnh nằm trong thư mục Pictures/DesktopMini.':'Hãy cấp quyền truy cập ảnh/tệp rồi thử lại.',icon:'photos'});
-    if(ok){loadPhotosSoon()}
-  }
-  function loadPhotosSoon(){setTimeout(()=>{if(window.nativeReload){window.nativeReload();renderGrid()}},600)}
-  function openShare(){
-    if(!ED)return; const A=PHA(), M=lkModal('Chia sẻ ảnh');
-    const apps=[['com.zing.zalo','Zalo'],['com.facebook.katana','Facebook'],['com.facebook.orca','Messenger'],['com.google.android.gm','Gmail']].filter(x=>{try{return A&&A.hasPackage&&A.hasPackage(x[0])}catch(e){return false}});
-    M.el.innerHTML='<div class="shg">'+apps.map(x=>'<button type="button" data-p="'+x[0]+'">'+x[1]+'</button>').join('')+'<button type="button" data-p="">Ứng dụng khác…</button></div>';
-    M.el.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(!b)return;M.close();doShare(b.dataset.p)});
-  }
-  function doShare(pkg){
-    if(!ED)return; const A=PHA();
-    if(A&&A.shareImage){
-      const data=(edited()||!ED.pid)?jpg():'';
-      let ok=false; try{ok=A.shareImage(pkg,ED.pid?+ED.pid:0,data)}catch(x){}
-      if(!ok)notify({app:'Ảnh',title:'Không chia sẻ được',body:'Thử lại hoặc chọn ứng dụng khác.',icon:'photos'});
-    }else ED.cv.toBlob(b=>{
-      try{const f=new File([b],'anh.jpg',{type:'image/jpeg'});if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return}}catch(x){}
-      notify({app:'Ảnh',title:'Chưa chia sẻ được',body:'Chia sẻ ảnh chỉ có trong app Android.',icon:'photos'});
-    },'image/jpeg',.92);
-  }
-  function askDelete(){
-    const M=lkModal('Xóa ảnh này?');
-    M.el.innerHTML='<div style="font-size:13px;opacity:.8;margin-bottom:12px">Ảnh sẽ bị xóa khỏi máy và không hoàn tác được.</div><button type="button" class="btn" data-x style="background:#ff3b30;color:#fff;padding:8px 26px">Xóa ảnh</button>';
-    $('[data-x]',M.el).addEventListener('click',()=>{M.close();doDelete()});
-  }
-  function doDelete(){
-    const A=PHA(), k=view, p=PH[k%PH.length];
-    const fin=reload=>{
-      if(reload&&window.nativeReload)window.nativeReload(); else PH.splice(k,1);
-      fav=fav.filter(x=>x!==k).map(x=>x>k?x-1:x); jset('dm-pfav',fav);
-      view=PH.length?Math.min(k,PH.length-1):-1; render();
-      notify({app:'Ảnh',title:'Đã xóa ảnh',body:'',icon:'photos'});
-    };
-    if(p.pid&&A&&A.deletePhoto){
-      let r=0; try{r=A.deletePhoto(+p.pid)}catch(x){}
-      if(r===1)fin(true);
-      else if(r===2)window.nativeDelResult=ok=>{window.nativeDelResult=null;if(ok)fin(true)};
-      else notify({app:'Ảnh',title:'Không xóa được ảnh',body:'Hãy cấp quyền "Truy cập mọi tệp" trong Cài đặt → Quyền truy cập.',icon:'photos'});
-    }else fin(false);
-  }
-  const onRs=()=>{if(ED&&ED.crop)ED.crop.place()};
-  window.addEventListener('resize',onRs);
-  const kd=e=>{
-    if(!w.isConnected||view<0)return;
-    const l=ids(), pos=l.indexOf(view);
-    if(e.key==='ArrowRight'){view=l[(pos+1)%l.length];renderViewer()}
-    else if(e.key==='ArrowLeft'){view=l[(pos-1+l.length)%l.length];renderViewer()}
-    else if(e.key==='Escape'){if(ED&&ED.mode){exitMode();syncBar()}else{view=-1;renderViewer()}}
-  };
-  document.addEventListener('keydown',kd);
-  function openPid(id,name){
-    id=+id; let k=PH.findIndex(p=>+p.pid===id);
-    if(k<0){const e=['','','','','',name||'Ảnh'];e.pid=id;PH.unshift(e);fav=fav.map(i=>i+1);jset('dm-pfav',fav);k=0}
-    tab='all'; view=k; render();
-  }
-  function openFile(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;tab='all';view=h%PH.length;render()}
-  render();
-  if(arg&&arg.pid)openPid(arg.pid,arg.name); else if(arg&&arg.file)openFile(arg.file);
-  return {open(a){if(a&&a.pid)openPid(a.pid,a.name); else if(a&&a.file)openFile(a.file)},destroy(){document.removeEventListener('keydown',kd);window.removeEventListener('resize',onRs);if(pio)pio.disconnect()}};
-}
-
+function buildPhotos(b,w,arg){return lazyBuild('photos','buildPhotos',b,w,arg)}
 /* ---------- Nhạc ---------- */
 const TRK=[
   {t:'Buổi sáng yên tĩnh',a:'Studio Mini',root:57,sc:[0,2,4,7,9],bpm:84,wave:'sine',c:['#ffd3a5','#fd6585']},
@@ -3558,11 +2741,9 @@ const mmss=s=>Math.floor(s/60)+':'+pad(Math.floor(s%60));
 function buildMusic(b,w,arg){
   b.innerHTML='<div class="mus"><div class="bar"><strong class="t">Nhạc</strong></div><div class="mbd"><div class="np2"><div class="art"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><path d="M9 17.5V6l9-2v11.5"/><circle cx="6.8" cy="17.6" r="2.4" fill="#fff"/><circle cx="15.8" cy="15.6" r="2.4" fill="#fff"/></svg></div><b class="mt"></b><span class="ma"></span><div class="mpr"><span class="m1">0:00</span><input type="range" class="msk" min="0" max="120" value="0" step="1" aria-label="Tua bài hát"><span class="m2">2:00</span></div><div class="mct"><button class="ib mpv" aria-label="Bài trước"><svg viewBox="0 0 16 16"><path d="M3 3v10M13 3L6 8l7 5z"/></svg></button><button class="ib pl" aria-label="Phát hoặc tạm dừng"><svg viewBox="0 0 16 16"><path class="pp" d="M4 2.5v11l9-5.5z"/></svg></button><button class="ib mn2" aria-label="Bài sau"><svg viewBox="0 0 16 16"><path d="M13 3v10M3 3l7 5-7 5z"/></svg></button></div><label class="mv"><svg viewBox="0 0 16 16"><path d="M2 6h3l4-3v10l-4-3H2zM11.5 5.5a3.5 3.5 0 0 1 0 5"/></svg><input type="range" class="vr" min="0" max="100" aria-label="Âm lượng"></label></div><div class="pls"></div></div></div>';
   const art=$('.art',b), mt=$('.mt',b), ma=$('.ma',b), m1=$('.m1',b), m2=$('.m2',b), msk=$('.msk',b), pp=$('.pp',b), pls=$('.pls',b), vr=$('.vr',b);
-  TRK.forEach((t,i)=>{
-    const e=document.createElement('button'); e.className='tr'; e.dataset.i=i;
-    e.innerHTML='<i style="background:linear-gradient(135deg,'+t.c[0]+','+t.c[1]+')"></i><span><b>'+esc(t.t)+'</b><small>'+esc(t.a)+'</small></span><em class="eq"></em>';
-    e.addEventListener('click',()=>musPlay(i)); pls.appendChild(e);
-  });
+  /* Một lần dựng HTML + một bộ lắng nghe chung (trước đây mỗi bài một nút, một innerHTML và một listener; máy có hàng nghìn bài sẽ khựng) */
+  pls.insertAdjacentHTML('beforeend',TRK.map((t,i)=>'<button class="tr" data-i="'+i+'"><i style="background:linear-gradient(135deg,'+t.c[0]+','+t.c[1]+')"></i><span><b>'+esc(t.t)+'</b><small>'+esc(t.a)+'</small></span><em class="eq"></em></button>').join(''));
+  pls.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest('.tr'); if(el&&pls.contains(el))musPlay(+el.dataset.i)});
   function update(){
     const t=MUS.idx>=0?TRK[MUS.idx]:null;
     mt.textContent=t?t.t:'Chưa chọn bài'; ma.textContent=t?t.a+(t.real?'':' · nhạc tổng hợp trong trình duyệt'):(TRK.length?'Chọn một bài để nghe':'Không có bài hát nào trong máy');
@@ -3584,81 +2765,7 @@ function buildMusic(b,w,arg){
   return {open(a){if(a&&a.play&&!MUS.playing)musPlay(MUS.idx>=0?MUS.idx:0)}};
 }
 
-/* ---------- Terminal ---------- */
-function buildTerminal(b,w){
-  b.innerHTML='<div class="term"><div class="bar"><strong class="t">Terminal — zsh</strong></div><div class="tout" role="log"></div></div>';
-  const out=$('.tout',b);
-  const DIRS={Desktop:'desk',Documents:'docs',Downloads:'down',Pictures:'pics'};
-  let cwd={root:null,path:[]}, hist=[], hp=0;
-  const dirName=()=>{
-    if(!cwd.root)return '~';
-    const rn=Object.keys(DIRS).find(k=>DIRS[k]===cwd.root);
-    let n='~/'+rn, l=FS[cwd.root];
-    cwd.path.forEach(i=>{n+='/'+l[i].n;l=l[i].items});
-    return n;
-  };
-  const cur=()=>cwd.root?fsList(cwd.root,cwd.path):null;
-  function print(t,cls){const d=document.createElement('div');d.className='tl2'+(cls?' '+cls:'');d.textContent=t;out.appendChild(d);out.scrollTop=out.scrollHeight}
-  function prompt(){
-    const l=document.createElement('div'); l.className='tl2 pr';
-    l.innerHTML='<span class="ps">'+esc(userName().toLowerCase().replace(/\s+/g,''))+'@desktop-mini <b>'+esc(dirName())+'</b> %</span> <input class="tin" spellcheck="false" autocomplete="off" aria-label="Dòng lệnh">';
-    out.appendChild(l); const i=$('.tin',l); i.focus(); out.scrollTop=out.scrollHeight;
-    i.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){
-        const v=i.value; i.replaceWith(Object.assign(document.createElement('span'),{textContent:v})); if(v.trim()){hist.push(v);hp=hist.length}
-        run(v); if(w.isConnected&&!w._closing)prompt();
-      }else if(e.key==='ArrowUp'){e.preventDefault();if(hp>0){hp--;i.value=hist[hp]}}
-      else if(e.key==='ArrowDown'){e.preventDefault();if(hp<hist.length-1){hp++;i.value=hist[hp]}else{hp=hist.length;i.value=''}}
-    });
-  }
-  const find=(l,name)=>l.findIndex(x=>norm(x.n)===norm(name));
-  function run(line){
-    const m=line.trim().match(/^(\S+)\s*(.*)$/); if(!m)return;
-    const cmd=m[1], rest=m[2].replace(/^["']|["']$/g,'');
-    switch(cmd){
-      case 'help':print('Lệnh có sẵn: help, ls, cd, pwd, cat, mkdir, touch, rm, echo, open, date, whoami, hostname, uname, uptime, history, neofetch, clear, exit');break;
-      case 'pwd':print('/Users/'+userName().toLowerCase().replace(/\s+/g,'')+(cwd.root?dirName().slice(1):''));break;
-      case 'ls':{const l=cur();print(l?(l.length?l.map(x=>x.x==='folder'?x.n+'/':x.n).join('\n'):'(trống)'):Object.keys(DIRS).map(k=>k+'/').join('\n'));break}
-      case 'cd':{
-        if(!rest||rest==='~'||rest==='~/'){cwd={root:null,path:[]};break}
-        if(rest==='..'){if(cwd.path.length)cwd.path.pop();else cwd={root:null,path:[]};break}
-        const l=cur();
-        if(!l){const k=Object.keys(DIRS).find(x=>norm(x)===norm(rest.replace(/^~\//,'').replace(/\/$/,'')));if(k)cwd={root:DIRS[k],path:[]};else print('cd: không tìm thấy: '+rest,'er');break}
-        const i=find(l,rest.replace(/\/$/,''));
-        if(i>=0&&l[i].x==='folder')cwd.path.push(i);else print('cd: không tìm thấy thư mục: '+rest,'er');
-        break}
-      case 'cat':{const l=cur();if(!l){print('cat: hãy vào một thư mục trước','er');break}const i=find(l,rest);if(i<0)print('cat: không tìm thấy: '+rest,'er');else if(l[i].x==='folder')print('cat: '+rest+': là một thư mục','er');else if(l[i].x==='md')print('# '+l[i].n.replace(/\.md$/,'')+'\nNội dung mẫu của tệp văn bản này.');else print('cat: '+rest+': tệp nhị phân','er');break}
-      case 'mkdir':{if(!cwd.root){print('mkdir: không thể tạo ở thư mục gốc','er');break}if(!rest){print('mkdir: thiếu tên thư mục','er');break}const l=cur();if(find(l,rest)>=0){print('mkdir: đã tồn tại: '+rest,'er');break}l.push({n:rest,d:tstamp(),s:'--',x:'folder',items:[]});saveFS();break}
-      case 'touch':{if(!cwd.root){print('touch: không thể tạo ở thư mục gốc','er');break}if(!rest){print('touch: thiếu tên tệp','er');break}const l=cur();if(find(l,rest)<0){const x=(rest.split('.').pop()||'md').toLowerCase();l.push({n:rest,d:tstamp(),s:'0 KB',x:rest.indexOf('.')>0?x:'md'});saveFS()}break}
-      case 'rm':{const l=cur();if(!l){print('rm: hãy vào một thư mục trước','er');break}const i=find(l,rest);if(i<0)print('rm: không tìm thấy: '+rest,'er');else{moveToTrash(cwd.root,cwd.path,i);print('Đã chuyển "'+rest+'" vào Thùng rác')}break}
-      case 'echo':print(m[2]);break;
-      case 'date':print(new Date().toLocaleString('vi-VN',{dateStyle:'full',timeStyle:'medium'}));break;
-      case 'whoami':print(userName().toLowerCase().replace(/\s+/g,''));break;
-      case 'hostname':print('desktop-mini.local');break;
-      case 'uname':print('DesktopMini 26 (trình duyệt) '+(navigator.platform||''));break;
-      case 'uptime':print('đã chạy '+Math.round(performance.now()/60000)+' phút');break;
-      case 'history':print(hist.map((h,i)=>(i+1)+'  '+h).join('\n')||'(chưa có lệnh nào)');break;
-      case 'clear':out.innerHTML='';break;
-      case 'exit':w._closing=true;closeWin(w);break;
-      case 'open':{
-        if(!rest){print('open: thiếu tên ứng dụng','er');break}
-        const id=Object.keys(APPS).find(k=>!APPS[k].hidden&&(norm(APPS[k].name)===norm(rest)||k===norm(rest)));
-        if(id){openApp(id)}else print('open: không có ứng dụng "'+rest+'"','er');
-        break}
-      case 'neofetch':{
-        const nv=navigator;
-        print('   ✦        '+userName().toLowerCase().replace(/\s+/g,'')+'@desktop-mini\n  ✦ ✦       ----------------\n ✦ ✦ ✦      OS: Desktop Mini 26\n  ✦ ✦       Trình duyệt: '+(nv.platform||'?')+'\n   ✦        Màn hình: '+screen.width+'x'+screen.height+'\n            CPU: '+(nv.hardwareConcurrency||'?')+' lõi\n            Bộ nhớ: '+(nv.deviceMemory?nv.deviceMemory+' GB':'?')+'\n            Giao diện: '+(isDark()?'Tối':'Sáng'));
-        break}
-      default:print('zsh: không tìm thấy lệnh: '+cmd,'er');
-    }
-  }
-  out.addEventListener('click',()=>{const i=$('.tin',out);if(i&&!getSelection().toString())i.focus()});
-  print('Desktop Mini Terminal. Gõ "help" để xem các lệnh.');
-  prompt();
-  live(w,'fs',()=>{});
-  return {};
-}
-
+function buildTerminal(b,w){return lazyBuild('terminal','buildTerminal',b,w)}
 /* ---------- Đồng hồ ---------- */
 function buildClock(b,w){
   const CITIES=[['Hà Nội','Asia/Ho_Chi_Minh']];
@@ -4680,7 +3787,7 @@ try{
 buildDock();
 const sw0=lsGet('dm-wall'); if(sw0==='1'||sw0==='2'||sw0==='3')stage.dataset.wall=sw0;
 const st0=lsGet('dm-theme'); if(st0==='light'||st0==='dark')root.setAttribute('data-theme',st0);
-applyPrefs(); renderDesk(); battUpdate(); tick(); setInterval(tick,15000); syncCC();
+applyPrefs(); renderDesk(); battUpdate(); tick(); dmEvery(tick,15000); syncCC();
 bus.emit('fs');
 setBadge('mail',MAIL.filter(m=>m.box==='in'&&!m.read).length);
 if(hasLock()||pref('lockOnStart',false)){lockUI()}else{greet()}
@@ -4696,6 +3803,7 @@ if(window.AndroidLauncher){(function(){
     P.vol=safe(()=>A.getVolume(),pref('vol',60));
     P.bright=Math.max(1,safe(()=>A.getBrightness(),pref('bright',100)));
     P.wifi=safe(()=>A.isWifiOn(),true); P.bt=safe(()=>A.isBluetoothOn(),false);
+    const sg=[P.vol,P.bright,P.wifi,P.bt].join('|'); if(sg===sync._sg)return; sync._sg=sg; /* không đổi thì khỏi vẽ lại giao diện */
     bus.emit('ui'); bus.emit('slider');
   }
   window.nativeSync=sync;
@@ -4746,7 +3854,7 @@ if(window.AndroidLauncher){(function(){
   /* Tắt máy = tắt màn hình ngay (không tắt nguồn thật) */
   const doOff=()=>{closeAllPopups();if(!safe(()=>A.lockScreen(),false))needA11y()};
   lockNow=doLock; sleepNow=doLock; restartNow=doPower; shutNow=doOff;
-  setInterval(sync,3000); sync();
+  dmEvery(sync,3000); sync();
   /* thanh trượt -> cài đặt thật */
   document.addEventListener('input',e=>{
     const t=e.target, k=t.id||t.dataset&&t.dataset.s;
@@ -4807,10 +3915,10 @@ if(window.AndroidLauncher){(function(){
   (window.requestIdleCallback||(f=>setTimeout(f,900)))(()=>{lpFill(true)},{timeout:2500});
   /* Pin thật */
   function realBatt(){const o=safe(()=>JSON.parse(A.getBattery()),{});if(o.level!=null){BAT.level=o.level;BAT.charging=!!o.charging;BAT.real=true;battUpdate()}}
-  setInterval(realBatt,10000); realBatt(); setTimeout(realBatt,1500);
+  dmEvery(realBatt,10000); realBatt(); setTimeout(realBatt,1500);
   /* RAM thật: cập nhật mỗi 5 giây */
   function realRam(){if(!A.getRam)return;const o=safe(()=>JSON.parse(A.getRam()),{});if(o.total)ramUpdate(o.total,o.free||0)}
-  setInterval(realRam,5000); realRam();
+  dmEvery(realRam,5000); realRam();
   /* Độ sáng thấp nhất khi không dùng: báo cài đặt đã lưu cho phần gốc mỗi lần mở app */
   applySto(stoOn());
   /* Nhạc thật trong máy */
