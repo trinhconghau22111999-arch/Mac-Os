@@ -908,6 +908,12 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .rnote b{color:var(--fg);font-size:15px}.rnote .ir{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .rf{display:grid;grid-template-columns:150px minmax(0,1fr);height:100%}
 .rf .main{display:flex;flex-direction:column;min-width:0;min-height:0}
+/* Tải xuống: danh sách một cột chiếm cả cửa sổ, chữ và biểu tượng to cho dễ nhìn */
+.rf.dn{grid-template-columns:minmax(0,1fr)}
+.rf.dn .rfl{padding:6px 12px}
+.rf.dn .rfi{padding:10px 12px;gap:14px;border-radius:12px}
+.rf.dn .rfi .ri{width:46px;height:46px}.rf.dn .rfi .ri .fic{transform:scale(1.1)}
+.rf.dn .rfi .rn b{font-size:17px}.rf.dn .rfi .rn small{font-size:13.5px}
 .rf .bar{gap:4px;padding-left:78px}
 .rf .bar .t{margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rfl{flex:1;min-height:0;overflow:auto;padding:4px 8px}
@@ -2334,7 +2340,7 @@ function buildRealFiles(b,w,arg,mode){
   b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><strong class="t rpt"></strong><span class="grow"></span><button class="btn rcp" hidden>Chép</button><button class="btn rct" hidden>Cắt</button><button class="btn rps" hidden>Dán</button><button class="btn rsh" hidden>Chia sẻ</button><button class="btn rcn" hidden>Bỏ chọn</button><button class="btn rdel" hidden>Xoá</button></div><div class="rfl"></div><div class="rft"></div></div></div>';
   const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b), rcn=$('.rcn',b), rdel=$('.rdel',b), rcp=$('.rcp',b), rct=$('.rct',b), rps=$('.rps',b), rsh=$('.rsh',b);
   const SEL=new Set(); let MK=null;
-  if(!files)side.style.display='none';
+  if(!files){side.style.display='none';$('.rf',b).classList.add('dn')}   /* Tải xuống: chỉ 1 cột danh sách, không chừa nửa phải trống */
   const secPath=k=>k==='img'||k==='vid'||k==='aud'?'@'+k:(k==='root'?R.root:R.down);
   const where=p=>p==='@img'?'img':p==='@vid'?'vid':p==='@aud'?'aud':p==='@home'?'':(R.down&&(p===R.down||p.indexOf(R.down+'/')===0))?'down':'root';
   if(files)SEC.forEach(x=>{
