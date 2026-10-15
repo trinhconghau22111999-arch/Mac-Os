@@ -2228,6 +2228,8 @@ function buildRealFiles(b,w,arg,mode){
     if(path==='@home')renderHome(); else if(path[0]==='@')renderMedia(path.slice(1)); else renderDir();
   }
   function renderHome(){
+    /* Quét lại bộ nhớ tìm ảnh/video/nhạc chưa có trong thư viện (tối đa 15 giây một lần) */
+    if(A.rescanMedia&&Date.now()-(window.__rsAt||0)>15000){window.__rsAt=Date.now();try{A.rescanMedia()}catch(e){}}
     let C={}; try{C=JSON.parse(A.getMediaCounts())}catch(e){}
     list.className='rfl fh';
     list.innerHTML=SEC.map(x=>'<button class="fht" data-k="'+x[0]+'"><span class="fhi" style="--c:'+x[2]+'"><svg viewBox="0 0 24 24">'+SVG[x[0]]+'</svg></span><b>'+x[1]+'</b><small>'+(C[x[0]]>=0?C[x[0]]+' mục':(x[0]==='root'?'Bộ nhớ trong':'Thư mục'))+'</small></button>').join('');
