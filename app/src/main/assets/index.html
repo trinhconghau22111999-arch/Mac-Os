@@ -999,8 +999,9 @@ body.native .stage{border-radius:0;min-height:0}
 .dsi i{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.24);display:grid;place-items:center}
 .dsi svg{width:25px;height:25px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .dsi:active i{background:rgba(255,255,255,.42)}
-.stage[data-ics="circle"] .ic{border-radius:50%}
-.stage[data-ics="square"] .ic{border-radius:10%}
+/* Kiểu biểu tượng chỉ áp dụng cho thanh Dock, icon trên màn hình desktop giữ nguyên */
+.stage[data-ics="circle"] .dock .ic{border-radius:50%}
+.stage[data-ics="square"] .dock .ic{border-radius:10%}
 
 /* Tệp: màn hình 5 thư mục và thư viện ảnh/video/nhạc */
 .rfl.fh{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px;align-content:start;padding:16px}
