@@ -959,11 +959,15 @@ body.native .stage{border-radius:0;min-height:0}
   .clk2>.bar{padding-left:112px;padding-right:112px}
   .pvh{padding-left:112px}
 }
-/* Gõ văn bản: thu hẹp thanh trắng chứa nút đỏ/vàng/xanh + tên app */
-.win.wplain .wa .bar{height:32px}
-.win.wplain .tls{top:9.5px}
-.win.wplain .wa .bar .t{font-size:14px}
-@media (pointer:coarse){.win.wplain .tls{top:6px}}
+/* Thanh tiêu đề gọn (Gõ văn bản, YouTube): chỉ cao vừa đủ chứa 3 nút đỏ/vàng/xanh + tên app, mọi nút nằm thẳng 1 hàng giữa thanh */
+.win.wplain .tb{height:28px}
+.win.wplain .tls{top:7.5px}
+.win.wplain .wa .bar{height:28px;gap:6px;align-items:center}
+.win.wplain .wa .bar .t{font-size:13px;line-height:1}
+.win.wplain .wa .bar .ib,.win.wplain .wa .bar .wbk,.win.wplain .wa .bar .wfw,.win.wplain .wa .bar .wrl,.win.wplain .wa .bar .whm{width:26px;height:26px;padding:0;font-size:16px;line-height:1}
+.win.wplain .wa .bar .wbk::before,.win.wplain .wa .bar .wfw::before{font-size:24px}
+.win.wplain .wa .bar .wrl svg{width:16px;height:16px}
+@media (pointer:coarse){.win.wplain .tls{top:4px}}
 
 /* Đa nhiệm kiểu iPhone (thẻ ngang) */
 .msw{position:absolute;inset:0;z-index:8;display:flex;align-items:flex-start;background:rgba(10,12,24,.5);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);animation:mswin .22s ease-out}
@@ -1302,7 +1306,7 @@ const APPS={
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
   browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.gkShow)?buildGecko(b,w,a):buildBrowser(b,w,a)},
   webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser?buildWebApp(b,w,'webandr','https://www.google.com/','Duyệt web',{plain:true,local:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
-  youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true}):buildBrowser(b,w,a)},
+  youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true,compact:true}):buildBrowser(b,w,a)},
   mail:{name:'Thư',w:880,h:540,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail'):buildMail(b,w)},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
   photos:{name:'Ảnh',w:660,h:440,minW:340,minH:280,build:buildPhotos},
@@ -1773,7 +1777,7 @@ function toggleMax(w,auto){
   if(!auto&&w.dataset.app){const m=maxMem(); if(on)m[w.dataset.app]=1; else delete m[w.dataset.app]; lsSet(MAXK,JSON.stringify(m))}
 }
 function wire(w,id,a){
-  const topArea=e=>{const r=w.getBoundingClientRect();return e.clientY-r.top<=52&&!e.target.closest('button,input,textarea,select,a,label,.rn,[role="switch"],[role="option"]')};
+  const topArea=e=>{const r=w.getBoundingClientRect();return e.clientY-r.top<=(w.classList.contains('wplain')?28:52)&&!e.target.closest('button,input,textarea,select,a,label,.rn,[role="switch"],[role="option"]')};
   w.addEventListener('pointerdown',e=>{
     if(stage.classList.contains('mc'))return;
     focusWin(w); closeAllPopups();
@@ -2532,7 +2536,7 @@ function buildWebApp(b,w,key,url,title,opt){
   opt=opt||{};
   const A=window.AndroidLauncher;
   if(!A){b.innerHTML='<div class="app"><div class="bar"><strong class="t">'+title+'</strong></div>'+NATIVE_ONLY(title)+'</div>';return {}}
-  if(opt.plain)w.classList.add('wplain');
+  if(opt.plain||opt.compact)w.classList.add('wplain');
   b.innerHTML='<div class="wa'+(opt.addr?' wad':'')+'"><div class="bar">'+(opt.plain?'':'<button class="ib wbk" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button>')+(opt.addr?'<button class="ib wfw" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>':'')+(opt.addr?'<input class="wau" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Thanh địa chỉ">':'<strong class="t">'+title+'</strong><span class="grow"></span>')+(opt.plain?'':'<button class="ib wrl" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button>')+(opt.addr?'<button class="ib whm" aria-label="Trang chủ">⌂</button>':'')+'</div>'+(opt.addr?'<div class="wpg"><i></i></div>':'')+'<div class="wab"></div></div>';
   const area=$('.wab',b), inp=$('.wau',b), fwb=$('.wfw',b), bkb=$('.wbk',b), pg=$('.wpg i',b); let last='', off=false, timer=null, firstUrl=opt.url||url;
   function offline(){
