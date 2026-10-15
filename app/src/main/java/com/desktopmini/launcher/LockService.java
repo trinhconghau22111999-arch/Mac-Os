@@ -6,7 +6,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
@@ -152,8 +155,10 @@ public class LockService extends AccessibilityService {
         private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG),
             ic = new Paint(Paint.ANTI_ALIAS_FLAG), tx = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rf = new RectF();
+        private Bitmap pic; private final Rect src = new Rect(), dst = new Rect();
         DeskButton(Context c) {
             super(c);
+            try { pic = BitmapFactory.decodeResource(c.getResources(), R.drawable.desk_bar_bg); } catch (Throwable t) { pic = null; }
             bg.setColor(0xFF000000); bg.setStyle(Paint.Style.FILL);
             ring.setColor(0x59FFFFFF); ring.setStyle(Paint.Style.STROKE); ring.setStrokeWidth(dp(1));
             ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.5f));
@@ -164,6 +169,14 @@ public class LockService extends AccessibilityService {
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), hh = getHeight(), cx = w / 2, cy = hh / 2;
             c.drawRect(0, 0, w, hh, bg);
+            if (pic != null) {
+                /* nền = dải cạnh dưới của hình, phủ kín chiều ngang, cắt bớt chiều dọc (căn giữa) */
+                int pw = pic.getWidth(), ph = pic.getHeight();
+                int sh = Math.min(ph, Math.max(1, Math.round(pw * hh / w)));
+                src.set(0, (ph - sh) / 2, pw, (ph - sh) / 2 + sh); dst.set(0, 0, (int) w, (int) hh);
+                c.drawBitmap(pic, src, dst, null);
+                bg.setColor(0x59000000); c.drawRect(0, 0, w, hh, bg); bg.setColor(0xFF000000); /* lớp tối nhẹ cho chữ trắng dễ đọc */
+            }
             c.drawLine(0, 0, w, 0, ring);
             /* biểu tượng màn hình máy tính + chữ "Desktop" nằm giữa thanh */
             float tw = tx.measureText("Desktop"), iw = dp(22), gap = dp(8), x0 = cx - (iw + gap + tw) / 2;
