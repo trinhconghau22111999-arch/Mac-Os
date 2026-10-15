@@ -18,3 +18,7 @@
 # android.print.PdfPrint dùng API ẩn của hệ thống: để nguyên tên
 -keep class android.print.** { *; }
 -dontwarn org.mozilla.**
+
+# snakeyaml (kéo theo từ thư viện nhân trình duyệt) tham chiếu java.beans không có trên Android -> bỏ cảnh báo để R8 không dừng build
+-dontwarn java.beans.**
+-dontwarn org.yaml.snakeyaml.**
