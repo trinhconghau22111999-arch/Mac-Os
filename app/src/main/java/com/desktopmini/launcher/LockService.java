@@ -23,11 +23,14 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.WindowManager;
+import android.util.DisplayMetrics;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityWindowInfo;
 import android.view.inputmethod.InputMethodInfo;
 import android.view.inputmethod.InputMethodManager;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -84,7 +87,7 @@ public class LockService extends AccessibilityService {
     @Override public boolean onUnbind(Intent i) { inst = null; tearDown(); return super.onUnbind(i); }
     @Override public void onDestroy() { inst = null; tearDown(); super.onDestroy(); }
     @Override public void onConfigurationChanged(Configuration c) {
-        super.onConfigurationChanged(c); removeButton(); updateButton();
+        super.onConfigurationChanged(c); removeButton(); updateButton(); scheduleRefreshBar();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
@@ -104,6 +107,7 @@ public class LockService extends AccessibilityService {
         if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
         videoFull = false; setBarHidden(false); /* app khác lên trước: không còn video của mình ở toàn màn hình */
         setLauncherFront(false);
+        scheduleRefreshBar(); /* app khác vừa lên: đo lại để phủ kín thanh đa nhiệm */
     }
     @Override public void onInterrupt() { }
 
@@ -261,17 +265,59 @@ public class LockService extends AccessibilityService {
         return Math.max(h, dp(40));
     }
 
+    /**
+     * Chiều cao THẬT của thanh hệ thống/thanh tác vụ ở đáy (Yoga Book có thanh tác vụ cao hơn giá trị navigation_bar_height).
+     * Lấy giá trị lớn nhất trong 3 cách đo: tài nguyên hệ thống, phần chênh giữa màn hình thật và vùng app, và cửa sổ SystemUI thật ở đáy.
+     */
+    private int sysBarHeight() {
+        int best = navBarHeight(), cap = dp(150);
+        Point real = realSize();
+        try {
+            DisplayMetrics dm = new DisplayMetrics();
+            wm.getDefaultDisplay().getMetrics(dm);
+            int d = real.y - dm.heightPixels;
+            if (d > best && d < cap) best = d;
+        } catch (Exception e) { }
+        try {
+            List<AccessibilityWindowInfo> ws = getWindows();
+            if (ws != null) for (AccessibilityWindowInfo w : ws) {
+                if (w.getType() != AccessibilityWindowInfo.TYPE_SYSTEM) continue;
+                Rect r = new Rect(); w.getBoundsInScreen(r);
+                if (r.bottom >= real.y - dp(2) && r.top > real.y / 2 && r.width() >= real.x / 2) {
+                    int hh = real.y - r.top;
+                    if (hh > best && hh < cap) best = hh;
+                }
+            }
+        } catch (Throwable t) { }
+        return best;
+    }
+    /** Đo lại và chỉnh chiều cao thanh Desktop cho phủ kín thanh hệ thống (gọi sau khi app khác vừa mở / xoay màn hình). */
+    private final Runnable refreshBar = new Runnable() { public void run() {
+        if (btn == null || btnLp == null || wm == null || barHidden) return;
+        try {
+            int bh = sysBarHeight(); Point s = realSize();
+            if (bh != btnLp.height || btnLp.width != s.x || btnLp.y != s.y - bh) {
+                btnLp.width = s.x; btnLp.height = bh; btnLp.y = s.y - bh;
+                wm.updateViewLayout(btn, btnLp); btn.invalidate();
+            }
+        } catch (Exception e) { }
+    } };
+    private void scheduleRefreshBar() {
+        h.removeCallbacks(refreshBar);
+        h.postDelayed(refreshBar, 150); h.postDelayed(refreshBar, 600); h.postDelayed(refreshBar, 1500);
+    }
+
     private void addButton() {
         if (wm == null) return;
         final DeskButton v = new DeskButton(this);
-        Point s = realSize(); int bh = navBarHeight();
+        Point s = realSize(); int bh = sysBarHeight();
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(s.x, bh,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.LEFT;
         lp.x = 0; lp.y = s.y - bh; /* cố định sát cạnh dưới, không di chuyển */
-        try { wm.addView(v, lp); btn = v; btnLp = lp; } catch (Exception e) { btn = null; btnLp = null; }
+        try { wm.addView(v, lp); btn = v; btnLp = lp; scheduleRefreshBar(); } catch (Exception e) { btn = null; btnLp = null; }
     }
     private void removeButton() {
         barHidden = false;
@@ -283,7 +329,7 @@ public class LockService extends AccessibilityService {
         barHidden = b;
         if (btn == null || btnLp == null || wm == null) return;
         try {
-            btnLp.height = b ? dp(14) : navBarHeight();
+            btnLp.height = b ? dp(14) : sysBarHeight();
             btnLp.y = realSize().y - btnLp.height;
             wm.updateViewLayout(btn, btnLp);
             btn.invalidate();
@@ -318,6 +364,7 @@ public class LockService extends AccessibilityService {
     }
 
     private void tearDown() {
+        h.removeCallbacks(refreshBar);
         removeButton(); freeBarPic(); setImmersivePolicy(false);
     }
 }
