@@ -39,6 +39,7 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.Size;
+import androidx.webkit.WebViewAssetLoader;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -174,9 +175,38 @@ public class MainActivity extends Activity {
     };
 
 
+    /** Origin ảo của trang chính; các tệp trong assets/ được phục vụ qua WebViewAssetLoader. */
+    private static final String APP_ORIGIN = "https://appassets.androidplatform.net/assets/";
+    private WebViewAssetLoader assetLoader;
+
+    /** Một lần duy nhất sau khi chuyển sang AssetLoader: xóa dữ liệu localStorage cũ của origin file:// (trang mới ở origin khác nên không đọc được, chỉ tốn chỗ). */
+    private void purgeOldFileOrigin() {
+        final android.content.SharedPreferences sp = getSharedPreferences("dm_native", MODE_PRIVATE);
+        if (sp.getBoolean("purged_file_origin_v1", false)) return;
+        try {
+            final WebView pw = new WebView(this);
+            WebSettings ps = pw.getSettings();
+            ps.setJavaScriptEnabled(true); ps.setDomStorageEnabled(true);
+            ps.setAllowFileAccess(false); ps.setAllowContentAccess(false);
+            pw.setWebViewClient(new WebViewClient() {
+                @Override public void onPageFinished(final WebView v, String u) {
+                    /* chờ vài giây cho WebView kịp ghi việc xóa xuống đĩa rồi mới hủy và đánh dấu đã xong */
+                    v.postDelayed(new Runnable() { public void run() {
+                        sp.edit().putBoolean("purged_file_origin_v1", true).apply();
+                        try { v.destroy(); } catch (Exception e) { }
+                    } }, 6000);
+                }
+            });
+            pw.loadUrl("file:///android_asset/purge-old.html");
+        } catch (Throwable t) { }
+    }
+
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         inst = this;
+        assetLoader = new WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+            .build();
         root = new FrameLayout(this);
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
@@ -185,8 +215,8 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        /* Khóa quyền: file:///android_asset vẫn đọc được bình thường (không bị setAllowFileAccess chi phối),
-           nhưng trang không đọc được tệp khác trên máy / content:// kể cả khi có nội dung lạ lọt vào */
+        /* Trang chính chạy ở https://appassets.androidplatform.net/assets/ (WebViewAssetLoader), không còn là file://:
+           không cần quyền đọc tệp cục bộ, và có origin thật nên áp được chính sách bảo mật. Khóa mọi quyền file/content. */
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
         s.setAllowFileAccessFromFileURLs(false);
@@ -194,11 +224,14 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(0x00000000);
         web.setFocusable(true); web.setFocusableInTouchMode(true); web.requestFocus();
         web.setWebViewClient(new WebViewClient() {
-            /* Trang chính chỉ được ở trong file:///android_asset/. Mọi điều hướng khác bị chặn (link ngoài mở ở app/trình duyệt riêng, không nạp vào trang có cầu AndroidLauncher) */
+            /* Trang chính chỉ được ở trong APP_ORIGIN (tài nguyên của app). Mọi điều hướng khác bị chặn (link ngoài mở ở app/trình duyệt riêng, không nạp vào trang có cầu AndroidLauncher) */
+            @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                return assetLoader.shouldInterceptRequest(req.getUrl());
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 if (!req.isForMainFrame()) return false;
                 String u = req.getUrl().toString();
-                if (u.startsWith("file:///android_asset/") || u.startsWith("about:")) return false;
+                if (u.startsWith(APP_ORIGIN) || u.startsWith("about:")) return false;
                 if (u.startsWith("http://") || u.startsWith("https://")) {
                     try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e) { }
                 }
@@ -222,7 +255,8 @@ public class MainActivity extends Activity {
             }
         });
         web.addJavascriptInterface(new Bridge(), "AndroidLauncher");
-        web.loadUrl("file:///android_asset/index.html");
+        purgeOldFileOrigin();
+        web.loadUrl(APP_ORIGIN + "index.html");
         prefetchApps();
         warnOldWebView();
         if (Build.VERSION.SDK_INT >= 28) {
@@ -248,6 +282,7 @@ public class MainActivity extends Activity {
         super.onPause();
         inFg = false; undimIdle();
         if (wordHost != null) wordHost.save();
+        if (omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(this, omemProfile);
         /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
         for (WebView v : ext.values()) { try { v.onPause(); } catch (Exception e) { } }
         for (String k : ext.keySet()) markExtHidden(k);
@@ -479,6 +514,20 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
         if (wordHost != null && wordHost.handleResult(req, res, data)) return;
+        if (req == REQ_OMEM_PICK) {
+            if (res == RESULT_OK && data != null) {
+                Uri[] u = null;
+                android.content.ClipData cd = data.getClipData();
+                if (cd != null) { u = new Uri[cd.getItemCount()]; for (int k = 0; k < u.length; k++) u[k] = cd.getItemAt(k).getUri(); }
+                else if (data.getData() != null) u = new Uri[]{ data.getData() };
+                if (u != null && u.length > 0) {
+                    omemPending = u; omemUploadStarted = false;
+                    omemToast("Đã chọn " + u.length + " tệp – đang gửi lên Drive");
+                    if (omemReady) { omemUploadStarted = true; omemRunUpload(); }
+                }
+            }
+            return;
+        }
         if (req == REQ_EXTFILE) {
             if (extFileCb != null) { extFileCb.onReceiveValue(android.webkit.WebChromeClient.FileChooserParams.parseResult(res, data)); extFileCb = null; }
             return;
@@ -863,6 +912,68 @@ public class MainActivity extends Activity {
         }
     }
 
+    /* ================= Ổ mềm nhúng trong cửa sổ (Android < 9): thấy Dock, các hồ sơ đổi cookie như bản Legacy ================= */
+    private static final int REQ_OMEM_PICK = 1005;
+    /** Hồ sơ đang mở trong cửa sổ Ổ mềm: "anh" / "video" / "tep" ("" = chưa mở). */
+    private String omemProfile = "";
+    /** Tệp đã chọn bằng nút "Tải lên", chờ Drive gọi hộp chọn tệp để giao vào. */
+    private Uri[] omemPending;
+    private boolean omemReady, omemUploadStarted;
+
+    private void omemToast(String m) { android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show(); }
+
+    /** Mở / chuyển hồ sơ: lưu cookie hồ sơ cũ, nạp cookie hồ sơ mới rồi tải lại Drive. PHẢI chạy trên luồng giao diện. */
+    private void omemSwitch(String profile, boolean upload) {
+        if (!com.desktopmini.launcher.drive3.DriveEmbed.valid(profile)) return;
+        WebView old = ext.get("omem");
+        if (old != null && profile.equals(omemProfile)) { if (upload) omemPick(profile); return; }
+        android.view.ViewGroup.LayoutParams lp = null; int vis = View.GONE;
+        if (old != null) {
+            lp = old.getLayoutParams(); vis = old.getVisibility();
+            ext.remove("omem"); zooms.remove("omem"); extHiddenAt.remove("omem");
+            try { old.loadUrl("about:blank"); root.removeView(old); old.destroy(); } catch (Exception e) { }
+        }
+        com.desktopmini.launcher.drive3.DriveEmbed.activate(this, profile);   /* PHẢI chạy trước khi tạo WebView của hồ sơ */
+        omemProfile = profile; omemPending = null; omemReady = false; omemUploadStarted = false;
+        WebView v = extGet("omem", com.desktopmini.launcher.drive3.DriveEmbed.START_URL);
+        if (lp != null) {   /* giữ nguyên vị trí cũ trong cửa sổ: giao diện HTML không cần đặt lại */
+            v.setLayoutParams(lp); v.setVisibility(vis);
+            if (vis == View.VISIBLE) { try { v.onResume(); } catch (Exception e) { } }
+        }
+        if (upload) omemPick(profile);
+    }
+
+    private void omemPick(String profile) {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType(com.desktopmini.launcher.drive3.DriveEmbed.pickType(profile));
+        i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        try { startActivityForResult(i, REQ_OMEM_PICK); } catch (Exception e) { omemToast("Không mở được trình chọn tệp"); }
+    }
+
+    /** Tự bấm "Mới" rồi "Tải tệp lên"; Drive gọi hộp chọn tệp thì onShowFileChooser đưa tệp đã chọn vào. */
+    private void omemRunUpload() {
+        omemClick(com.desktopmini.launcher.drive3.DriveEmbed.clickNewJs(), 8, new Runnable() {
+            @Override public void run() { omemClick(com.desktopmini.launcher.drive3.DriveEmbed.clickUploadJs(), 6, null); }
+        });
+    }
+
+    private void omemClick(final String js, final int tries, final Runnable next) {
+        if (omemPending == null) return;   /* tệp đã được giao cho Drive */
+        final WebView v = ext.get("omem");
+        if (v == null) return;
+        v.evaluateJavascript(js, new android.webkit.ValueCallback<String>() {
+            @Override public void onReceiveValue(String r) {
+                if ("true".equals(r)) { if (next != null) v.postDelayed(next, 800); return; }
+                if (tries > 0) {
+                    v.postDelayed(new Runnable() { @Override public void run() { omemClick(js, tries - 1, next); } }, 800);
+                } else if (omemPending != null) {
+                    omemToast("Chưa tự bấm được – hãy bấm Mới → Tải tệp lên, tệp đã chọn sẽ được gửi");
+                }
+            }
+        });
+    }
+
     private WebView extGet(final String key, String url) {
         WebView v = ext.get(key);
         if (v == null && !"word".equals(key)) capExt(key);
@@ -886,14 +997,14 @@ public class MainActivity extends Activity {
             return v;
         }
         if (v == null) {
-            final boolean yt = "youtube".equals(key), br = "web".equals(key), ms = key.startsWith("ms-");
+            final boolean yt = "youtube".equals(key), br = "web".equals(key), ms = key.startsWith("ms-"), om = "omem".equals(key);
             v = new WebView(this);
             final WebView wv = v;
             final ZoomHelper zm = ZoomHelper.attach(this, v, key);
             zooms.put(key, zm);
             WebSettings s = v.getSettings();
             s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
-            if (yt || br || ms) {
+            if (yt || br || ms || om) {
                 s.setDatabaseEnabled(true);
                 s.setMediaPlaybackRequiresUserGesture(false);
                 s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -915,7 +1026,7 @@ public class MainActivity extends Activity {
                     }
                 } catch (Exception e) { }
             } else {
-                s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms) ? UA_DESK : UA);
+                s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms || om) ? UA_DESK : UA);
                 if (ms) {
                     s.setJavaScriptCanOpenWindowsAutomatically(true);   // đăng nhập Microsoft có thể mở cửa sổ phụ
                     try {
@@ -928,6 +1039,11 @@ public class MainActivity extends Activity {
             if (yt || br) v.addJavascriptInterface(new WebVoice(key), "AndroidVoice");
             v.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                    if (om) {   /* Ổ mềm: chỉ http(s), như màn hình hồ sơ gốc; ghi nhớ tên miền để lưu/nạp cookie đúng chỗ */
+                        com.desktopmini.launcher.drive3.DriveEmbed.noteHost(req.getUrl().getHost());
+                        String osc = req.getUrl().getScheme();
+                        return !("http".equals(osc) || "https".equals(osc));
+                    }
                     if (!(yt || br || ms) || !req.isForMainFrame()) return false;
                     Uri u = req.getUrl();
                     if (yt) {
@@ -944,6 +1060,7 @@ public class MainActivity extends Activity {
                     return false;
                 }
                 @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                    if (om && req.getUrl() != null) com.desktopmini.launcher.drive3.DriveEmbed.noteHost(req.getUrl().getHost());
                     if (!(yt || br || ms) || req.getUrl() == null || req.getUrl().getHost() == null) return null;
                     String h = req.getUrl().getHost().toLowerCase();
                     if (isAdHost(h)) return new android.webkit.WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0]));
@@ -964,6 +1081,15 @@ public class MainActivity extends Activity {
                 @Override public void doUpdateVisitedHistory(WebView view, String u, boolean r) { if (yt || br || ms) extNav(key, view, 50); }
                 @Override public void onPageFinished(WebView view, String u) {
                     zm.onPageFinished(view);
+                    if (om && u != null) {
+                        String oh = Uri.parse(u).getHost();
+                        if (oh != null && oh.equals("drive.google.com")) {
+                            view.evaluateJavascript(com.desktopmini.launcher.drive3.DriveEmbed.tidyJs(), null);
+                            omemReady = true;
+                            /* đã chọn tệp bằng nút "Tải lên": vào tới trang Drive thì tự bấm Mới -> Tải tệp lên */
+                            if (omemPending != null && !omemUploadStarted) { omemUploadStarted = true; view.postDelayed(new Runnable() { @Override public void run() { omemRunUpload(); } }, 1500); }
+                        }
+                    }
                     if (yt || br || ms) {
                         /* WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần) */
                         try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
@@ -976,7 +1102,7 @@ public class MainActivity extends Activity {
                     if (req.isForMainFrame() && web != null) web.evaluateJavascript("window.nativeExtError&&window.nativeExtError(" + JSONObject.quote(key) + ")", null);
                 }
             });
-            if (yt || br || ms) {
+            if (yt || br || ms || om) {
                 v.setWebChromeClient(new android.webkit.WebChromeClient() {
                     @Override public void onProgressChanged(WebView view, int p) { extNav(key, view, p); }
                     /* xem video toàn màn hình */
@@ -990,6 +1116,12 @@ public class MainActivity extends Activity {
                     @Override public void onHideCustomView() { extHideFull(); }
                     /* chọn tệp từ máy để mở trong Word/Excel/PowerPoint Online, Duyệt web */
                     @Override public boolean onShowFileChooser(WebView w, android.webkit.ValueCallback<Uri[]> cb, FileChooserParams params) {
+                        if (om && omemPending != null) {   /* nút "Tải lên": giao thẳng tệp đã chọn cho Drive */
+                            Uri[] given = omemPending; omemPending = null;
+                            cb.onReceiveValue(given);
+                            omemToast("Đang tải lên Drive…");
+                            return true;
+                        }
                         if (extFileCb != null) extFileCb.onReceiveValue(null);
                         extFileCb = cb;
                         Intent it = new Intent(Intent.ACTION_GET_CONTENT);
@@ -1000,7 +1132,7 @@ public class MainActivity extends Activity {
                     }
                 });
             }
-            if (br || ms) {
+            if (br || ms || om) {
                 v.setDownloadListener(new android.webkit.DownloadListener() {
                     @Override public void onDownloadStart(String dUrl, String ua, String cd, String mime, long len) {
                         try {
@@ -2412,6 +2544,11 @@ public class MainActivity extends Activity {
                 ZoomHelper zz = zooms.get(key); if (zz != null) zz.onShown();
             }});
         }
+        /** true = Ổ mềm chạy nhúng trong cửa sổ (Android < 9); false = dùng màn hình hồ sơ riêng (Android 9+, process riêng). */
+        @JavascriptInterface public boolean omemEmbedded() { return com.desktopmini.launcher.drive3.DriveEmbed.enabled(); }
+        @JavascriptInterface public void omemOpen(final String profile, final boolean upload) {
+            runOnUiThread(new Runnable() { public void run() { omemSwitch(profile, upload); } });
+        }
         @JavascriptInterface public void extHide(final String key) {
             runOnUiThread(new Runnable() { public void run() {
                 for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
@@ -2434,6 +2571,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void extClose(final String key) {
             runOnUiThread(new Runnable() { public void run() {
                 extHideFull();
+                if ("omem".equals(key)) {
+                    if (omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(MainActivity.this, omemProfile);
+                    omemProfile = ""; omemPending = null; omemReady = false;
+                }
                 final WebView v = ext.remove(key);
                 zooms.remove(key); extHiddenAt.remove(key);
                 if (v == null) return;

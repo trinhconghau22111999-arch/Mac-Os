@@ -58,6 +58,9 @@ public abstract class DriveActivity extends Activity {
     private static final int RC_CHOOSER = 12;
     private static final int RAIL_BG = 0xFF16181D;
 
+    /** Số màn hình hồ sơ còn sống trong process này (mỗi hồ sơ Android 9+ có process riêng). */
+    private static int alive = 0;
+
     private WebView web;
     private ProgressBar bar;
     private FrameLayout root;
@@ -85,6 +88,7 @@ public abstract class DriveActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        alive++;
         // setDataDirectorySuffix chỉ có từ Android 9 (API 28). Android 7.1.1 không có hàm này:
         // gọi thẳng sẽ văng app, nên phải kiểm tra phiên bản.
         if (Build.VERSION.SDK_INT >= 28) {
@@ -394,7 +398,7 @@ public abstract class DriveActivity extends Activity {
      * Chạy trên trang Drive: tự chuyển sang dạng lưới và ẩn phần "Thư mục",
      * chỉ để lại phần "Tệp". Tìm theo chữ tiêu đề nên không phụ thuộc tên class của Drive.
      */
-    private static final String TIDY_JS = """
+    static final String TIDY_JS = """
 (function(){
   if(window.__d3) return; window.__d3=true;
   var gridDone=false, promoClicked=false;
@@ -601,7 +605,7 @@ public abstract class DriveActivity extends Activity {
 
     private static final int RC_PICK = 11;
 
-    private static final String CLICK_NEW_JS = """
+    static final String CLICK_NEW_JS = """
 (function(){
   var L=['new','mới','tạo mới'];
   var n=document.querySelectorAll('[aria-label],[data-tooltip],div[role=button],button');
@@ -616,7 +620,7 @@ public abstract class DriveActivity extends Activity {
 })();
 """;
 
-    private static final String CLICK_UPLOAD_JS = """
+    static final String CLICK_UPLOAD_JS = """
 (function(){
   var L=['file upload','tải tệp lên','upload files','upload file','tải lên tệp','upload','tải lên'];
   var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null),n;
@@ -746,6 +750,23 @@ public abstract class DriveActivity extends Activity {
             web.destroy();
         }
         super.onDestroy();
+        alive--;
+        if (isFinishing() && alive <= 0) exitProfileProcess();
+    }
+
+    /**
+     * Thoát hồ sơ = giải phóng luôn process riêng của hồ sơ (WebView Drive rất tốn RAM), lần mở sau dựng lại sạch.
+     * Chỉ chạy ở process phụ ":p1/:p2/:p3" của Android 9+; TUYỆT ĐỐI không đụng process chính (Desktop Mini)
+     * và không chạy ở bản Legacy (Android dưới 9, chung process chính).
+     */
+    private void exitProfileProcess() {
+        if (DriveCookies.enabled() || Build.VERSION.SDK_INT < 28) return;
+        String pn;
+        try { pn = android.app.Application.getProcessName(); } catch (Throwable t) { return; }
+        if (pn == null || pn.indexOf(':') < 0) return;
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override public void run() { android.os.Process.killProcess(android.os.Process.myPid()); }
+        }, 600);
     }
 
     private void toast(String m) {

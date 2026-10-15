@@ -926,6 +926,10 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .wa .bar .wbk::before,.wa .bar .gbk::before,.br .bbar .bk::before,.wa .bar .wfw::before,.wa .bar .gfw::before,.br .bbar .fw::before{font-size:40px;line-height:1;font-weight:500}
 .wa .bar .wrl svg,.wa .bar .grl svg,.br .bbar .rl svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .wa .bar .whm{width:52px;height:52px;font-size:30px;line-height:1}
+.om{height:100%;background:var(--win)}.omh{display:flex;gap:12px;height:100%;padding:16px 16px 16px 16px;box-sizing:border-box}.omw{height:100%}.omw[hidden],.omh[hidden]{display:none}
+.omc{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:22px;background:linear-gradient(var(--c),rgba(0,0,0,.35));color:#fff;padding:12px}
+.omc i{font-style:normal;font-size:38px}.omc b{font-size:20px}.omc .btn{width:100%;max-width:150px}
+.omchips{display:flex;gap:6px;align-items:center;flex:1;min-width:0}.omchip{border:0;border-radius:14px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer;background:rgba(128,128,128,.18);color:inherit}.omchip.on{background:var(--accent,#0a84ff);color:#fff}.omchip.omup{margin-left:auto}
 .br .nv{background:none;border-radius:0;overflow:visible}
 .br .nv button{min-width:52px;width:52px;height:52px;padding:0;border-radius:50%}
 body.native{padding:0;box-sizing:border-box;background:transparent}
@@ -1315,7 +1319,7 @@ const APPS={
   recorder:{name:'Ghi âm',w:380,h:600,minW:320,minH:440,build:buildRecorder,dark:true},
   camera:{name:'Webcam',w:380,h:620,minW:320,minH:460,build:buildCamera,dark:true},
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
-  omem:{name:'Ổ mềm',w:440,h:200,minW:300,minH:160,build:buildDrive3Stub},
+  omem:{name:'Ổ mềm',w:880,h:540,minW:360,minH:300,build:buildDrive3Stub},
   drive:{name:'Drive web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'drive','https://drive.google.com/drive/my-drive','Drive web')},
   zalo:{name:'Zalo web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'zalo','https://chat.zalo.me/','Zalo web')},
   facebook:{name:'Facebook web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'facebook','https://www.facebook.com/','Facebook web')},
@@ -1704,8 +1708,8 @@ function openApp(id,arg){
     try{window.AndroidLauncher.openWebBrowser(u||'')}catch(e){}
     return;
   }
-  /* "Ổ mềm" = app Drive 3 hồ sơ (Ảnh / Video / Tệp): mở màn hình riêng của Android; thoát thì quay về Desktop Mini */
-  if(id==='omem'&&window.AndroidLauncher&&window.AndroidLauncher.openDrive3){
+  /* "Ổ mềm" = app Drive 3 hồ sơ (Ảnh / Video / Tệp): Android < 9 chạy nhúng trong cửa sổ (thấy Dock, xem buildDrive3Stub); Android 9+ mở màn hình riêng (process riêng từng hồ sơ), thoát thì quay về Desktop Mini */
+  if(id==='omem'&&window.AndroidLauncher&&window.AndroidLauncher.openDrive3&&!(window.AndroidLauncher.omemEmbedded&&window.AndroidLauncher.omemEmbedded())){
     try{window.AndroidLauncher.openDrive3()}catch(e){}
     return;
   }
@@ -2072,10 +2076,43 @@ function buildNotes(b,w,arg){
   return {open(a){if(a&&a.file)fromFile(a.file)}};
 }
 
-/* ---------- Ổ mềm (Drive 3 hồ sơ): chạy ở màn hình Android riêng; cửa sổ này chỉ hiện khi mở ngoài ứng dụng Android ---------- */
-function buildDrive3Stub(b){
-  b.innerHTML='<div class="app"><div class="bar"><strong class="t">Ổ mềm</strong></div><div class="none">Ổ mềm (Drive 3 hồ sơ) chỉ chạy trong ứng dụng Android</div></div>';
-  return {};
+/* ---------- Ổ mềm (Drive 3 hồ sơ): Android < 9 chạy NHÚNG trong cửa sổ như Duyệt web (thấy Dock); chọn hồ sơ Ảnh / Video / Tệp, đổi hồ sơ ngay trên thanh tiêu đề ---------- */
+function buildDrive3Stub(b,w){
+  const A=window.AndroidLauncher;
+  if(!A||!A.omemEmbedded||!A.omemEmbedded()){
+    b.innerHTML='<div class="app"><div class="bar"><strong class="t">Ổ mềm</strong></div><div class="none">Ổ mềm (Drive 3 hồ sơ) chỉ chạy trong ứng dụng Android</div></div>';
+    return {};
+  }
+  const P=[['anh','Ảnh','🖼','#4fc3f7'],['video','Video','🎬','#ff8a80'],['tep','Tệp','📁','#81c784']];
+  b.innerHTML='<div class="om"><div class="omh">'+P.map(x=>'<div class="omc" data-p="'+x[0]+'" style="--c:'+x[3]+'"><i>'+x[2]+'</i><b>'+x[1]+'</b><button class="btn omo" type="button">Mở</button><button class="btn omu" type="button">\u2B06 Tải lên</button></div>').join('')+'</div><div class="omw" hidden></div></div>';
+  const home=$('.omh',b), host=$('.omw',b);
+  let cur='', api=null;
+  function mark(){$$('.omchip',host).forEach(c=>c.classList.toggle('on',c.dataset.p===cur))}
+  function open(p,up){
+    /* Gọi phần gốc TRƯỚC khi dựng cửa sổ web: phải nạp cookie đúng hồ sơ trước khi trang Drive đầu tiên được tải */
+    try{A.omemOpen(p,!!up)}catch(e){return}
+    if(!api){
+      home.hidden=true; host.hidden=false;
+      api=buildWebApp(host,w,'omem','https://drive.google.com/drive/my-drive','Ổ mềm',{close:true});
+      const bar=$('.bar',host), t=$('.t',bar);
+      if(t){
+        const chips=document.createElement('span'); chips.className='omchips';
+        chips.innerHTML=P.map(x=>'<button class="omchip" type="button" data-p="'+x[0]+'">'+x[1]+'</button>').join('')+'<button class="omchip omup" type="button">\u2B06 Tải lên</button>';
+        t.replaceWith(chips);
+        chips.addEventListener('click',e=>{
+          const c=e.target.closest('.omchip'); if(!c)return;
+          if(c.classList.contains('omup')){try{A.omemOpen(cur,true)}catch(x){}return}
+          if(c.dataset.p!==cur){cur=c.dataset.p;mark();try{A.omemOpen(cur,false)}catch(x){}}
+        });
+      }
+    }
+    cur=p; mark();
+  }
+  home.addEventListener('click',e=>{
+    const c=e.target.closest('.omc'); if(!c)return;
+    open(c.dataset.p,!!e.target.closest('.omu'));
+  });
+  return {destroy(){if(api&&api.destroy)api.destroy();else{try{A.extClose('omem')}catch(e){}}}};
 }
 
 function buildCalc(b,w){return lazyBuild('calc','buildCalc',b,w)}
@@ -2181,7 +2218,7 @@ function buildRealFiles(b,w,arg,mode){
     path=p; render();
   }
   const fmtDur=ms=>{const t=Math.round((ms||0)/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return (h?h+':'+pad(m):m)+':'+pad(s)};
-  function reset(){list.onscroll=null;if(io){io.disconnect();io=null}}
+  function reset(){list.onscroll=null;list.__all=null;if(io){io.disconnect();io=null}}
   function render(){
     reset(); SEL.clear(); MK=null; pt.textContent=name(path); rcn.hidden=true; rdel.hidden=true;
     $$('.si',side).forEach(x=>x.setAttribute('aria-current',String(where(path)===x.dataset.k)));
@@ -2301,17 +2338,34 @@ function buildRealFiles(b,w,arg,mode){
     if(full)it.push('-',{t:'Xoá',fn:()=>{if(A.deleteFile(full)){M={};refresh()}else notify({app:'Tệp',title:'Không xoá được',body:n+(isDir?' (thư mục chưa trống)':''),icon:'files'})}});
     showCtx(e.clientX,e.clientY,it);
   }
+  /* Danh sách thư mục dựng theo từng đợt: chỉ dựng phần đầu (ROWS_FIRST dòng), cuộn gần cuối mới dựng thêm (ROWS_MORE dòng) -
+     thư mục hàng nghìn tệp mở tức thì thay vì dựng hết một lần. Mỗi dòng được gắn sự kiện ngay khi được dựng. */
+  const ROWS_FIRST=80, ROWS_MORE=120;
+  function fillRows(items,rowHtml,wire){
+    let shown=0; list.innerHTML='';
+    function add(n){
+      const end=Math.min(items.length,shown+n); let h='';
+      for(let i=shown;i<end;i++)h+=rowHtml(items[i],i);
+      list.insertAdjacentHTML('beforeend',h); shown=end;
+      $$('.rfi:not([data-w])',list).forEach(x=>{
+        x.dataset.w='1'; wire(x,items[+x.dataset.i]);
+        if(SEL.size&&x.dataset.full)x.classList.toggle('sel',SEL.has(x.dataset.full));
+      });
+    }
+    add(ROWS_FIRST);
+    list.onscroll=()=>{if(shown<items.length&&list.scrollTop+list.clientHeight>list.scrollHeight-500)add(ROWS_MORE)};
+    list.__all=()=>{while(shown<items.length)add(ROWS_MORE)};   /* dựng nốt phần còn lại (khi cần tìm một dòng theo tên) */
+  }
   function renderDownloads(){
     let r={list:[]}; try{r=JSON.parse(A.listDownloads())}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
     if(r.error&&!r.list.length){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
     ft.textContent=r.list.length+' mục';
-    list.innerHTML=r.list.length?r.list.map((f,i)=>{
+    if(!r.list.length){list.innerHTML='<div class="rnote"><b>Thư mục trống</b></div>';return}
+    const opn=f=>{if(f.p){openPath(f.p,f.n,f);return} if(!A.openDownload(f.id,f.t))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
+    fillRows(r.list,(f,i)=>{
       const ext=f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp';
       return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+fmtSize(f.s)+' · '+fmtDay(f.m)+'</small></span></button>';
-    }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
-    const opn=f=>{if(f.p){openPath(f.p,f.n,f);return} if(!A.openDownload(f.id,f.t))notify({app:'Tệp',title:'Không mở được tệp',body:f.n,icon:'files'})};
-    $$('.rfi',list).forEach(x=>{
-      const f=r.list[+x.dataset.i];
+    },(x,f)=>{
       if(f.p)x.dataset.full=f.p;
       x.addEventListener('click',()=>{if(SEL.size){toggleSel(f.p);return}opn(f)});
       x.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();fileMenu(e,f.n,f.p,()=>opn(f),()=>render())});
@@ -2324,12 +2378,12 @@ function buildRealFiles(b,w,arg,mode){
     if(r.error&&path===R.down&&A.listDownloads){renderDownloads();return}
     if(r.error){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
     ft.textContent=r.list.length+' mục';
-    list.innerHTML=r.list.length?r.list.map((f,i)=>{
+    if(!r.list.length){list.innerHTML='<div class="rnote"><b>Thư mục trống</b></div>';return}
+    fillRows(r.list,(f,i)=>{
       const ext=f.d?'folder':(f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):'tệp');
-      return '<button class="rfi" data-i="'+i+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+(f.d?'Thư mục':fmtSize(f.s))+' · '+fmtDay(f.m)+'</small></span></button>';
-    }).join(''):'<div class="rnote"><b>Thư mục trống</b></div>';
-    $$('.rfi',list).forEach(x=>{
-      const f=r.list[+x.dataset.i], full=path.replace(/\/$/,'')+'/'+f.n;
+      return '<button class="rfi" data-i="'+i+'" data-full="'+esc(path.replace(/\/$/,'')+'/'+f.n)+'"><span class="ri">'+fileIcon(ext)+'</span><span class="rn"><b>'+esc(f.n)+'</b><small>'+(f.d?'Thư mục':fmtSize(f.s))+' · '+fmtDay(f.m)+'</small></span></button>';
+    },(x,f)=>{
+      const full=path.replace(/\/$/,'')+'/'+f.n;
       const opn=()=>{if(f.d)go(full); else openPath(full,f.n)};
       x.dataset.full=full;
       x.addEventListener('click',()=>{if(SEL.size){toggleSel(full);return}opn()});
@@ -2448,6 +2502,7 @@ function buildRealFiles(b,w,arg,mode){
   live(w,'ui',()=>{});
   /* Chọn sẵn (không mở) một tệp theo tên trong Tải xuống, dùng khi bấm "Mở trong Tải xuống" ở trình duyệt */
   function selectByName(nm,tries){
+    if(list.__all)list.__all();
     const x=$$('.rfi',list).find(e=>{const t=$('b',e);return t&&t.textContent===nm});
     if(x){
       if(x.dataset.full){SEL.clear();toggleSel(x.dataset.full)}else x.classList.add('sel');
