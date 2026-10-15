@@ -9,12 +9,13 @@ function scene(i){
 }
 function buildPhotos(b,w,arg){
   let fav=jget('dm-pfav',[]), tab='all', view=-1;
-  b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><span class="cn phc"></span></div><div class="pgs"><div class="pgd"></div></div></div><div class="pv" hidden></div></div>';
+  b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><button class="btn phsc" type="button" hidden>Hủy</button><button class="btn phsd" type="button" hidden style="background:#ff3b30;color:#fff">Xóa</button><span class="cn phc"></span></div><div class="pgs"><div class="pgd"></div></div></div><div class="pv" hidden></div></div>';
   const side=$('.side',b), pgs=$('.pgs',b), pgd=$('.pgd',b), pv=$('.pv',b), pht=$('.pht',b), phc=$('.phc',b);
   let pio=null, ptq=[], ptb=false, pgShown=0;
+  const SEL=new Set(); let selLp=0, selSkip=false;   /* chọn nhiều ảnh: nhấn giữ 1 ảnh để vào chế độ chọn */
   [['all','Tất cả ảnh'],['fav','Yêu thích'],['cam','Ảnh chụp'],['shot','Ảnh chụp màn hình']].forEach(x=>{
     const s=document.createElement('button'); s.className='si'; s.dataset.t=x[0]; s.innerHTML='<span>'+x[1]+'</span>';
-    s.addEventListener('click',()=>{tab=x[0];view=-1;pgShown=0;pgs.scrollTop=0;render()}); side.appendChild(s);
+    s.addEventListener('click',()=>{tab=x[0];view=-1;pgShown=0;pgs.scrollTop=0;SEL.clear();render()}); side.appendChild(s);
   });
   const TABN={all:'Tất cả ảnh',fav:'Yêu thích',cam:'Ảnh chụp',shot:'Ảnh chụp màn hình'}, TABE={all:'Chưa có ảnh nào',fav:'Chưa có ảnh yêu thích',cam:'Chưa có ảnh chụp',shot:'Chưa có ảnh chụp màn hình'};
   const ids=()=>PH.map((_,i)=>i).filter(i=>tab==='all'||(tab==='fav'?fav.indexOf(i)>=0:PH[i].k===tab));
@@ -31,14 +32,15 @@ function buildPhotos(b,w,arg){
   }
   function renderGrid(){
     $$('.si',side).forEach(s=>s.setAttribute('aria-current',String(s.dataset.t===tab)));
-    const l=ids(); pht.textContent=TABN[tab]||'Tất cả ảnh'; phc.textContent=l.length+' ảnh';
+    const l=ids(); pht.textContent=TABN[tab]||'Tất cả ảnh'; phc.textContent=SEL.size?('Đã chọn '+SEL.size):(l.length+' ảnh');
+    $('.phsc',b).hidden=!SEL.size; $('.phsd',b).hidden=!SEL.size; $('.phsd',b).textContent='Xóa ('+SEL.size+')';
     const st=pgs.scrollTop;
     if(pio){pio.disconnect();pio=null} ptq.length=0; ptb=false; pgs.onscroll=null;
     if(!l.length){pgd.innerHTML='<div class="none">'+(TABE[tab]||TABE.all)+'</div>';return}
     pgd.innerHTML='';
     const tile=i=>{
       const p=PH[i], real=!!p.pid;
-      return '<button class="pt" data-i="'+i+'" aria-label="'+esc(String(p[5]||''))+'">'+(real?'<img alt="" data-pid="'+p.pid+'">':scene(i))+(fav.indexOf(i)>=0?'<em>♥</em>':'')+'</button>';
+      return '<button class="pt'+(SEL.has(i)?' sel':'')+'" data-i="'+i+'" aria-label="'+esc(String(p[5]||''))+'">'+(real?'<img alt="" data-pid="'+p.pid+'">':scene(i))+(fav.indexOf(i)>=0?'<em>♥</em>':'')+'</button>';
     };
     pio=new IntersectionObserver(es=>es.forEach(e=>{
       const el=e.target; el.__vis=e.isIntersecting;
@@ -55,8 +57,56 @@ function buildPhotos(b,w,arg){
     if(st)pgs.scrollTop=st;
     pgs.onscroll=()=>{if(shown<l.length&&pgs.scrollTop+pgs.clientHeight>pgs.scrollHeight-700)addChunk(shown+240)};
   }
-  pgd.addEventListener('click',e=>{const x=e.target.closest('.pt');if(x){view=+x.dataset.i;renderViewer()}});
-  function render(){renderGrid();renderViewer()}
+  /* Chọn nhiều ảnh: nhấn giữ 1 ảnh -> vào chế độ chọn; sau đó chạm để chọn/bỏ chọn; có nút Hủy và Xóa */
+  const selToggle=(x,i)=>{if(SEL.has(i))SEL.delete(i);else SEL.add(i);x.classList.toggle('sel',SEL.has(i));selBar()};
+  function selBar(){
+    const n=SEL.size; phc.textContent=n?('Đã chọn '+n):(ids().length+' ảnh');
+    $('.phsc',b).hidden=!n; $('.phsd',b).hidden=!n; $('.phsd',b).textContent='Xóa ('+n+')';
+    pgd.classList.toggle('selmode',n>0);
+  }
+  function selClear(){SEL.clear();$$('.pt.sel',pgd).forEach(x=>x.classList.remove('sel'));selBar()}
+  pgd.addEventListener('pointerdown',e=>{
+    const x=e.target.closest('.pt'); if(!x)return; selSkip=false;
+    const sx=e.clientX, sy=e.clientY; clearTimeout(selLp);
+    const mv=ev=>{if(Math.abs(ev.clientX-sx)>10||Math.abs(ev.clientY-sy)>10)stop()};
+    const stop=()=>{clearTimeout(selLp);window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',stop);window.removeEventListener('pointercancel',stop)};
+    window.addEventListener('pointermove',mv);window.addEventListener('pointerup',stop);window.addEventListener('pointercancel',stop);
+    selLp=setTimeout(()=>{stop();selSkip=true;if(!SEL.has(+x.dataset.i))selToggle(x,+x.dataset.i)},500);
+  });
+  pgd.addEventListener('contextmenu',e=>{if(e.target.closest('.pt'))e.preventDefault()});
+  pgd.addEventListener('click',e=>{
+    const x=e.target.closest('.pt'); if(!x)return;
+    if(selSkip){selSkip=false;return}
+    if(SEL.size){selToggle(x,+x.dataset.i);return}
+    view=+x.dataset.i;renderViewer();
+  });
+  $('.phsc',b).addEventListener('click',selClear);
+  $('.phsd',b).addEventListener('click',()=>{
+    if(!SEL.size)return;
+    const M=lkModal('Xóa '+SEL.size+' ảnh đã chọn?');
+    M.el.innerHTML='<div style="font-size:13px;opacity:.8;margin-bottom:12px">Ảnh sẽ vào Thùng rác và tự xóa hẳn sau 7 ngày.</div><button type="button" class="btn" data-x style="background:#ff3b30;color:#fff;padding:8px 26px">Xóa '+SEL.size+' ảnh</button>';
+    $('[data-x]',M.el).addEventListener('click',()=>{M.close();doDeleteMany()});
+  });
+  function doDeleteMany(){
+    const A=PHA(), idx=[...SEL].sort((a,b)=>b-a), n=idx.length;
+    const real=idx.filter(k=>PH[k]&&PH[k].pid), demo=idx.filter(k=>!(PH[k]&&PH[k].pid));
+    const fin=reload=>{
+      const gone=new Set(idx);
+      fav=fav.filter(x=>!gone.has(x)).map(x=>x-idx.filter(k=>k<x).length); jset('dm-pfav',fav);
+      if(!reload)demo.forEach(k=>PH.splice(k,1));   /* đã xếp giảm dần nên chỉ số còn lại không lệch */
+      SEL.clear(); view=-1;
+      if(reload&&window.nativeReload)window.nativeReload();
+      render();
+      notify({app:'Ảnh',title:'Đã chuyển '+n+' ảnh vào Thùng rác',body:'',icon:'photos'});
+    };
+    if(real.length&&A&&A.deleteMedia){
+      let r=0; try{r=A.deleteMedia('img',real.map(k=>PH[k].pid).join(','))}catch(x){}
+      if(r===1)fin(true);
+      else if(r===2)window.nativeDelResult=ok=>{window.nativeDelResult=null;if(ok)fin(true)};
+      else notify({app:'Ảnh',title:'Không xóa được ảnh',body:'Hãy cấp quyền "Truy cập mọi tệp" trong Cài đặt → Quyền truy cập.',icon:'photos'});
+    }else fin(false);
+  }
+  function render(){renderGrid();renderViewer();selBar()}
 
   /* ---------- Trình xem + chỉnh sửa ảnh ---------- */
   const PHA=()=>window.AndroidLauncher||null, RED='#ff3b30';
