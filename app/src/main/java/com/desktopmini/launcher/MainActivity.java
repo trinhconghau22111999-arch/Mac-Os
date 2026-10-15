@@ -158,6 +158,8 @@ public class MainActivity extends Activity {
     };
     private android.media.Ringtone previewTone;
     /* ---- Bluetooth: thiết bị tìm thấy xung quanh + proxy hồ sơ để biết thiết bị nào đang kết nối ---- */
+    /** "Duyệt web": trình duyệt Webandr đầy đủ chạy nhúng trong cửa sổ (tạo khi mở lần đầu). */
+    private BrowserHost browserHost;
     private final java.util.LinkedHashMap<String, JSONObject> btFound = new java.util.LinkedHashMap<String, JSONObject>();
     private final HashMap<Integer, BluetoothProfile> btProx = new HashMap<Integer, BluetoothProfile>();
     private boolean btRecv = false, btProxReq = false;
@@ -291,6 +293,7 @@ public class MainActivity extends Activity {
     @Override protected void onPause() {
         super.onPause();
         inFg = false; undimIdle();
+        if (browserHost != null) { try { browserHost.onPause(); } catch (Exception e) { } }
         if (wordHost != null) wordHost.save();
         if (omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(this, omemProfile);
         /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
@@ -328,6 +331,7 @@ public class MainActivity extends Activity {
         super.onTrimMemory(level);
         /* Máy sắp hết RAM thật (đang chạy mà RAM tới mức "nguy cấp", hoặc app ở nền bị đẩy tới giữa/cuối danh sách bị giết): đóng ngay trang nhúng đang ẩn.
            Cố ý KHÔNG dùng mức UI_HIDDEN (20) và BACKGROUND (40): hai mức này xảy ra mỗi khi mở app khác từ launcher, chưa phải thiếu RAM, đóng thì YouTube/Zalo bị tải lại liên tục. */
+        if (browserHost != null) { try { browserHost.onTrimMemory(level); } catch (Exception e) { } }
         if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) reapExt(0);
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
             for (WebView v : ext.values()) { try { if (v.getVisibility() != View.VISIBLE) v.clearCache(false); } catch (Exception e) { } }
@@ -335,6 +339,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (browserHost != null) { try { browserHost.destroy(); } catch (Exception e) { } browserHost = null; }
         stopMediaWatch();
         reaper.removeCallbacks(reapTask); reaper.removeCallbacks(idleTask); reaper.removeCallbacks(appsRefresh);
         try { unregisterReceiver(pkgRx); } catch (Exception e) { }
@@ -509,6 +514,7 @@ public class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int c, String[] p, int[] r) {
         askingRuntime = false;
+        if (browserHost != null && c >= 2100 && c < 2200) { browserHost.handlePermissionsResult(c, p, r); return; }
         if (c == PERM_VOICE) {
             if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) launchVoiceSearch();
             else android.widget.Toast.makeText(this, "Cần cấp quyền micro để dùng tìm kiếm bằng giọng nói", android.widget.Toast.LENGTH_SHORT).show();
@@ -525,6 +531,7 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
         if (wordHost != null && wordHost.handleResult(req, res, data)) return;
+        if (browserHost != null && browserHost.handleActivityResult(req, res, data)) return;
         if (req == REQ_OMEM_PICK) {
             if (res == RESULT_OK && data != null) {
                 Uri[] u = null;
@@ -1107,6 +1114,23 @@ public class MainActivity extends Activity {
             }
         });
     }
+
+    private BrowserHost browserGet(String url) {
+        if (browserHost == null) {
+            browserHost = new BrowserHost(this, new kotlin.jvm.functions.Function0<kotlin.Unit>() {
+                @Override public kotlin.Unit invoke() {
+                    if (web != null) web.evaluateJavascript("window.nativeCloseApp&&window.nativeCloseApp('webbrowser')", null);
+                    return kotlin.Unit.INSTANCE;
+                }
+            });
+            browserHost.start(url != null && url.startsWith("http") ? url : null);
+            View v = browserHost.getRoot();
+            v.setVisibility(View.GONE);
+            root.addView(v, new FrameLayout.LayoutParams(1, 1));
+        }
+        return browserHost;
+    }
+    private void browserHide() { if (browserHost != null) { try { browserHost.getRoot().setVisibility(View.GONE); } catch (Exception e) { } } }
 
     private WebView extGet(final String key, String url) {
         WebView v = ext.get(key);
@@ -2714,6 +2738,14 @@ public class MainActivity extends Activity {
                 float d = getResources().getDisplayMetrics().density;
                 gkHideNow();
                 for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
+                if ("webandr".equals(key)) {
+                    View bv = browserGet(url).getRoot();
+                    FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
+                    bl.leftMargin = Math.round(x * d); bl.topMargin = Math.round(y * d);
+                    bv.setLayoutParams(bl); bv.setVisibility(View.VISIBLE);
+                    return;
+                }
+                browserHide();
                 WebView v = extGet(key, url);
                 extHiddenAt.remove(key);
                 try { v.onResume(); } catch (Exception x) { }
@@ -2730,26 +2762,35 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void extHide(final String key) {
             runOnUiThread(new Runnable() { public void run() {
+                if (key == null || key.length() == 0 || "webandr".equals(key)) browserHide();
                 for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
             }});
         }
         @JavascriptInterface public void extReload(final String key) {
-            runOnUiThread(new Runnable() { public void run() { WebView v = ext.get(key); if (v != null) v.reload(); } });
+            runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (browserHost != null) browserHost.reload(); return; } WebView v = ext.get(key); if (v != null) v.reload(); } });
         }
         @JavascriptInterface public void extGo(final String key, final String url) {
-            runOnUiThread(new Runnable() { public void run() { WebView v = extGet(key, url); v.loadUrl(url); } });
+            runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { browserGet(url).openUrl(url); return; } WebView v = extGet(key, url); v.loadUrl(url); } });
         }
         /** Back trong cửa sổ Gõ văn bản: đóng hộp thoại/màn hình Tệp của trang trước, hết thì đóng cửa sổ. */
         @JavascriptInterface public void wordBack() {
             runOnUiThread(new Runnable() { public void run() { if (wordHost != null) wordHost.back(); } });
         }
         @JavascriptInterface public void extForward(final String key) {
-            runOnUiThread(new Runnable() { public void run() { WebView v = ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
+            runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (browserHost != null) browserHost.forward(); return; } WebView v = ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
         }
         /** Đóng hẳn WebView nhúng (dừng phát video/âm thanh khi đóng cửa sổ). */
         @JavascriptInterface public void extClose(final String key) {
             runOnUiThread(new Runnable() { public void run() {
                 extHideFull();
+                if ("webandr".equals(key)) {
+                    if (browserHost == null) return;
+                    final BrowserHost bh = browserHost; browserHost = null;
+                    bh.onPause();
+                    try { root.removeView(bh.getRoot()); } catch (Exception e) { }
+                    bh.destroy();
+                    return;
+                }
                 if ("omem".equals(key)) {
                     if (omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(MainActivity.this, omemProfile);
                     omemProfile = ""; omemPending = null; omemReady = false;
@@ -2769,10 +2810,17 @@ public class MainActivity extends Activity {
             }});
         }
         @JavascriptInterface public String extUrl(final String key) {
+            if ("webandr".equals(key)) return browserHost == null ? "" : browserHost.currentUrl();
             WebView v = ext.get(key); return v == null || v.getUrl() == null ? "" : v.getUrl();
         }
         @JavascriptInterface public void extBack(final String key) {
-            runOnUiThread(new Runnable() { public void run() { WebView v = ext.get(key); if (v != null && v.canGoBack()) v.goBack(); } });
+            runOnUiThread(new Runnable() { public void run() {
+                if ("webandr".equals(key)) {
+                    /* hết việc để lùi (không còn bảng/trang/thẻ) thì đóng cửa sổ Duyệt web */
+                    if (browserHost == null || !browserHost.back()) web.evaluateJavascript("window.nativeCloseApp&&window.nativeCloseApp('webbrowser')", null);
+                    return;
+                }
+                WebView v = ext.get(key); if (v != null && v.canGoBack()) v.goBack(); } });
         }
     }
 }

@@ -7,6 +7,7 @@
 -keep class com.desktopmini.launcher.MainActivity$WebVoice { *; }
 -keep class com.desktopmini.launcher.WordHost$Bridge { *; }
 -keep class com.desktopmini.launcher.WebBrowserActivity$* { *; }
+-keep class com.desktopmini.launcher.BrowserHost$* { *; }
 -keep class com.desktopmini.launcher.YouTubeActivity$* { *; }
 -keep class com.desktopmini.launcher.TypingActivity$* { *; }
 # Hàm Kotlin được MainActivity.java gọi trực tiếp (YouTubeActivityKt.YT_ONLY_AD_JS...)

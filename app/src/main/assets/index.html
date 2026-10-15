@@ -1301,7 +1301,7 @@ const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
   browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.gkShow)?buildGecko(b,w,a):buildBrowser(b,w,a)},
-  webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
+  webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser?buildWebApp(b,w,'webandr','https://www.google.com/','Duyệt web',{plain:true,local:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
   youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true}):buildBrowser(b,w,a)},
   mail:{name:'Thư',w:880,h:540,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail'):buildMail(b,w)},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
@@ -1711,12 +1711,6 @@ function openApp(id,arg){
   if(id==='launchpad'){toggleLP();return}
   if(typeof id==='string'&&id.indexOf('x:')===0){if(typeof lpOn!=='undefined'&&lpOn)closeLP();extLaunch(id.slice(2));return}
   if(!APPS[id])return;
-  /* "Duyệt web" là trình duyệt Webandr đầy đủ (thẻ, dấu sao, phím tắt, dịch, chụp màn hình...) nên mở màn hình trình duyệt thật; thoát thì quay về Desktop Mini */
-  if(id==='webbrowser'&&window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser){
-    const u=typeof arg==='string'?arg:(arg&&arg.url);
-    try{window.AndroidLauncher.openWebBrowser(u||'')}catch(e){}
-    return;
-  }
   /* "Ổ mềm" = app Drive 3 hồ sơ (Ảnh / Video / Tệp): Android < 9 chạy nhúng trong cửa sổ (thấy Dock, xem buildDrive3Stub); Android 9+ mở màn hình riêng (process riêng từng hồ sơ), thoát thì quay về Desktop Mini */
   if(id==='omem'&&window.AndroidLauncher&&window.AndroidLauncher.openDrive3&&!(window.AndroidLauncher.omemEmbedded&&window.AndroidLauncher.omemEmbedded())){
     try{window.AndroidLauncher.openDrive3()}catch(e){}
@@ -2532,7 +2526,7 @@ window.nativeZipDone=(t,j)=>{let r={};try{r=JSON.parse(j)}catch(e){r={error:'L�
 const EXTERR={};
 window.nativeExtError=k=>{if(EXTERR[k])EXTERR[k]()};
 const EXTNAV={};
-const EXTST={};
+const EXTST={webandr:{back:true}};
 window.nativeExtNav=(k,o)=>{EXTST[k]=o;if(EXTNAV[k])EXTNAV[k](o)};
 function buildWebApp(b,w,key,url,title,opt){
   opt=opt||{};
@@ -3905,7 +3899,7 @@ if(window.AndroidLauncher){(function(){
       if(w.dataset.app==='browser'&&GK.dlOpen&&GK.closeDl){GK.closeDl();return}
       if(w.dataset.app==='browser'&&GK.back&&window.AndroidLauncher&&window.AndroidLauncher.gkBack){window.AndroidLauncher.gkBack();return}
       if(w.dataset.app==='typing'&&window.AndroidLauncher&&window.AndroidLauncher.wordBack){window.AndroidLauncher.wordBack();return}
-      {const ek={webbrowser:'web',youtube:'youtube',msword:'ms-word',msexcel:'ms-excel',msppt:'ms-ppt',msoffice:'ms-office'}[w.dataset.app]; if(ek&&EXTST[ek]&&EXTST[ek].back&&window.AndroidLauncher&&window.AndroidLauncher.extBack){window.AndroidLauncher.extBack(ek);return}}
+      {const ek={webbrowser:(window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser?'webandr':'web'),youtube:'youtube',msword:'ms-word',msexcel:'ms-excel',msppt:'ms-ppt',msoffice:'ms-office'}[w.dataset.app]; if(ek&&EXTST[ek]&&EXTST[ek].back&&window.AndroidLauncher&&window.AndroidLauncher.extBack){window.AndroidLauncher.extBack(ek);return}}
             closeWin(w);
     }catch(e){}
   };
