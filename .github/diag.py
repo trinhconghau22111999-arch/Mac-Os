@@ -108,3 +108,19 @@ t2 = '\n'.join(out2)
 print(t2)
 open('diag-report2.txt', 'w', encoding='utf-8').write(t2)
 print('::notice title=BAO CAO R8 PHAN 2::' + t2.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')[:60000])
+
+# ======== PHẦN 3: lớp giao tiếp WebView (Duyệt web) ========
+out3 = []
+def R(s=''): out3.append(s)
+R('--- Chi tiết org.chromium.support_lib_boundary ---')
+for c in sorted(bc):
+    r, t = ren_members(c)
+    if cls[c] != c or r:
+        R('%s | lớp: %s | thành viên đổi tên: %d/%d' % (c, 'ĐỔI TÊN' if cls[c] != c else 'giữ', r, t))
+ifc = [c for c in bc if c.endswith('BoundaryInterface')]
+R('Số interface *BoundaryInterface: %d | trong đó có thành viên bị đổi tên: %d' % (len(ifc), sum(1 for c in ifc if ren_members(c)[0])))
+for n in ['androidx.webkit.WebViewClientCompat','androidx.webkit.ProcessGlobalConfig','androidx.webkit.WebViewFeature','androidx.webkit.internal.WebViewGlueCommunicator','androidx.webkit.WebMessageListener','androidx.webkit.JavaScriptReplyProxy']:
+    R('  %-58s %s' % (n, chk(n)))
+t3 = '\n'.join(out3)
+print(t3)
+print('::notice title=BAO CAO R8 PHAN 3::' + t3.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')[:60000])
