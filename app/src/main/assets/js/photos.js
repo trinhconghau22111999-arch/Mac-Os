@@ -60,8 +60,6 @@ function buildPhotos(b,w,arg){
 
   /* ---------- Trình xem + chỉnh sửa ảnh ---------- */
   const PHA=()=>window.AndroidLauncher||null, RED='#ff3b30';
-  /* Mở app Ảnh: quét lại bộ nhớ để ảnh chụp màn hình / ảnh từ app khác hiện đủ (tối đa 15 giây một lần) */
-  try{const A0=PHA(); if(A0&&A0.rescanMedia&&Date.now()-(window.__rsAt||0)>15000){window.__rsAt=Date.now();A0.rescanMedia()}}catch(e){}
   let ED=null;
   const TOOLS=[
     ['crop','Cắt','Cắt ảnh','<path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/>'],

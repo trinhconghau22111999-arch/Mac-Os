@@ -325,6 +325,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        stopMediaWatch();
         reaper.removeCallbacks(reapTask); reaper.removeCallbacks(idleTask); reaper.removeCallbacks(appsRefresh);
         try { unregisterReceiver(pkgRx); } catch (Exception e) { }
         try { unregisterReceiver(media); } catch (Exception e) { }
@@ -558,16 +559,67 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         inFg = true; lastTouchAt = android.os.SystemClock.elapsedRealtime();
-        imeUp = false; hideBars(); prefetchApps(); scanNewMedia();
+        imeUp = false; hideBars(); prefetchApps(); scanNewMedia(); startMediaWatch();
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) { try { if (e.getValue().getVisibility() == View.VISIBLE) { e.getValue().onResume(); extHiddenAt.remove(e.getKey()); } } catch (Exception x) { } }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
     }
 
     /* Đăng ký vào thư viện (MediaStore) các ảnh/video/nhạc mới nằm trong bộ nhớ nhưng chưa được hệ thống quét (vd. ảnh chụp màn hình của trình duyệt trên Android 9 trở xuống), rồi nạp lại danh sách */
-    private volatile boolean scanBusy = false; private long scanAt = 0;
+    private volatile boolean scanBusy = false, scanAgain = false;
     private static final java.util.HashSet<String> MEDIA_EXT = new java.util.HashSet<String>(java.util.Arrays.asList(
         "jpg","jpeg","png","gif","webp","bmp","heic","heif","mp4","mkv","webm","3gp","mov","avi","m4v","mp3","m4a","aac","wav","ogg","flac","opus"));
+
+    /* ===== Theo dõi ảnh / video / tệp mới: có tệp mới là quét một lần và nạp lại danh sách ===== */
+    private boolean mediaWatching = false;
+    private final java.util.ArrayList<android.os.FileObserver> fileObs = new java.util.ArrayList<android.os.FileObserver>();
+    private final Runnable doScan = new Runnable() { public void run() { scanMedia(true); } };
+    private final Runnable doReload = new Runnable() { public void run() { try { web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null); } catch (Exception e) { } } };
+    private final android.database.ContentObserver mediaObs = new android.database.ContentObserver(new android.os.Handler(android.os.Looper.getMainLooper())) {
+        @Override public void onChange(boolean selfChange) {
+            /* Thư viện vừa thay đổi (ảnh mới, quét xong...): chỉ nạp lại danh sách, không quét thêm để tránh lặp */
+            reaper.removeCallbacks(doReload); reaper.postDelayed(doReload, 800);
+        }
+    };
+    private void startMediaWatch() {
+        if (mediaWatching) return;
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+            && !(Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager())
+            && !(Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED)) return;
+        mediaWatching = true;
+        try {
+            getContentResolver().registerContentObserver(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true, mediaObs);
+            getContentResolver().registerContentObserver(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, mediaObs);
+            getContentResolver().registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, mediaObs);
+            getContentResolver().registerContentObserver(MediaStore.Files.getContentUri("external"), true, mediaObs);
+        } catch (Exception e) { }
+        /* Tệp mới do app khác chép/tải/chụp vào mà hệ thống chưa kịp quét: theo dõi các thư mục chính */
+        String[] subs = {"", "DCIM", "DCIM/Camera", "DCIM/Screenshots", "Pictures", "Pictures/Screenshots", "Pictures/Webandr", "Pictures/DesktopMini",
+            "Download", "Movies", "Music", "Documents", "Pictures/Zalo", "Pictures/Messenger", "Pictures/Facebook"};
+        for (File r : storageRoots()) for (String sub : subs) {
+            File d = sub.isEmpty() ? r : new File(r, sub);
+            if (!d.isDirectory()) continue;
+            try {
+                android.os.FileObserver fo = new android.os.FileObserver(d.getAbsolutePath(),
+                    android.os.FileObserver.CREATE | android.os.FileObserver.MOVED_TO | android.os.FileObserver.CLOSE_WRITE) {
+                    @Override public void onEvent(int ev, String path) {
+                        if (path == null || path.startsWith(".")) return;
+                        /* chờ tệp ghi xong rồi mới quét (gộp nhiều sự kiện liên tiếp thành một lần) */
+                        reaper.removeCallbacks(doScan); reaper.postDelayed(doScan, 1500);
+                    }
+                };
+                fo.startWatching(); fileObs.add(fo);
+            } catch (Throwable e) { }
+        }
+    }
+    private void stopMediaWatch() {
+        if (!mediaWatching) return;
+        mediaWatching = false;
+        try { getContentResolver().unregisterContentObserver(mediaObs); } catch (Exception e) { }
+        for (android.os.FileObserver fo : fileObs) { try { fo.stopWatching(); } catch (Exception e) { } }
+        fileObs.clear();
+        reaper.removeCallbacks(doScan); reaper.removeCallbacks(doReload);
+    }
     private void scanNewMedia() { scanMedia(false); }
     /** Gốc các ổ lưu trữ: bộ nhớ trong + thẻ nhớ ngoài (nếu có). */
     private java.util.ArrayList<File> storageRoots() {
@@ -596,12 +648,11 @@ public class MainActivity extends Activity {
     }
     /* Tìm mọi tệp ảnh/video/nhạc nằm trong bộ nhớ nhưng thư viện chưa biết (so với MediaStore, không dựa vào ngày sửa tệp) rồi nhờ hệ thống quét; xong thì nạp lại danh sách. */
     private void scanMedia(final boolean force) {
-        long now = System.currentTimeMillis();
-        if (scanBusy || (!force && now - scanAt < 20000)) return;
+        if (scanBusy) { scanAgain = true; return; }
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
             && !(Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager())
             && !(Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED)) return;
-        scanBusy = true; scanAt = now;
+        scanBusy = true; scanAgain = false;
         new Thread(new Runnable() { public void run() {
             boolean started = false;
             try {
@@ -622,11 +673,13 @@ public class MainActivity extends Activity {
                         boolean done; synchronized (left) { done = --left[0] <= 0; }
                         if (done) {
                             scanBusy = false;
-                            runOnUiThread(new Runnable() { public void run() { try { web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null); } catch (Exception e) { } } });
+                            runOnUiThread(new Runnable() { public void run() { if (scanAgain) scanMedia(true); try { web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null); } catch (Exception e) { } } });
                         }
                     }
                 });
-            } catch (Throwable e) { started = false; } finally { if (!started) scanBusy = false; }
+            } catch (Throwable e) { started = false; } finally {
+                if (!started) { scanBusy = false; if (scanAgain) runOnUiThread(new Runnable() { public void run() { scanMedia(true); } }); }
+            }
         } }).start();
     }
     private void walkMedia(File d, java.util.HashSet<String> known, java.util.ArrayList<File> out, int depth) {
