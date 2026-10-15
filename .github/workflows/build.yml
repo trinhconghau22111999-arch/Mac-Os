@@ -29,7 +29,15 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
             echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
           fi
-      - run: gradle assembleRelease --no-daemon -Pabis="${{ github.event.inputs.abis || 'x86' }}"
+      - name: Build APK
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle assembleRelease --no-daemon -Pabis="${{ github.event.inputs.abis || 'x86' }}" 2>&1 | tee build.log || {
+            # Đưa lỗi biên dịch lên phần Annotations của lần chạy để đọc nhanh, không cần mở log dài
+            grep -E "^e: |error:|What went wrong|Execution failed|Could not " -A2 build.log | head -60 | while IFS= read -r l; do echo "::error::${l}"; done
+            exit 1
+          }
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
