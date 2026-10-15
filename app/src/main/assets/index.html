@@ -3884,6 +3884,7 @@ if(window.AndroidLauncher){(function(){
       const d=JSON.stringify(DOCK.filter(x=>x!=='|'&&ICONS[x]).map(id=>({id:id,name:appTitle(id),bg:ICONS[id].bg,g:ICONS[id].g})));
       if(d!==_dd){_dd=d;A.setDockData(d)}
       A.setDockOverlay(!!pref('dockFloat',true));
+      if(A.setBarLock)A.setBarLock(!!pref('barLock',true));
     }catch(e){}
   }
   bus.on('ui',syncDockFloat); syncDockFloat();

@@ -41,6 +41,18 @@ public class LockService extends AccessibilityService {
     private WindowManager.LayoutParams btnLp;
     private boolean launcherFront, enabled = true;
     private boolean policyApplied;
+    /* Khóa thanh hệ thống: tự đóng thanh thông báo (kéo từ trên xuống) và màn hình đa nhiệm ngay khi chúng vừa mở */
+    private volatile boolean barLock = true, recentsOpen = false;
+    private long lastClose = 0;
+    private final Runnable recheckRecents = new Runnable() { public void run() {
+        /* Nếu sau một nhịp ngắn đa nhiệm vẫn còn mở (máy không nhận lệnh đóng) thì bấm Back một lần để thoát */
+        if (recentsOpen && barLock) { recentsOpen = false; try { performGlobalAction(GLOBAL_ACTION_BACK); } catch (Exception e) { } }
+    } };
+    public static void saveBarLock(Context c, boolean on) {
+        c.getSharedPreferences(PK, 0).edit().putBoolean("barlock", on).apply();
+        final LockService s = inst; if (s != null) s.barLock = on;
+    }
+    public static boolean isBarLock(Context c) { return c.getSharedPreferences(PK, 0).getBoolean("barlock", true); }
 
     /** Giữ lại để MainActivity gọi (không còn dùng dữ liệu Dock). */
     public static void saveData(Context c, String json) { }
@@ -52,6 +64,7 @@ public class LockService extends AccessibilityService {
 
     @Override protected void onServiceConnected() {
         inst = this; wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        barLock = isBarLock(this);
         if (!isEnabled(this)) setImmersivePolicy(false);
         apply();
     }
@@ -64,15 +77,41 @@ public class LockService extends AccessibilityService {
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
         if (e == null || e.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || e.getPackageName() == null) return;
         String pk = e.getPackageName().toString();
+        if (pk.equals("com.android.systemui")) {
+            /* Làm ngay trong lúc nhận sự kiện (không đẩy sang luồng khác) để đóng nhanh nhất có thể */
+            if (barLock) blockSystemUi(e.getClassName());
+            return; /* thanh thông báo: không đổi app đang mở */
+        }
+        recentsOpen = false; /* đã có cửa sổ khác lên trước: đa nhiệm đã đóng */
         if (pk.equals(getPackageName())) {
             CharSequence c = e.getClassName();
             if (c != null && c.toString().endsWith(".MainActivity")) setLauncherFront(true);
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
-        if (pk.equals("com.android.systemui") || imePackages().contains(pk)) return; /* thanh thông báo, bàn phím: không đổi app đang mở */
+        if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
         setLauncherFront(false);
     }
     @Override public void onInterrupt() { }
+
+    /** Thanh thông báo / đa nhiệm của SystemUI vừa mở: đóng lại ngay. Giữ nguyên âm lượng, hộp thoại, chụp màn hình, khóa màn hình. */
+    private void blockSystemUi(CharSequence cls) {
+        String lc = cls == null ? "" : cls.toString().toLowerCase(java.util.Locale.ROOT);
+        if (lc.contains("volume") || lc.contains("toast") || lc.contains("keyguard") || lc.contains("dialog")
+            || lc.contains("screenshot") || lc.contains("usb") || lc.contains("cast")) return;
+        boolean recents = lc.contains("recents");
+        if (recents) recentsOpen = true;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - lastClose < 120) return; /* gộp các sự kiện dồn dập khi thanh đang thu lại */
+        lastClose = now;
+        if (Build.VERSION.SDK_INT < 31) {
+            /* Android ≤ 11: lệnh này làm SystemUI thu thanh thông báo và đóng đa nhiệm ngay, nhanh hơn giả lập phím Back */
+            try { sendBroadcast(new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)); }
+            catch (Exception ex) { try { performGlobalAction(GLOBAL_ACTION_BACK); } catch (Exception e2) { } }
+        } else {
+            try { performGlobalAction(GLOBAL_ACTION_BACK); } catch (Exception ex) { }
+        }
+        if (recents) { h.removeCallbacks(recheckRecents); h.postDelayed(recheckRecents, 250); }
+    }
 
     private Set<String> imePackages() {
         Set<String> s = new HashSet<String>();

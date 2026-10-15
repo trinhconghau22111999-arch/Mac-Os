@@ -2014,6 +2014,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void setDockData(String json) { LockService.saveData(MainActivity.this, json); }
         @JavascriptInterface public void setDockOverlay(boolean on) { LockService.saveEnabled(MainActivity.this, on); }
         @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(MainActivity.this); }
+        @JavascriptInterface public void setBarLock(boolean on) { LockService.saveBarLock(MainActivity.this, on); }
+        @JavascriptInterface public boolean isBarLock() { return LockService.isBarLock(MainActivity.this); }
         @JavascriptInterface public boolean isHomeDefault() { return isDefaultHome(); }
         @JavascriptInterface public String getStatus() {
             try {
