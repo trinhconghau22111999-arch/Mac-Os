@@ -216,6 +216,7 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         inst = this;
+        new Thread(new Runnable() { public void run() { try { TrashStore.purgeOld(MainActivity.this); } catch (Exception e) { } } }).start();   /* Thùng rác: dọn mục quá 7 ngày */
         assetLoader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
             .build();
@@ -1919,7 +1920,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public int deletePhoto(long id) {
             invalidatePhotos();
             final Uri u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-            try { return getContentResolver().delete(u, null, null) > 0 ? 1 : 0; }
+            final String tid = TrashStore.trashUri(MainActivity.this, u);   /* chép vào Thùng rác trước khi xóa */
+            try { int dr = getContentResolver().delete(u, null, null) > 0 ? 1 : 0; if (dr == 0) TrashStore.drop(MainActivity.this, tid); return dr; }
             catch (final SecurityException se) {
                 if (Build.VERSION.SDK_INT >= 30) {
                     runOnUiThread(new Runnable() { public void run() {
@@ -1949,7 +1951,8 @@ public class MainActivity extends Activity {
                 t = t.trim(); if (t.length() == 0) continue;
                 long id; try { id = Long.parseLong(t); } catch (Exception e) { continue; }
                 Uri u = ContentUris.withAppendedId(mediaUri(kind), id);
-                try { if (getContentResolver().delete(u, null, null) <= 0) fail++; }
+                String tid = TrashStore.trashUri(MainActivity.this, u);   /* chép vào Thùng rác trước khi xóa */
+                try { if (getContentResolver().delete(u, null, null) <= 0) { fail++; TrashStore.drop(MainActivity.this, tid); } }
                 catch (SecurityException se) { pend.add(u); }
                 catch (Exception e) { fail++; }
             }
@@ -2490,6 +2493,43 @@ public class MainActivity extends Activity {
                 } catch (Exception e) { }
                 return "";
             } catch (Exception e) { return "Lỗi khi chuyển tệp"; }
+        }
+        /* ---- Thùng rác thật (giữ 7 ngày) ---- */
+        @JavascriptInterface public boolean trashFile(String path) {
+            try {
+                File f = safeFile(path); if (f == null) return false;
+                String id = TrashStore.trashFile(MainActivity.this, f);
+                if (id == null) return false;
+                try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); } catch (Exception e) { }
+                return true;
+            } catch (Exception e) { return false; }
+        }
+        @JavascriptInterface public String trashList() { return TrashStore.list(MainActivity.this); }
+        @JavascriptInterface public String trashRestore(String id) { return TrashStore.restore(MainActivity.this, id); }
+        @JavascriptInterface public int trashPurge(String ids) { return TrashStore.purge(MainActivity.this, ids); }
+        @JavascriptInterface public int trashPurgeOld() { return TrashStore.purgeOld(MainActivity.this); }
+        /** Chép tệp / thư mục vào thư mục khác (dùng cho Chép / Cắt - Dán). Trả "" nếu xong, ngược lại là lý do lỗi. */
+        @JavascriptInterface public String copyFile(String src, String destDir, boolean move) {
+            try {
+                File f = safeFile(src), d = safeFile(destDir);
+                if (f == null || d == null) return "Đường dẫn không hợp lệ";
+                if (!f.exists()) return "Không tìm thấy tệp nguồn";
+                if (!d.isDirectory()) return "Thư mục đích không hợp lệ";
+                if (f.isDirectory()) { String a1 = f.getCanonicalPath() + "/", b1 = d.getCanonicalPath() + "/"; if (b1.startsWith(a1)) return "Không thể chép thư mục vào chính nó"; }
+                File t = new File(d, f.getName());
+                if (t.exists()) {
+                    if (move && t.getCanonicalPath().equals(f.getCanonicalPath())) return "";
+                    String n = f.getName(), base = n, ext = ""; int dot = n.lastIndexOf('.');
+                    if (dot > 0 && f.isFile()) { base = n.substring(0, dot); ext = n.substring(dot); }
+                    for (int i = 1; i < 1000 && t.exists(); i++) t = new File(d, base + " (" + (i + 1) + ")" + ext);
+                }
+                boolean ok;
+                if (move) { ok = f.renameTo(t); if (!ok) { ok = TrashStore.copyRec(f, t); if (ok) TrashStore.delRec(f); else TrashStore.delRec(t); } }
+                else ok = TrashStore.copyRec(f, t);
+                if (!ok) return move ? "Không chuyển được" : "Không chép được";
+                try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t))); if (move) sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); } catch (Exception e) { }
+                return "";
+            } catch (Exception e) { return "Lỗi khi chép tệp"; }
         }
         @JavascriptInterface public boolean deleteFile(String path) {
             try {

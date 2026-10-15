@@ -6622,6 +6622,7 @@ applyZoom();
   // Delete / Backspace: xóa nội dung các ô đang chọn (không phá cấu trúc bảng)
   doc.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z') && tblDirty && tblUndo.length) { e.preventDefault(); undoTbl(); return; }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'a' || e.key === 'A') && cells.length) clear();   // Ctrl+A: bỏ chọn ô, để trình duyệt chọn tất cả chữ trong bài
     if (!cells.length) return;
     if (e.key === 'Escape') { clear(); return; }
     if (e.key === 'Backspace' && kind) { e.preventDefault(); removeSelection(); return; }   // xóa hẳn hàng / cột đang chọn

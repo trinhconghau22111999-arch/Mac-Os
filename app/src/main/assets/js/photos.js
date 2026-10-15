@@ -247,7 +247,7 @@ function buildPhotos(b,w,arg){
   }
   function askDelete(){
     const M=lkModal('Xóa ảnh này?');
-    M.el.innerHTML='<div style="font-size:13px;opacity:.8;margin-bottom:12px">Ảnh sẽ bị xóa khỏi máy và không hoàn tác được.</div><button type="button" class="btn" data-x style="background:#ff3b30;color:#fff;padding:8px 26px">Xóa ảnh</button>';
+    M.el.innerHTML='<div style="font-size:13px;opacity:.8;margin-bottom:12px">Ảnh sẽ vào Thùng rác và tự xóa hẳn sau 7 ngày.</div><button type="button" class="btn" data-x style="background:#ff3b30;color:#fff;padding:8px 26px">Xóa ảnh</button>';
     $('[data-x]',M.el).addEventListener('click',()=>{M.close();doDelete()});
   }
   function doDelete(){
@@ -256,7 +256,7 @@ function buildPhotos(b,w,arg){
       if(reload&&window.nativeReload)window.nativeReload(); else PH.splice(k,1);
       fav=fav.filter(x=>x!==k).map(x=>x>k?x-1:x); jset('dm-pfav',fav);
       view=PH.length?Math.min(k,PH.length-1):-1; render();
-      notify({app:'Ảnh',title:'Đã xóa ảnh',body:'',icon:'photos'});
+      notify({app:'Ảnh',title:'Đã chuyển ảnh vào Thùng rác',body:'',icon:'photos'});
     };
     if(p.pid&&A&&A.deletePhoto){
       let r=0; try{r=A.deletePhoto(+p.pid)}catch(x){}
