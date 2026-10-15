@@ -6344,6 +6344,46 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') { closeColorPalette(); closeGenericDialog(); closeAllMenus(); }
 });
 
+
+/* Bấm vào khoảng trống BÊN PHẢI một dòng => chọn nguyên dòng đó (tiện cắt / xóa); bấm ngay sau chữ vẫn đặt con trỏ như thường */
+(function () {
+  var BLOCK = /^(P|DIV|LI|H[1-6]|BLOCKQUOTE|PRE|TD|TH)$/;
+  function blockOf(n) {
+    while (n && n !== doc) { if (n.nodeType === 1 && BLOCK.test(n.nodeName)) return n; n = n.parentNode; }
+    return doc;
+  }
+  function caretRight() {
+    var s = window.getSelection(); if (!s.rangeCount) return null;
+    var r = s.getRangeAt(0).cloneRange(); r.collapse(false);
+    var rs = r.getClientRects(), rc = rs.length ? rs[rs.length - 1] : r.getBoundingClientRect();
+    if (!rc || (!rc.width && !rc.height && !rc.top && !rc.left)) return null;
+    return rc.right;
+  }
+  doc.addEventListener('click', function (e) {
+    if (e.detail !== 1 || e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target; if (!t || !t.closest) return;
+    if (t.closest('img,table,a,button,input,textarea,select,.shape-el,.textbox-el,.toc-block,.page-break-marker,[contenteditable="false"]')) return;
+    var cx = e.clientX;
+    setTimeout(function () {
+      var s = window.getSelection();
+      if (!s.rangeCount || !s.isCollapsed || !s.modify || !doc.contains(s.anchorNode)) return;
+      var orig = s.getRangeAt(0).cloneRange();
+      var restore = function () { s.removeAllRanges(); s.addRange(orig); };
+      s.modify('move', 'forward', 'lineboundary');          // về cuối dòng nhìn thấy
+      var endX = caretRight();
+      if (endX === null || cx <= endX + 16) { restore(); return; }   // bấm trong chữ / ngay sau chữ: giữ nguyên
+      s.modify('move', 'backward', 'lineboundary');          // đầu dòng
+      var startBlock = blockOf(s.anchorNode);
+      s.modify('extend', 'forward', 'lineboundary');         // chọn tới cuối dòng
+      if (s.isCollapsed) { restore(); return; }              // dòng trống: không chọn gì
+      // dòng kết thúc đoạn văn thì lấy luôn dấu xuống dòng để xóa không để lại dòng trống
+      var endBlock = blockOf(s.focusNode);
+      var before = s.toString().length;
+      s.modify('extend', 'forward', 'character');
+      if (s.toString().length !== before && blockOf(s.focusNode) === endBlock) s.modify('extend', 'backward', 'character');
+    }, 0);
+  });
+})();
 </script>
 </body>
 </html>
