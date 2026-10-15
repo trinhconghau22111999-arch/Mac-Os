@@ -3,7 +3,7 @@
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
--keep class com.desktopmini.launcher.MainActivity$Bridge { *; }
+-keep class com.desktopmini.launcher.LauncherBridge { *; }
 -keep class com.desktopmini.launcher.MainActivity$WebVoice { *; }
 -keep class com.desktopmini.launcher.WordHost$Bridge { *; }
 -keep class com.desktopmini.launcher.WebBrowserActivity$* { *; }

@@ -76,16 +76,16 @@ import java.util.List;
 
 public class MainActivity extends Activity {
     private static MainActivity inst;
-    private FrameLayout root;
+    FrameLayout root;
     private boolean askingRuntime = false;
-    private WebView web;
-    private final HashMap<String, WebView> ext = new HashMap<String, WebView>();
+    WebView web;
+    final HashMap<String, WebView> ext = new HashMap<String, WebView>();
     /* Zoom (2 ngón / Ctrl+lăn chuột) + nhớ mức zoom theo từng ứng dụng web nhúng */
-    private final HashMap<String, ZoomHelper> zooms = new HashMap<String, ZoomHelper>();
+    final HashMap<String, ZoomHelper> zooms = new HashMap<String, ZoomHelper>();
     /* Tự đóng hẳn trang web nhúng đã ẩn lâu để giải phóng RAM, như điện thoại đóng ứng dụng nền.
        Mở lại cửa sổ đó thì trang được tạo mới và tải lại (extShow -> extGet). Đổi EXT_IDLE_MS để chỉnh thời gian chờ. */
     private static final long EXT_IDLE_MS = 10 * 60 * 1000L;
-    private final HashMap<String, Long> extHiddenAt = new HashMap<String, Long>();
+    final HashMap<String, Long> extHiddenAt = new HashMap<String, Long>();
     private final android.os.Handler reaper = new android.os.Handler(android.os.Looper.getMainLooper());
     /* Cài/gỡ/cập nhật app: dựng lại danh sách app cho Launchpad và Tìm kiếm (gộp các sự kiện bắn liền nhau, chờ 2 giây) */
     private final Runnable appsRefresh = new Runnable() { public void run() { appsAt = 0; prefetchApps(); } };
@@ -93,9 +93,9 @@ public class MainActivity extends Activity {
         @Override public void onReceive(Context c, Intent i) { reaper.removeCallbacks(appsRefresh); reaper.postDelayed(appsRefresh, 2000); }
     };
     /* Độ sáng thấp nhất khi không dùng: không chạm/gõ/rê chuột sau idleDimMs thì hạ độ sáng cửa sổ xuống mức tối nhất, chạm lại thì sáng như cũ */
-    private volatile boolean idleDimOn = false;
-    private volatile long idleDimMs = 5 * 60000L;
-    private volatile long lastTouchAt = android.os.SystemClock.elapsedRealtime();
+    volatile boolean idleDimOn = false;
+    volatile long idleDimMs = 5 * 60000L;
+    volatile long lastTouchAt = android.os.SystemClock.elapsedRealtime();
     private boolean idleDimmed = false, inFg = false;
     private float idleDimPrev = -1f;
     private final Runnable idleTask = new Runnable() { public void run() { checkIdleDim(); reaper.postDelayed(this, 5000); } };
@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
         lastTouchAt = android.os.SystemClock.elapsedRealtime();
         if (idleDimmed) undimIdle();
     }
-    private void undimIdle() {
+    void undimIdle() {
         if (!idleDimmed) return;
         idleDimmed = false;
         try { WindowManager.LayoutParams lp = getWindow().getAttributes(); lp.screenBrightness = idleDimPrev; getWindow().setAttributes(lp); } catch (Exception e) { }
@@ -156,14 +156,14 @@ public class MainActivity extends Activity {
             if (web != null) web.evaluateJavascript("window.nativeScreenOff&&window.nativeScreenOff()", null);
         }
     };
-    private android.media.Ringtone previewTone;
+    android.media.Ringtone previewTone;
     /* ---- Bluetooth: thiết bị tìm thấy xung quanh + proxy hồ sơ để biết thiết bị nào đang kết nối ---- */
     /** "Duyệt web": trình duyệt Webandr đầy đủ chạy nhúng trong cửa sổ (tạo khi mở lần đầu). */
-    private BrowserHost browserHost;
-    private final java.util.LinkedHashMap<String, JSONObject> btFound = new java.util.LinkedHashMap<String, JSONObject>();
-    private final HashMap<Integer, BluetoothProfile> btProx = new HashMap<Integer, BluetoothProfile>();
-    private boolean btRecv = false, btProxReq = false;
-    private final BroadcastReceiver btRx = new BroadcastReceiver() {
+    BrowserHost browserHost;
+    final java.util.LinkedHashMap<String, JSONObject> btFound = new java.util.LinkedHashMap<String, JSONObject>();
+    final HashMap<Integer, BluetoothProfile> btProx = new HashMap<Integer, BluetoothProfile>();
+    boolean btRecv = false, btProxReq = false;
+    final BroadcastReceiver btRx = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
             try {
                 String act = i.getAction();
@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) { }
         }
     };
-    private boolean btDiscovering = false;
+    boolean btDiscovering = false;
 
 
     /** Origin ảo của trang chính; các tệp trong assets/ được phục vụ qua WebViewAssetLoader. */
@@ -270,7 +270,7 @@ public class MainActivity extends Activity {
                 } });
             }
         });
-        web.addJavascriptInterface(new Bridge(), "AndroidLauncher");
+        web.addJavascriptInterface(new LauncherBridge(this), "AndroidLauncher");
         purgeOldFileOrigin();
         web.loadUrl(APP_ORIGIN + "index.html");
         prefetchApps();
@@ -306,7 +306,7 @@ public class MainActivity extends Activity {
     }
 
     /** Ghi lại thời điểm trang bắt đầu bị ẩn (chỉ ghi lần đầu, không đặt lại khi ẩn tiếp). */
-    private void markExtHidden(String key) {
+    void markExtHidden(String key) {
         if (!extHiddenAt.containsKey(key)) extHiddenAt.put(key, android.os.SystemClock.elapsedRealtime());
     }
 
@@ -424,23 +424,23 @@ public class MainActivity extends Activity {
         String v = Settings.Secure.getString(getContentResolver(), setting);
         return v != null && v.contains(getPackageName());
     }
-    private boolean notifAccess() { return listed("enabled_notification_listeners"); }
-    private boolean a11yOn() { return listed(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES); }
-    private Uri mediaUri(String kind) {
+    boolean notifAccess() { return listed("enabled_notification_listeners"); }
+    boolean a11yOn() { return listed(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES); }
+    Uri mediaUri(String kind) {
         if ("vid".equals(kind)) return MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
         if ("aud".equals(kind)) return MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         return MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
     }
 
     /** Desktop Mini có đang là màn hình chính mặc định của Android không. */
-    private boolean isDefaultHome() {
+    boolean isDefaultHome() {
         try {
             ResolveInfo r = getPackageManager().resolveActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY);
             return r != null && r.activityInfo != null && getPackageName().equals(r.activityInfo.packageName);
         } catch (Exception e) { return false; }
     }
 
-    private boolean filesOk() {
+    boolean filesOk() {
         if (Build.VERSION.SDK_INT >= 30) return Environment.isExternalStorageManager();
         return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
@@ -592,9 +592,9 @@ public class MainActivity extends Activity {
         "jpg","jpeg","png","gif","webp","bmp","heic","heif","mp4","mkv","webm","3gp","mov","avi","m4v","mp3","m4a","aac","wav","ogg","flac","opus"));
 
     /* ===== Theo dõi ảnh / video / tệp mới: có tệp mới là quét một lần và nạp lại danh sách ===== */
-    private boolean mediaWatching = false;
+    boolean mediaWatching = false;
     private final java.util.ArrayList<android.os.FileObserver> fileObs = new java.util.ArrayList<android.os.FileObserver>();
-    private final Runnable doScan = new Runnable() { public void run() { scanMedia(true); } };
+    final Runnable doScan = new Runnable() { public void run() { scanMedia(true); } };
     private final Runnable doReload = new Runnable() { public void run() { try { web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null); } catch (Exception e) { } } };
     private final android.database.ContentObserver mediaObs = new android.database.ContentObserver(new android.os.Handler(android.os.Looper.getMainLooper())) {
         @Override public void onChange(boolean selfChange) {
@@ -643,7 +643,7 @@ public class MainActivity extends Activity {
         reaper.removeCallbacks(doScan); reaper.removeCallbacks(doReload);
     }
     /* Bộ nhớ đệm ảnh nhỏ: RAM (tối đa ~10 MB) + ổ đĩa (cacheDir/thumbs, tự dọn khi quá nhiều) */
-    private final android.util.LruCache<String, String> thumbMem = new android.util.LruCache<String, String>(10 * 1024 * 1024) {
+    final android.util.LruCache<String, String> thumbMem = new android.util.LruCache<String, String>(10 * 1024 * 1024) {
         @Override protected int sizeOf(String k, String v) { return v.length() * 2; }
     };
     private void trimThumbs() {
@@ -654,7 +654,7 @@ public class MainActivity extends Activity {
             for (int i = 0; i < fs.length - 3000; i++) fs[i].delete();
         } catch (Exception e) { }
     }
-    private void scanNewMedia() { scanMedia(false); }
+    void scanNewMedia() { scanMedia(false); }
     /** Gốc các ổ lưu trữ: bộ nhớ trong + thẻ nhớ ngoài (nếu có). */
     private java.util.ArrayList<File> storageRoots() {
         java.util.ArrayList<File> roots = new java.util.ArrayList<File>();
@@ -681,8 +681,8 @@ public class MainActivity extends Activity {
         return known;
     }
     /* Tìm mọi tệp ảnh/video/nhạc nằm trong bộ nhớ nhưng thư viện chưa biết (so với MediaStore, không dựa vào ngày sửa tệp) rồi nhờ hệ thống quét; xong thì nạp lại danh sách. */
-    private volatile String photosCache = null; private volatile int photosGen = 0;
-    private void invalidatePhotos() { photosGen++; photosCache = null; }
+    volatile String photosCache = null; volatile int photosGen = 0;
+    void invalidatePhotos() { photosGen++; photosCache = null; }
     private final java.util.HashSet<String> triedMedia = new java.util.HashSet<String>();
     private static final String[] PRIO_DIRS = {"DCIM", "Pictures", "Download", "Movies", "Music", "Documents"};
     private void reloadUi() {
@@ -710,7 +710,7 @@ public class MainActivity extends Activity {
     }
     /* Tìm mọi tệp ảnh/video/nhạc nằm trong bộ nhớ nhưng thư viện chưa biết (so với MediaStore, không dựa vào ngày sửa tệp) rồi nhờ hệ thống quét.
        Hai lượt: thư mục ảnh/video chính quét trước và hiện ngay, phần còn lại của bộ nhớ quét sau. */
-    private void scanMedia(final boolean force) {
+    void scanMedia(final boolean force) {
         if (scanBusy) { scanAgain = true; return; }
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
             && !(Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager())
@@ -895,7 +895,7 @@ public class MainActivity extends Activity {
     }
 
     /* ================= Tìm tệp trong máy (thanh tìm kiếm vuông) ================= */
-    private JSONArray findFiles(String q) {
+    JSONArray findFiles(String q) {
         JSONArray arr = new JSONArray();
         q = q == null ? "" : q.trim();
         if (q.length() < 2) return arr;
@@ -964,7 +964,7 @@ public class MainActivity extends Activity {
         try { startActivity(i); } catch (Exception e) { }
     }
 
-    private void go(Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { startActivity(i); } catch (Exception e) { } }
+    void go(Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { startActivity(i); } catch (Exception e) { } }
 
     /* ================= Trình duyệt nhúng trong cửa sổ: YouTube, Duyệt web, Gmail, Drive, Zalo, Facebook ================= */
     private static final String[] AD_HOSTS = {
@@ -973,13 +973,13 @@ public class MainActivity extends Activity {
         "propellerads.com", "adsterra.com", "exoclick.com", "pubmatic.com", "rubiconproject.com",
         "criteo.com", "scorecardresearch.com", "moatads.com", "amazon-adsystem.com"
     };
-    private WordHost wordHost;
+    WordHost wordHost;
     private static final int REQ_WORD = 1002;
     private static final int REQ_EXTFILE = 1003;
     private static final int REQ_VOICE = 1004;
     private static final int PERM_VOICE = 78;
     /** Cửa sổ web nhúng (khóa trong ext) đang chờ kết quả giọng nói; null = thanh tìm kiếm Google trên Desktop. */
-    private String voiceKey = null;
+    String voiceKey = null;
     private android.webkit.ValueCallback<Uri[]> extFileCb;
     private static final String[] MS_HOSTS = {
         "office.com", "office365.com", "microsoft365.com", "microsoft.com", "microsoftonline.com", "microsoftonline-p.com",
@@ -1030,7 +1030,7 @@ public class MainActivity extends Activity {
             web.evaluateJavascript("window.nativeExtNav&&window.nativeExtNav(" + JSONObject.quote(key) + "," + o.toString() + ")", null);
         } catch (Exception e) { }
     }
-    private void extHideFull() {
+    void extHideFull() {
         if (extFullView == null) return;
         try { root.removeView(extFullView); } catch (Exception e) { }
         extFullView = null;
@@ -1060,15 +1060,15 @@ public class MainActivity extends Activity {
     /* ================= Ổ mềm nhúng trong cửa sổ (Android < 9): thấy Dock, các hồ sơ đổi cookie như bản Legacy ================= */
     private static final int REQ_OMEM_PICK = 1005;
     /** Hồ sơ đang mở trong cửa sổ Ổ mềm: "anh" / "video" / "tep" ("" = chưa mở). */
-    private String omemProfile = "";
+    String omemProfile = "";
     /** Tệp đã chọn bằng nút "Tải lên", chờ Drive gọi hộp chọn tệp để giao vào. */
-    private Uri[] omemPending;
-    private boolean omemReady, omemUploadStarted;
+    Uri[] omemPending;
+    boolean omemReady, omemUploadStarted;
 
     private void omemToast(String m) { android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show(); }
 
     /** Mở / chuyển hồ sơ: lưu cookie hồ sơ cũ, nạp cookie hồ sơ mới rồi tải lại Drive. PHẢI chạy trên luồng giao diện. */
-    private void omemSwitch(String profile, boolean upload) {
+    void omemSwitch(String profile, boolean upload) {
         if (!com.desktopmini.launcher.drive3.DriveEmbed.valid(profile)) return;
         WebView old = ext.get("omem");
         if (old != null && profile.equals(omemProfile)) { if (upload) omemPick(profile); return; }
@@ -1119,7 +1119,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private BrowserHost browserGet(String url) {
+    BrowserHost browserGet(String url) {
         if (browserHost == null) {
             browserHost = new BrowserHost(this, new kotlin.jvm.functions.Function0<kotlin.Unit>() {
                 @Override public kotlin.Unit invoke() {
@@ -1134,9 +1134,9 @@ public class MainActivity extends Activity {
         }
         return browserHost;
     }
-    private void browserHide() { if (browserHost != null) { try { browserHost.getRoot().setVisibility(View.GONE); } catch (Exception e) { } } }
+    void browserHide() { if (browserHost != null) { try { browserHost.getRoot().setVisibility(View.GONE); } catch (Exception e) { } } }
 
-    private WebView extGet(final String key, String url) {
+    WebView extGet(final String key, String url) {
         WebView v = ext.get(key);
         if (v == null && !"word".equals(key)) capExt(key);
         if (v == null && "word".equals(key)) {
@@ -1323,13 +1323,13 @@ public class MainActivity extends Activity {
     private static final String GK_HOME = "https://www.google.com/";
     private static final String GK_SEARCH = "https://www.google.com/search?q=";
     private static org.mozilla.geckoview.GeckoRuntime gkRuntime;
-    private org.mozilla.geckoview.GeckoSession gkSession;
-    private org.mozilla.geckoview.GeckoView gkView;
+    org.mozilla.geckoview.GeckoSession gkSession;
+    org.mozilla.geckoview.GeckoView gkView;
     private boolean gkBackOk, gkFwdOk;
     private String gkUrl = "";
     private int gkProg = 0;
 
-    private void gkPush() {
+    void gkPush() {
         if (web == null) return;
         try {
             JSONObject o = new JSONObject();
@@ -1337,7 +1337,7 @@ public class MainActivity extends Activity {
             web.evaluateJavascript("window.nativeGk&&window.nativeGk(" + o.toString() + ")", null);
         } catch (Exception e) { }
     }
-    private void gkToast(final String msg) {
+    void gkToast(final String msg) {
         runOnUiThread(new Runnable() { public void run() { android.widget.Toast.makeText(MainActivity.this, msg, android.widget.Toast.LENGTH_LONG).show(); } });
     }
     private String gkHeader(org.mozilla.geckoview.WebResponse r, String key) {
@@ -1423,7 +1423,7 @@ public class MainActivity extends Activity {
             }
         } }).start();
     }
-    private String gkToUrl(String text) {
+    String gkToUrl(String text) {
         if (text.startsWith("http://") || text.startsWith("https://") || text.startsWith("file://") || text.startsWith("about:")) return text;
         if (!text.contains(" ") && text.contains(".")) return "https://" + text;
         return GK_SEARCH + Uri.encode(text);
@@ -1440,7 +1440,7 @@ public class MainActivity extends Activity {
         gkApplyZoom();
         getSharedPreferences("dm_zoom", MODE_PRIVATE).edit().putFloat("gecko", gkZoom).apply();
     }
-    private void gkEnsure() {
+    void gkEnsure() {
         if (gkView != null) return;
         if (gkRuntime == null) {
             gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
@@ -1496,7 +1496,7 @@ public class MainActivity extends Activity {
         root.addView(gkView, new FrameLayout.LayoutParams(1, 1));
         se.loadUri(GK_HOME);
     }
-    private void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
+    void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
 
     /** Giao diện cần WebView (Chrome) từ bản 105 trở lên; máy Android 7 thường phải cập nhật Android System WebView. */
     private void warnOldWebView() {
@@ -1513,9 +1513,9 @@ public class MainActivity extends Activity {
         } catch (Throwable e) { }
     }
 
-    private volatile String appsCache;
+    volatile String appsCache;
     /* Mốc thời gian lần dựng danh sách app gần nhất: giao diện so sánh số này để biết có cần nạp lại danh sách không */
-    private volatile long appsVer = 0;
+    volatile long appsVer = 0;
     /** Dựng sẵn danh sách app cài đặt (kèm icon) ở luồng nền để Launchpad mở ngay, không khựng. */
     private long appsAt;
     private void prefetchApps() {
@@ -1523,11 +1523,11 @@ public class MainActivity extends Activity {
         if (appsCache != null && now - appsAt < 30000) return;
         appsAt = now;
         new Thread(new Runnable() { public void run() {
-            try { Bridge b = new Bridge(); String r = b.buildAppsNow(); appsCache = r; appsVer = System.currentTimeMillis(); } catch (Throwable e) { }
+            try { LauncherBridge b = new LauncherBridge(MainActivity.this); String r = b.buildAppsNow(); appsCache = r; appsVer = System.currentTimeMillis(); } catch (Throwable e) { }
         } }, "apps-prefetch").start();
     }
 
-    private static String icon(Drawable d, int n) {
+    static String icon(Drawable d, int n) {
         Bitmap bm = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bm); d.setBounds(0, 0, n, n); d.draw(c);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -1535,1344 +1535,4 @@ public class MainActivity extends Activity {
         return "data:image/png;base64," + Base64.encodeToString(os.toByteArray(), Base64.NO_WRAP);
     }
 
-    /** Cầu nối: giao diện HTML điều khiển cài đặt và dữ liệu thật của máy. */
-    public class Bridge {
-        private AudioManager am() { return (AudioManager) getSystemService(Context.AUDIO_SERVICE); }
-
-        /* ---- Âm lượng, độ sáng, kết nối ---- */
-        @JavascriptInterface public int getVolume() {
-            AudioManager a = am(); return Math.round(a.getStreamVolume(AudioManager.STREAM_MUSIC) * 100f / a.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
-        }
-        @JavascriptInterface public void setVolume(int p) {
-            AudioManager a = am(); int max = a.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            a.setStreamVolume(AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, Math.round(p * max / 100f))), 0);
-        }
-        private int streamOf(String k) {
-            if ("alarm".equals(k)) return AudioManager.STREAM_ALARM;
-            if ("ring".equals(k)) return AudioManager.STREAM_RING;
-            return AudioManager.STREAM_NOTIFICATION;
-        }
-        /** Âm lượng báo thức / chuông cuộc gọi / thông báo (0-100). */
-        @JavascriptInterface public int getStreamVol(String kind) {
-            try { AudioManager a = am(); int st = streamOf(kind); return Math.round(a.getStreamVolume(st) * 100f / Math.max(1, a.getStreamMaxVolume(st))); }
-            catch (Exception e) { return -1; }
-        }
-        /** Trả về false nếu bị chặn (thường do chế độ Không làm phiền). */
-        @JavascriptInterface public boolean setStreamVol(String kind, int p) {
-            try {
-                AudioManager a = am(); int st = streamOf(kind), max = a.getStreamMaxVolume(st);
-                a.setStreamVolume(st, Math.max(0, Math.min(max, Math.round(p * max / 100f))), 0);
-                return true;
-            } catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public void playSound(String kind) {
-            try {
-                int type = "alarm".equals(kind) ? android.media.RingtoneManager.TYPE_ALARM : "ring".equals(kind) ? android.media.RingtoneManager.TYPE_RINGTONE : android.media.RingtoneManager.TYPE_NOTIFICATION;
-                Uri u = android.media.RingtoneManager.getDefaultUri(type);
-                final android.media.Ringtone r = android.media.RingtoneManager.getRingtone(MainActivity.this, u);
-                if (r == null) return;
-                if (Build.VERSION.SDK_INT >= 21) r.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage("alarm".equals(kind) ? android.media.AudioAttributes.USAGE_ALARM : "ring".equals(kind) ? android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE : android.media.AudioAttributes.USAGE_NOTIFICATION).build());
-                r.play();
-                web.postDelayed(new Runnable() { public void run() { try { r.stop(); } catch (Exception e) { } } }, 1500);
-            } catch (Exception e) { }
-        }
-        @JavascriptInterface public int getBrightness() {
-            try {
-                float w = getWindow().getAttributes().screenBrightness;
-                int raw = (w >= 0f && !Settings.System.canWrite(MainActivity.this)) ? Math.round(w * 255f)
-                        : Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS);
-                raw = Math.max(1, Math.min(255, raw));
-                return Math.max(1, Math.round((float) (100.0 * Math.pow(raw / 255.0, 0.5))));
-            }
-            catch (Exception e) { return 60; }
-        }
-        @JavascriptInterface public boolean canWriteSettings() { return Settings.System.canWrite(MainActivity.this); }
-        @JavascriptInterface public void requestWriteSettings() {
-            go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName())));
-        }
-        @JavascriptInterface public void setBrightness(final int p) {
-            final int pc = Math.max(1, Math.min(100, p));
-            // Độ sáng cảm nhận không tuyến tính: dùng đường cong bình phương để thanh trượt về thấp là thật sự tối
-            final int v = Math.max(1, Math.min(255, (int) Math.round(255.0 * (pc / 100.0) * (pc / 100.0))));
-            if (Settings.System.canWrite(MainActivity.this)) {
-                try {
-                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
-                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, v);
-                } catch (Exception ignored) { }
-            }
-            // Luôn đặt độ sáng theo cửa sổ để có hiệu lực ngay và xuống được mức tối nhất
-            runOnUiThread(new Runnable() { public void run() {
-                WindowManager.LayoutParams lp = getWindow().getAttributes(); lp.screenBrightness = Math.max(0.004f, v / 255f); getWindow().setAttributes(lp);
-            }});
-        }
-        @JavascriptInterface public void openWallpaper() {
-            go(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Hình nền"));
-        }
-        @JavascriptInterface public void openSystemSettings() {
-            go(new Intent(Settings.ACTION_SETTINGS));
-        }
-        @JavascriptInterface public String getWallpaper() {
-            try {
-                Drawable d = android.app.WallpaperManager.getInstance(MainActivity.this).getDrawable();
-                if (d == null) return "";
-                int w = Math.max(1, d.getIntrinsicWidth()), h = Math.max(1, d.getIntrinsicHeight());
-                float k = Math.min(1f, 1080f / Math.max(w, h));
-                int tw = Math.max(1, Math.round(w * k)), th = Math.max(1, Math.round(h * k));
-                Bitmap bm = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888);
-                Canvas c = new Canvas(bm); d.setBounds(0, 0, tw, th); d.draw(c);
-                ByteArrayOutputStream os = new ByteArrayOutputStream();
-                bm.compress(Bitmap.CompressFormat.JPEG, 80, os);
-                return "data:image/jpeg;base64," + Base64.encodeToString(os.toByteArray(), Base64.NO_WRAP);
-            } catch (Throwable e) { return ""; }
-        }
-        @JavascriptInterface public boolean isWifiOn() {
-            try { return ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE)).isWifiEnabled(); } catch (Exception e) { return true; }
-        }
-        @JavascriptInterface public boolean isBluetoothOn() {
-            try { BluetoothAdapter a = ((BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter(); return a != null && a.isEnabled(); }
-            catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public boolean isOnline() {
-            try { ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE); return cm.getActiveNetwork() != null; }
-            catch (Exception e) { return true; }
-        }
-        /* ---- Wi-Fi / Bluetooth thật: danh sách mạng, thiết bị đã kết nối và chưa kết nối ---- */
-        private boolean locOk() {
-            return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        }
-        private boolean locServiceOn() {
-            try {
-                android.location.LocationManager lm = (android.location.LocationManager) getSystemService(Context.LOCATION_SERVICE);
-                if (Build.VERSION.SDK_INT >= 28) return lm.isLocationEnabled();
-                return Settings.Secure.getInt(getContentResolver(), Settings.Secure.LOCATION_MODE, 0) != Settings.Secure.LOCATION_MODE_OFF;
-            } catch (Exception e) { return true; }
-        }
-        private String cleanSsid(String s) {
-            if (s == null) return "";
-            if (s.length() > 1 && s.startsWith("\"") && s.endsWith("\"")) s = s.substring(1, s.length() - 1);
-            return "<unknown ssid>".equals(s) ? "" : s;
-        }
-        private WifiManager wifiMgr() { return (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE); }
-        @JavascriptInterface public void wifiScan() { try { wifiMgr().startScan(); } catch (Exception e) { } }
-        @JavascriptInterface public String getWifiInfo() {
-            JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
-            try {
-                WifiManager wm = wifiMgr();
-                boolean on = wm.isWifiEnabled(); res.put("on", on); res.put("loc", locOk()); res.put("locOn", locServiceOn());
-                String cur = ""; boolean conn = false; int curLvl = 0;
-                WifiInfo wi = wm.getConnectionInfo();
-                if (on && wi != null && wi.getNetworkId() != -1 && wi.getSupplicantState() == SupplicantState.COMPLETED) {
-                    conn = true; cur = cleanSsid(wi.getSSID()); curLvl = WifiManager.calculateSignalLevel(wi.getRssi(), 4);
-                }
-                java.util.HashSet<String> saved = new java.util.HashSet<String>();
-                try { List<WifiConfiguration> cf = wm.getConfiguredNetworks(); if (cf != null) for (WifiConfiguration c : cf) saved.add(cleanSsid(c.SSID)); } catch (Exception e) { }
-                java.util.LinkedHashMap<String, JSONObject> best = new java.util.LinkedHashMap<String, JSONObject>();
-                if (on && locOk()) {
-                    List<ScanResult> sr = wm.getScanResults();
-                    if (sr != null) for (ScanResult r : sr) {
-                        String ss = r.SSID; if (ss == null || ss.length() == 0) continue;
-                        int lv = WifiManager.calculateSignalLevel(r.level, 4);
-                        JSONObject o = best.get(ss);
-                        if (o != null && o.getInt("level") >= lv) continue;
-                        o = new JSONObject(); o.put("ssid", ss); o.put("level", lv);
-                        String cp = r.capabilities == null ? "" : r.capabilities;
-                        o.put("secure", cp.contains("WPA") || cp.contains("WEP") || cp.contains("PSK") || cp.contains("EAP"));
-                        best.put(ss, o);
-                    }
-                }
-                if (conn) {
-                    JSONObject o = best.remove(cur);
-                    if (o == null) { o = new JSONObject(); o.put("secure", false); }
-                    o.put("ssid", cur.length() > 0 ? cur : "Mạng đang kết nối"); o.put("level", curLvl); o.put("connected", true); o.put("saved", true);
-                    arr.put(o);
-                }
-                ArrayList<JSONObject> rest = new ArrayList<JSONObject>(best.values());
-                Collections.sort(rest, new Comparator<JSONObject>() { public int compare(JSONObject a, JSONObject b) { return b.optInt("level") - a.optInt("level"); } });
-                for (JSONObject o : rest) { o.put("saved", saved.contains(o.getString("ssid"))); o.put("connected", false); arr.put(o); }
-                res.put("list", arr);
-            } catch (Exception e) { }
-            return res.toString();
-        }
-        /** Kết nối lại mạng đã lưu; mạng chưa lưu thì trả về false để mở trang Wi-Fi của hệ thống. */
-        @JavascriptInterface public boolean connectWifi(String ssid) {
-            try {
-                WifiManager wm = wifiMgr();
-                List<WifiConfiguration> cf = wm.getConfiguredNetworks();
-                if (cf != null) for (WifiConfiguration c : cf) if (cleanSsid(c.SSID).equals(ssid)) {
-                    wm.disconnect(); wm.enableNetwork(c.networkId, true); wm.reconnect(); return true;
-                }
-            } catch (Exception e) { }
-            return false;
-        }
-        /** Android 10+ không cho ứng dụng tự bật/tắt Wi-Fi: trả về false để mở bảng hệ thống. */
-        @JavascriptInterface public boolean setWifi(boolean on) {
-            if (Build.VERSION.SDK_INT >= 29) return false;
-            try { return wifiMgr().setWifiEnabled(on); } catch (Exception e) { return false; }
-        }
-        private BluetoothAdapter btAdapter() {
-            try { return ((BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter(); } catch (Exception e) { return null; }
-        }
-        @JavascriptInterface public boolean setBluetooth(boolean on) {
-            if (Build.VERSION.SDK_INT >= 33) return false;
-            try { BluetoothAdapter a = btAdapter(); if (a == null) return false; return on ? a.enable() : a.disable(); } catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public void btScan() {
-            try {
-                BluetoothAdapter a = btAdapter(); if (a == null || !a.isEnabled()) return;
-                if (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                    runOnUiThread(new Runnable() { public void run() { try { requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, 8); } catch (Exception e) { } } });
-                    return;
-                }
-                if (!btRecv) {
-                    IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND); f.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-                    if (Build.VERSION.SDK_INT >= 33) registerReceiver(btRx, f, Context.RECEIVER_EXPORTED); else registerReceiver(btRx, f);
-                    btRecv = true;
-                }
-                if (a.isDiscovering()) return; /* đang quét thì để yên, không hủy giữa chừng */
-                btDiscovering = a.startDiscovery();
-            } catch (Exception e) { }
-        }
-        private void btProxies(BluetoothAdapter a) {
-            if (btProxReq) return; btProxReq = true;
-            BluetoothProfile.ServiceListener l = new BluetoothProfile.ServiceListener() {
-                public void onServiceConnected(int p, BluetoothProfile proxy) { synchronized (btProx) { btProx.put(p, proxy); } }
-                public void onServiceDisconnected(int p) { synchronized (btProx) { btProx.remove(p); } }
-            };
-            try { a.getProfileProxy(MainActivity.this, l, BluetoothProfile.A2DP); } catch (Exception e) { }
-            try { a.getProfileProxy(MainActivity.this, l, BluetoothProfile.HEADSET); } catch (Exception e) { }
-        }
-        @JavascriptInterface public String getBtInfo() {
-            JSONObject res = new JSONObject();
-            try {
-                BluetoothAdapter a = btAdapter();
-                if (a == null) { res.put("none", true); return res.toString(); }
-                boolean on = a.isEnabled(); res.put("on", on); res.put("loc", locOk()); res.put("locOn", locServiceOn());
-                if (Build.VERSION.SDK_INT >= 31) res.put("scanPerm", checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED);
-                try { res.put("scanning", a.isDiscovering()); } catch (Exception e) { }
-                JSONArray paired = new JSONArray(), found = new JSONArray();
-                if (on) {
-                    btProxies(a);
-                    java.util.HashSet<String> cs = new java.util.HashSet<String>();
-                    synchronized (btProx) { for (BluetoothProfile p : btProx.values()) { try { for (BluetoothDevice d : p.getConnectedDevices()) cs.add(d.getAddress()); } catch (Exception e) { } } }
-                    java.util.HashSet<String> bonded = new java.util.HashSet<String>();
-                    ArrayList<JSONObject> up = new ArrayList<JSONObject>(), down = new ArrayList<JSONObject>();
-                    try {
-                        for (BluetoothDevice d : a.getBondedDevices()) {
-                            bonded.add(d.getAddress());
-                            boolean c = cs.contains(d.getAddress());
-                            if (!c) { try { c = (Boolean) BluetoothDevice.class.getMethod("isConnected").invoke(d); } catch (Throwable t) { } }
-                            JSONObject o = new JSONObject(); String nm = d.getName();
-                            o.put("name", nm == null || nm.length() == 0 ? d.getAddress() : nm); o.put("addr", d.getAddress()); o.put("connected", c);
-                            (c ? up : down).add(o);
-                        }
-                    } catch (SecurityException se) { res.put("perm", false); }
-                    for (JSONObject o : up) paired.put(o);
-                    for (JSONObject o : down) paired.put(o);
-                    synchronized (btFound) { for (JSONObject o : btFound.values()) if (!bonded.contains(o.optString("addr"))) found.put(o); }
-                }
-                res.put("paired", paired); res.put("found", found);
-            } catch (Exception e) { }
-            return res.toString();
-        }
-
-        /** Android 10+ không cho ứng dụng tự bật/tắt Wi-Fi, Bluetooth: mở bảng hệ thống để người dùng gạt. */
-        @JavascriptInterface public void openPanel(String kind) {
-            Intent i;
-            if ("wifi".equals(kind)) i = new Intent(Build.VERSION.SDK_INT >= 29 ? Settings.Panel.ACTION_INTERNET_CONNECTIVITY : Settings.ACTION_WIFI_SETTINGS);
-            else if ("bt".equals(kind)) i = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
-            else if ("volume".equals(kind) && Build.VERSION.SDK_INT >= 29) i = new Intent(Settings.Panel.ACTION_VOLUME);
-            else if ("display".equals(kind)) i = new Intent(Settings.ACTION_DISPLAY_SETTINGS);
-            else if ("battery".equals(kind)) i = new Intent(Intent.ACTION_POWER_USAGE_SUMMARY);
-            else i = new Intent(Settings.ACTION_SETTINGS);
-            go(i);
-        }
-        @JavascriptInterface public String getInfo() {
-            try {
-                JSONObject o = new JSONObject();
-                o.put("model", Build.MANUFACTURER + " " + Build.MODEL); o.put("android", Build.VERSION.RELEASE); o.put("sdk", Build.VERSION.SDK_INT);
-                o.put("brand", Build.MANUFACTURER); o.put("device", Build.MODEL);
-                if (Build.VERSION.SDK_INT >= 23) o.put("patch", Build.VERSION.SECURITY_PATCH);
-                String soc = Build.HARDWARE;
-                if (Build.VERSION.SDK_INT >= 31 && Build.SOC_MODEL != null && Build.SOC_MODEL.length() > 0 && !"unknown".equalsIgnoreCase(Build.SOC_MODEL)) soc = Build.SOC_MODEL;
-                o.put("soc", soc);
-                o.put("abi", Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "");
-                o.put("cores", Runtime.getRuntime().availableProcessors());
-                android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
-                getWindowManager().getDefaultDisplay().getRealMetrics(dm);
-                o.put("sw", Math.min(dm.widthPixels, dm.heightPixels));
-                o.put("sh", Math.max(dm.widthPixels, dm.heightPixels)); o.put("dpi", dm.densityDpi);
-                try {
-                    android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
-                    ((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
-                    o.put("ram", mi.totalMem); o.put("ramFree", mi.availMem);
-                } catch (Exception e) { }
-                try {
-                    android.os.StatFs sf = new android.os.StatFs(Environment.getDataDirectory().getAbsolutePath());
-                    o.put("disk", sf.getTotalBytes()); o.put("diskFree", sf.getAvailableBytes());
-                } catch (Exception e) { }
-                return o.toString();
-            } catch (Exception e) { return "{}"; }
-        }
-        /** Chế độ tiết kiệm pin có đang bật không. */
-        @JavascriptInterface public boolean isPowerSave() {
-            try { return ((android.os.PowerManager) getSystemService(Context.POWER_SERVICE)).isPowerSaveMode(); } catch (Exception e) { return false; }
-        }
-        /**
-         * Bật/tắt tiết kiệm pin. Android chỉ cho ghi cài đặt này khi ứng dụng có quyền WRITE_SECURE_SETTINGS
-         * (cấp một lần bằng adb); chưa có thì mở trang Tiết kiệm pin của hệ thống và trả về false.
-         */
-        @JavascriptInterface public boolean setPowerSave(boolean on) {
-            try {
-                Settings.Global.putInt(getContentResolver(), "low_power", on ? 1 : 0);
-                return true;
-            } catch (Exception e) { }
-            try { go(new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)); } catch (Exception e) { go(new Intent(Intent.ACTION_POWER_USAGE_SUMMARY)); }
-            return false;
-        }
-        /** RAM đang dùng / tổng RAM của máy (byte), cho thanh menu phía trên. */
-        @JavascriptInterface public String getRam() {
-            try {
-                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
-                ((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
-                JSONObject o = new JSONObject(); o.put("total", mi.totalMem); o.put("free", mi.availMem); return o.toString();
-            } catch (Exception e) { return "{}"; }
-        }
-        @JavascriptInterface public String getBattery() {
-            try {
-                Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-                int lv = b.getIntExtra(BatteryManager.EXTRA_LEVEL, -1), sc = b.getIntExtra(BatteryManager.EXTRA_SCALE, 100), st = b.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-                JSONObject o = new JSONObject(); o.put("level", lv / (float) sc);
-                o.put("charging", st == BatteryManager.BATTERY_STATUS_CHARGING || st == BatteryManager.BATTERY_STATUS_FULL); return o.toString();
-            } catch (Exception e) { return "{}"; }
-        }
-        /** Khoảng đệm an toàn (lỗ camera, thanh điều hướng) tính bằng dp. */
-        @JavascriptInterface public String getInsets() {
-            try {
-                float d = getResources().getDisplayMetrics().density; int top = 0, bottom = 0;
-                WindowInsets w = getWindow().getDecorView().getRootWindowInsets();
-                if (w != null) {
-                    top = w.getSystemWindowInsetTop(); bottom = w.getSystemWindowInsetBottom();
-                    /* Thanh trạng thái đã ẩn: giao diện tràn lên sát mép trên, không chừa vùng tai thỏ/lỗ camera */
-                }
-                JSONObject o = new JSONObject(); o.put("top", Math.round(top / d)); o.put("bottom", Math.round(bottom / d)); return o.toString();
-            } catch (Exception e) { return "{}"; }
-        }
-
-
-
-        /* ---- Ảnh: chia sẻ, lưu bản sao, xóa ---- */
-        private File cacheImg(String dataUrl) throws Exception {
-            byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
-            File dir = new File(getCacheDir(), "shared"); dir.mkdirs();
-            File[] old = dir.listFiles(); if (old != null) for (File o : old) o.delete();
-            File f = new File(dir, "anh_" + System.currentTimeMillis() + ".jpg");
-            FileOutputStream os = new FileOutputStream(f); os.write(by); os.close();
-            return f;
-        }
-        /** Chia sẻ bản ghi âm (dataUrl base64) qua bảng chọn ứng dụng của Android. */
-        @JavascriptInterface public boolean shareAudio(String dataUrl, String name, String mime) {
-            try {
-                byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
-                File dir = new File(getCacheDir(), "shared"); dir.mkdirs();
-                File[] old = dir.listFiles(); if (old != null) for (File o : old) o.delete();
-                String base = (name == null || name.length() == 0) ? "ghi_am" : name.replaceAll("[\\\\/:*?\"<>|\\s]+", "_");
-                String type = (mime == null || mime.length() == 0) ? "audio/*" : mime.split(";")[0];
-                File f = new File(dir, base + (type.contains("mp4") ? ".m4a" : ".webm"));
-                FileOutputStream os = new FileOutputStream(f); os.write(by); os.close();
-                Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
-                Intent i = new Intent(Intent.ACTION_SEND).setType(type).putExtra(Intent.EXTRA_STREAM, u)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                i.setClipData(android.content.ClipData.newRawUri("", u));
-                go(Intent.createChooser(i, "Chia sẻ bản ghi").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
-                return true;
-            } catch (Exception e) { return false; }
-        }
-        /** pkg rỗng = mở bảng chọn ứng dụng của Android. dataUrl rỗng = chia sẻ ảnh gốc theo id. */
-        @JavascriptInterface public boolean shareImage(String pkg, long id, String dataUrl) {
-            try {
-                Uri u;
-                if (dataUrl != null && dataUrl.length() > 0) u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", cacheImg(dataUrl));
-                else u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-                Intent i = new Intent(Intent.ACTION_SEND).setType("image/*").putExtra(Intent.EXTRA_STREAM, u)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                i.setClipData(android.content.ClipData.newRawUri("", u));
-                if (pkg != null && pkg.length() > 0) {
-                    i.setPackage(pkg);
-                    try { startActivity(i); return true; } catch (Exception e) { i.setPackage(null); }
-                }
-                go(Intent.createChooser(i, "Chia sẻ ảnh").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
-                return true;
-            } catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public boolean saveImage(String dataUrl) {
-            invalidatePhotos();
-            try {
-                byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.Images.Media.DISPLAY_NAME, "DesktopMini_" + System.currentTimeMillis() + ".jpg");
-                v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                if (Build.VERSION.SDK_INT >= 29) v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/DesktopMini");
-                Uri u = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
-                if (u == null) return false;
-                OutputStream os = getContentResolver().openOutputStream(u); os.write(by); os.close();
-                return true;
-            } catch (Exception e) { return false; }
-        }
-        /** 1 = đã xóa, 2 = đang chờ người dùng xác nhận trong hộp thoại hệ thống, 0 = thất bại. */
-        @JavascriptInterface public int deletePhoto(long id) {
-            invalidatePhotos();
-            final Uri u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-            final String tid = TrashStore.trashUri(MainActivity.this, u);   /* chép vào Thùng rác trước khi xóa */
-            try { int dr = getContentResolver().delete(u, null, null) > 0 ? 1 : 0; if (dr == 0) TrashStore.drop(MainActivity.this, tid); return dr; }
-            catch (final SecurityException se) {
-                if (Build.VERSION.SDK_INT >= 30) {
-                    runOnUiThread(new Runnable() { public void run() {
-                        try {
-                            android.app.PendingIntent pi = MediaStore.createDeleteRequest(getContentResolver(), Collections.singletonList(u));
-                            startIntentSenderForResult(pi.getIntentSender(), 91, null, 0, 0, 0);
-                        } catch (Exception e) { push("nativeDelResult", "0"); }
-                    }});
-                    return 2;
-                }
-                if (Build.VERSION.SDK_INT >= 29 && se instanceof android.app.RecoverableSecurityException) {
-                    final android.app.RecoverableSecurityException rse = (android.app.RecoverableSecurityException) se;
-                    runOnUiThread(new Runnable() { public void run() {
-                        try { startIntentSenderForResult(rse.getUserAction().getActionIntent().getIntentSender(), 91, null, 0, 0, 0); }
-                        catch (Exception e) { push("nativeDelResult", "0"); }
-                    }});
-                    return 2;
-                }
-                return 0;
-            } catch (Exception e) { return 0; }
-        }
-
-        /* Xoá nhiều ảnh/video/nhạc cùng lúc: 1 = đã xoá hết, 2 = chờ người dùng xác nhận (kết quả qua nativeDelResult), 0 = lỗi */
-        @JavascriptInterface public int deleteMedia(String kind, String ids) {
-            final List<Uri> pend = new ArrayList<Uri>(); int fail = 0;
-            for (String t : ids.split(",")) {
-                t = t.trim(); if (t.length() == 0) continue;
-                long id; try { id = Long.parseLong(t); } catch (Exception e) { continue; }
-                Uri u = ContentUris.withAppendedId(mediaUri(kind), id);
-                String tid = TrashStore.trashUri(MainActivity.this, u);   /* chép vào Thùng rác trước khi xóa */
-                try { if (getContentResolver().delete(u, null, null) <= 0) { fail++; TrashStore.drop(MainActivity.this, tid); } }
-                catch (SecurityException se) { pend.add(u); }
-                catch (Exception e) { fail++; }
-            }
-            if (pend.isEmpty()) return fail == 0 ? 1 : 0;
-            if (Build.VERSION.SDK_INT >= 30) {
-                runOnUiThread(new Runnable() { public void run() {
-                    try {
-                        android.app.PendingIntent pi = MediaStore.createDeleteRequest(getContentResolver(), pend);
-                        startIntentSenderForResult(pi.getIntentSender(), 91, null, 0, 0, 0);
-                    } catch (Exception e) { push("nativeDelResult", "0"); }
-                }});
-                return 2;
-            }
-            return 0;
-        }
-
-        /* ---- Độ sáng thấp nhất khi không dùng ---- */
-        /** Bật/tắt và đặt số phút không chạm trước khi hạ xuống độ sáng thấp nhất. Không cần quyền hệ thống (chỉ đổi độ sáng của cửa sổ). */
-        @JavascriptInterface public boolean setIdleDim(boolean on, int min) {
-            idleDimMs = Math.max(1, min) * 60000L; idleDimOn = on;
-            lastTouchAt = android.os.SystemClock.elapsedRealtime();
-            if (!on) runOnUiThread(new Runnable() { public void run() { undimIdle(); } });
-            return true;
-        }
-
-        /* ---- Tự xoay màn hình (cài đặt thật của máy) ---- */
-        @JavascriptInterface public boolean isAutoRotate() {
-            try { return Settings.System.getInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION) == 1; } catch (Exception e) { return false; }
-        }
-        /** Cần quyền "Sửa cài đặt hệ thống"; chưa có thì mở trang cấp quyền và trả về false. */
-        @JavascriptInterface public boolean setAutoRotate(boolean on) {
-            if (!Settings.System.canWrite(MainActivity.this)) {
-                go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName()))); return false;
-            }
-            try {
-                if (!on) {
-                    int r = getWindowManager().getDefaultDisplay().getRotation();
-                    Settings.System.putInt(getContentResolver(), Settings.System.USER_ROTATION, r);
-                }
-                Settings.System.putInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, on ? 1 : 0);
-                return true;
-            } catch (Exception e) { return false; }
-        }
-
-        /* ---- Báo thức thật (chạy cả khi app đóng) ---- */
-        @JavascriptInterface public String getAlarmSounds() {
-            JSONArray arr = new JSONArray();
-            try {
-                JSONObject d = new JSONObject(); d.put("name", "Mặc định");
-                d.put("uri", android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM).toString()); arr.put(d);
-                android.media.RingtoneManager rm = new android.media.RingtoneManager(MainActivity.this);
-                rm.setType(android.media.RingtoneManager.TYPE_ALARM);
-                Cursor c = rm.getCursor();
-                if (c != null) {
-                    while (c.moveToNext()) {
-                        JSONObject o = new JSONObject();
-                        o.put("name", c.getString(android.media.RingtoneManager.TITLE_COLUMN_INDEX));
-                        o.put("uri", rm.getRingtoneUri(c.getPosition()).toString());
-                        arr.put(o);
-                    }
-                }
-            } catch (Exception e) { }
-            return arr.toString();
-        }
-        @JavascriptInterface public void previewSound(final String uri) {
-            runOnUiThread(new Runnable() { public void run() {
-                try {
-                    if (previewTone != null) previewTone.stop();
-                    previewTone = android.media.RingtoneManager.getRingtone(MainActivity.this, Uri.parse(uri));
-                    if (previewTone == null) return;
-                    if (Build.VERSION.SDK_INT >= 21) previewTone.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).build());
-                    previewTone.play();
-                    web.postDelayed(new Runnable() { public void run() { try { if (previewTone != null) previewTone.stop(); } catch (Exception e) { } } }, 4000);
-                } catch (Exception e) { }
-            }});
-        }
-        @JavascriptInterface public void stopPreview() {
-            runOnUiThread(new Runnable() { public void run() { try { if (previewTone != null) previewTone.stop(); } catch (Exception e) { } } });
-        }
-        @JavascriptInterface public boolean setAlarm(int id, int hour, int min, String uri, boolean repeat, String label) {
-            return AlarmReceiver.schedule(MainActivity.this, id, hour, min, uri, repeat, label, true);
-        }
-        @JavascriptInterface public String getAlarmError() { return AlarmReceiver.lastError; }
-        @JavascriptInterface public void cancelAlarm(int id) { AlarmReceiver.cancel(MainActivity.this, id); }
-        @JavascriptInterface public void stopAlarmRinging() {
-            try { startService(new Intent(MainActivity.this, AlarmService.class).setAction("stop")); } catch (Exception e) { }
-        }
-
-        /* ---- Khóa màn hình, nguồn (qua dịch vụ trợ năng) ---- */
-        /** Tắt màn hình ngay. Dùng quyền quản trị thiết bị (chỉ "khóa màn hình"); Android 9+ có thể dùng Trợ năng thay thế. */
-        @JavascriptInterface public boolean lockScreen() {
-            try {
-                android.app.admin.DevicePolicyManager dpm = (android.app.admin.DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-                android.content.ComponentName cn = new android.content.ComponentName(MainActivity.this, AdminReceiver.class);
-                if (dpm.isAdminActive(cn)) { dpm.lockNow(); return true; }
-                if (LockService.inst != null && Build.VERSION.SDK_INT >= 28) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
-                go(new Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                    .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, cn)
-                    .putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Cho phép Desktop Mini tắt màn hình khi bạn bấm Tắt máy. Quyền này chỉ dùng để khóa màn hình."));
-            } catch (Exception e) { }
-            return false;
-        }
-        @JavascriptInterface public boolean powerMenu() {
-            if (LockService.inst != null) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
-            go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return false;
-        }
-        /* ---- Dock nổi trên app khác (qua dịch vụ trợ năng) ---- */
-        @JavascriptInterface public void setDockData(String json) { LockService.saveData(MainActivity.this, json); }
-        @JavascriptInterface public void setDockOverlay(boolean on) { LockService.saveEnabled(MainActivity.this, on); }
-        @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(MainActivity.this); }
-        @JavascriptInterface public void setBarLock(boolean on) { LockService.saveBarLock(MainActivity.this, on); }
-        @JavascriptInterface public boolean isBarLock() { return LockService.isBarLock(MainActivity.this); }
-        @JavascriptInterface public boolean isHomeDefault() { return isDefaultHome(); }
-        @JavascriptInterface public String getStatus() {
-            try {
-                JSONObject o = new JSONObject();
-                o.put("write", Settings.System.canWrite(MainActivity.this)); o.put("notif", notifAccess()); o.put("a11y", a11yOn()); o.put("files", filesOk()); o.put("home", isDefaultHome());
-                o.put("calendar", checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED);
-                o.put("dnd", Build.VERSION.SDK_INT < 23 || ((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).isNotificationPolicyAccessGranted());
-                return o.toString();
-            } catch (Exception e) { return "{}"; }
-        }
-        @JavascriptInterface public void openSetup(String kind) {
-            if ("notif".equals(kind)) go(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
-            else if ("a11y".equals(kind)) go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-            else if ("dnd".equals(kind)) go(new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS));
-            else if ("home".equals(kind)) go(new Intent(Settings.ACTION_HOME_SETTINGS));
-            else if ("write".equals(kind)) go(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + getPackageName())));
-            else if ("files".equals(kind) && Build.VERSION.SDK_INT >= 30) go(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + getPackageName())));
-            else go(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())));
-        }
-
-        /* ---- Ứng dụng đã cài ---- */
-        @JavascriptInterface public String getApps() {
-            String c = appsCache; if (c != null) return c;
-            return buildApps();
-        }
-        private synchronized String buildApps() {
-            if (appsCache != null) return appsCache;
-            String r = buildAppsNow(); appsCache = r; appsVer = System.currentTimeMillis(); return r;
-        }
-        @JavascriptInterface public long getAppsVersion() { return appsVer; }
-        private String buildAppsNow() {
-            PackageManager pm = getPackageManager();
-            Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
-            List<ResolveInfo> l = pm.queryIntentActivities(q, 0);
-            Collections.sort(l, new ResolveInfo.DisplayNameComparator(pm));
-            JSONArray arr = new JSONArray();
-            for (ResolveInfo r : l) {
-                String pkg = r.activityInfo.packageName;
-                if (pkg.equals(getPackageName())) continue;
-                try {
-                    JSONObject o = new JSONObject();
-                    o.put("label", r.loadLabel(pm).toString()); o.put("pkg", pkg); o.put("icon", icon(r.loadIcon(pm), 96));
-                    arr.put(o);
-                } catch (Exception e) { }
-            }
-            return arr.toString();
-        }
-        @JavascriptInterface public String getBrowsers() {
-            PackageManager pm = getPackageManager();
-            JSONArray arr = new JSONArray();
-            try {
-                Intent q = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.example.com")).addCategory(Intent.CATEGORY_BROWSABLE);
-                List<ResolveInfo> l = pm.queryIntentActivities(q, PackageManager.MATCH_ALL);
-                Collections.sort(l, new ResolveInfo.DisplayNameComparator(pm));
-                java.util.HashSet<String> seen = new java.util.HashSet<String>();
-                for (ResolveInfo r : l) {
-                    String pkg = r.activityInfo.packageName;
-                    if (pkg.equals(getPackageName()) || !seen.add(pkg)) continue;
-                    if (pm.getLaunchIntentForPackage(pkg) == null) continue;
-                    try {
-                        JSONObject o = new JSONObject();
-                        o.put("label", r.loadLabel(pm).toString()); o.put("pkg", pkg); o.put("icon", icon(r.loadIcon(pm), 96));
-                        arr.put(o);
-                    } catch (Exception e) { }
-                }
-            } catch (Exception e) { }
-            return arr.toString();
-        }
-        /** Nút chụp ảnh màn hình: chụp xong gọi window.shotDone(true/false). */
-        @JavascriptInterface public void takeScreenshot() { runOnUiThread(new Runnable() { public void run() { captureScreen(); } }); }
-        /** Tìm tệp theo tên trong máy; kết quả (JSON) trả về qua window.fsCb(id, json). */
-        @JavascriptInterface public void searchFiles(final String q, final int cb) {
-            new Thread(new Runnable() { public void run() {
-                final String json = findFiles(q).toString();
-                runOnUiThread(new Runnable() { public void run() {
-                    if (web != null) web.evaluateJavascript("window.fsCb&&window.fsCb(" + cb + "," + JSONObject.quote(json) + ")", null);
-                } });
-            } }).start();
-        }
-        /** Mở app "Ổ mềm" (Drive 3 hồ sơ: Ảnh / Video / Tệp) ở màn hình riêng; thoát thì quay về Desktop Mini. */
-        @JavascriptInterface public void openDrive3() { runOnUiThread(new Runnable() { public void run() { openDriveHome(); } }); }
-        /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */
-        @JavascriptInterface public void openWebBrowser(String url) { openWeb(url); }
-        /** Mở app con "YouTube" (chỉ YouTube, không thanh địa chỉ). */
-        @JavascriptInterface public void openYouTube() { openYt(); }
-        /** Nút mic trên thanh tìm kiếm Google của Desktop. */
-        @JavascriptInterface public void startVoiceSearch() { runOnUiThread(new Runnable() { public void run() { voiceKey = null; launchVoiceSearch(); } }); }
-        /** Mở app con "Gõ văn bản" (trình soạn thảo kiểu Word). */
-        @JavascriptInterface public void openTyping() { openTy(); }
-        @JavascriptInterface public boolean hasPackage(String pkg) {
-            try { return getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public void launchApp(String pkg) {
-            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
-            if (i != null) go(i);
-        }
-        /** Tên + biểu tượng của một ứng dụng đã cài (cho thẻ đa nhiệm). */
-        @JavascriptInterface public String appInfo(String pkg) {
-            try {
-                PackageManager pm = getPackageManager();
-                android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
-                JSONObject o = new JSONObject();
-                o.put("label", pm.getApplicationLabel(ai).toString()); o.put("pkg", pkg); o.put("icon", icon(pm.getApplicationIcon(ai), 96));
-                return o.toString();
-            } catch (Exception e) { return ""; }
-        }
-        /** Tắt tiến trình nền của ứng dụng ngoài (cần quyền KILL_BACKGROUND_PROCESSES). */
-        @JavascriptInterface public boolean killApp(String pkg) {
-            if (pkg == null || pkg.equals(getPackageName())) return false;
-            try {
-                ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pkg);
-                return true;
-            } catch (Exception e) { return false; }
-        }
-
-        /* ---- Nhạc thật trong máy ---- */
-        private MediaPlayer mp; private boolean ended = false;
-        @JavascriptInterface public String getTracks() {
-            JSONArray arr = new JSONArray();
-            try {
-                Cursor c = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DURATION},
-                    MediaStore.Audio.Media.IS_MUSIC + "!=0", null, MediaStore.Audio.Media.TITLE + " COLLATE NOCASE");
-                if (c != null) { int n = 0;
-                    while (c.moveToNext() && n++ < 3000) {
-                        JSONObject o = new JSONObject(); o.put("id", c.getLong(0)); o.put("t", c.getString(1));
-                        String a = c.getString(2); o.put("a", (a == null || a.equals("<unknown>")) ? "Không rõ nghệ sĩ" : a); o.put("dur", c.getLong(3) / 1000);
-                        arr.put(o);
-                    }
-                    c.close(); }
-            } catch (Exception e) { }
-            return arr.toString();
-        }
-        @JavascriptInterface public synchronized boolean playTrack(long id) {
-            try {
-                if (mp != null) { mp.release(); mp = null; }
-                ended = false; mp = new MediaPlayer();
-                mp.setDataSource(MainActivity.this, ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id));
-                mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() { public void onCompletion(MediaPlayer m) { MainActivity.push("nativeEnded", "1"); } });
-                mp.prepare(); mp.start(); return true;
-            } catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public synchronized void pauseMusic() { try { if (mp != null && mp.isPlaying()) mp.pause(); } catch (Exception e) { } }
-        @JavascriptInterface public synchronized void resumeMusic() { try { if (mp != null) mp.start(); } catch (Exception e) { } }
-        @JavascriptInterface public synchronized void seekTo(int ms) { try { if (mp != null) mp.seekTo(ms); } catch (Exception e) { } }
-        @JavascriptInterface public synchronized void stopMusic() { try { if (mp != null) { mp.release(); mp = null; } } catch (Exception e) { } }
-        @JavascriptInterface public synchronized String getPlayerState() {
-            try {
-                JSONObject o = new JSONObject();
-                if (mp != null) { o.put("playing", mp.isPlaying()); o.put("pos", mp.getCurrentPosition()); o.put("dur", mp.getDuration()); }
-                o.put("ended", ended); ended = false; return o.toString();
-            } catch (Exception e) { return "{}"; }
-        }
-        /** Thông báo điều khiển nhạc + giữ ứng dụng sống khi phát nền. */
-        @JavascriptInterface public void mediaNotify(String title, String artist, boolean playing) {
-            Intent i = new Intent(MainActivity.this, MusicService.class).putExtra("title", title).putExtra("artist", artist).putExtra("playing", playing);
-            try { if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i); } catch (Exception e) { }
-        }
-        @JavascriptInterface public void mediaStop() {
-            try { startService(new Intent(MainActivity.this, MusicService.class).setAction("stop")); } catch (Exception e) { }
-        }
-
-        /* ---- Ảnh thật trong máy ---- */
-        /** Ép quét lại bộ nhớ tìm ảnh/video/nhạc chưa có trong thư viện (gọi khi mở app Ảnh/Tệp). */
-        @JavascriptInterface public void rescanMedia() { scanMedia(true); }
-        @JavascriptInterface public String getPhotos() {
-            String pc = photosCache; if (pc != null) return pc;
-            final int gen = photosGen;
-            JSONArray arr = new JSONArray();
-            try {
-                /* Cột đường dẫn: RELATIVE_PATH (Android 10+) hoặc DATA, để phân loại Ảnh chụp / Ảnh chụp màn hình */
-                String pathCol = Build.VERSION.SDK_INT >= 29 ? MediaStore.Images.Media.RELATIVE_PATH : MediaStore.Images.Media.DATA;
-                Cursor c = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    new String[]{MediaStore.Images.Media._ID, MediaStore.Images.Media.DISPLAY_NAME, pathCol,
-                        MediaStore.Images.Media.DATE_TAKEN, MediaStore.Images.Media.DATE_ADDED, MediaStore.Images.Media.DATE_MODIFIED},
-                    null, null, MediaStore.Images.Media.DATE_ADDED + " DESC");
-                if (c != null) {
-                    /* Mới nhất lên đầu: lấy mốc thời gian lớn nhất (lúc chụp / lúc thêm / lúc sửa) rồi sắp giảm dần, sau đó mới cắt 500 ảnh */
-                    final java.util.ArrayList<long[]> rows = new java.util.ArrayList<long[]>();
-                    final java.util.ArrayList<String[]> info = new java.util.ArrayList<String[]>();
-                    while (c.moveToNext()) {
-                        long t = Math.max(c.getLong(3), Math.max(c.getLong(4), c.getLong(5)) * 1000L);
-                        rows.add(new long[]{c.getLong(0), t});
-                        String pp = c.getString(2);
-                        info.add(new String[]{c.getString(1), pp == null ? "" : pp});
-                    }
-                    c.close();
-                    Integer[] idx = new Integer[rows.size()];
-                    for (int i = 0; i < idx.length; i++) idx[i] = i;
-                    java.util.Arrays.sort(idx, new java.util.Comparator<Integer>() {
-                        @Override public int compare(Integer x, Integer y) { return Long.compare(rows.get(y)[1], rows.get(x)[1]); }
-                    });
-                    for (int k = 0; k < idx.length && k < 50000; k++) {
-                        int i = idx[k];
-                        JSONObject o = new JSONObject();
-                        o.put("id", rows.get(i)[0]); o.put("n", info.get(i)[0]); o.put("p", info.get(i)[1]); o.put("t", rows.get(i)[1]);
-                        arr.put(o);
-                    }
-                }
-            } catch (Exception e) { }
-            String out = arr.toString();
-            /* Chỉ nhớ khi đã có bộ theo dõi báo thay đổi, để danh sách luôn mới */
-            if (mediaWatching && arr.length() > 0 && gen == photosGen) photosCache = out;
-            return out;
-        }
-        @JavascriptInterface public String getPhotoData(long id, int size) {
-            try {
-                final boolean cacheable = size <= 400;
-                final String ck = id + "_" + size;
-                if (cacheable) {
-                    String hit = thumbMem.get(ck); if (hit != null) return hit;
-                    File tf = new File(new File(getCacheDir(), "thumbs"), ck + ".jpg");
-                    if (tf.isFile() && tf.length() > 0) {
-                        try {
-                            java.io.FileInputStream fi = new java.io.FileInputStream(tf); byte[] bb = new byte[(int) tf.length()];
-                            int off = 0; while (off < bb.length) { int r = fi.read(bb, off, bb.length - off); if (r < 0) break; off += r; } fi.close();
-                            if (off == bb.length) { String d = "data:image/jpeg;base64," + Base64.encodeToString(bb, Base64.NO_WRAP); thumbMem.put(ck, d); return d; }
-                        } catch (Exception e) { }
-                    }
-                }
-                Uri u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-                Bitmap bm;
-                if (Build.VERSION.SDK_INT >= 29) bm = getContentResolver().loadThumbnail(u, new Size(size, size), null);
-                else {
-                    BitmapFactory.Options o = new BitmapFactory.Options(); o.inJustDecodeBounds = true;
-                    InputStream in = getContentResolver().openInputStream(u); BitmapFactory.decodeStream(in, null, o); in.close();
-                    o.inJustDecodeBounds = false; o.inSampleSize = Math.max(1, Math.max(o.outWidth, o.outHeight) / size);
-                    in = getContentResolver().openInputStream(u); bm = BitmapFactory.decodeStream(in, null, o); in.close();
-                }
-                ByteArrayOutputStream os = new ByteArrayOutputStream(); bm.compress(Bitmap.CompressFormat.JPEG, 82, os);
-                byte[] jb = os.toByteArray();
-                String res = "data:image/jpeg;base64," + Base64.encodeToString(jb, Base64.NO_WRAP);
-                if (cacheable) {
-                    thumbMem.put(ck, res);
-                    try {
-                        File td = new File(getCacheDir(), "thumbs"); td.mkdirs();
-                        java.io.FileOutputStream fo = new java.io.FileOutputStream(new File(td, ck + ".jpg")); fo.write(jb); fo.close();
-                    } catch (Exception e) { }
-                }
-                return res;
-            } catch (Exception e) { return ""; }
-        }
-
-        @JavascriptInterface public String getMediaCounts() {
-            JSONObject o = new JSONObject();
-            String[] ks = {"img", "vid", "aud"};
-            for (String k : ks) {
-                int n = -1;
-                try {
-                    Cursor c = getContentResolver().query(mediaUri(k), new String[]{MediaStore.MediaColumns._ID}, null, null, null);
-                    if (c != null) { n = c.getCount(); c.close(); }
-                } catch (Exception e) { }
-                try { o.put(k, n); } catch (Exception e) { }
-            }
-            return o.toString();
-        }
-        @JavascriptInterface public String listMedia(String kind) {
-            JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
-            try {
-                boolean aud = "aud".equals(kind), vid = "vid".equals(kind);
-                String order = aud ? MediaStore.Audio.Media.TITLE + " COLLATE NOCASE" : MediaStore.MediaColumns.DATE_ADDED + " DESC";
-                String[] proj;
-                if (aud) proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.Audio.Media.DURATION};
-                else if (vid) proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.Video.Media.DURATION};
-                else proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED};
-                Cursor c = getContentResolver().query(mediaUri(kind), proj, null, null, order);
-                if (c == null) { res.put("error", "Không đọc được thư viện"); }
-                else {
-                    int n = 0;
-                    while (c.moveToNext() && n++ < 10000) {
-                        JSONObject o = new JSONObject();
-                        o.put("id", c.getLong(0));
-                        String nm = c.getString(1); o.put("n", nm == null ? "" : nm);
-                        o.put("s", c.getLong(2)); o.put("m", c.getLong(3) * 1000L);
-                        if (c.getColumnCount() > 4) o.put("d", c.getLong(4));
-                        arr.put(o);
-                    }
-                    c.close();
-                }
-            } catch (SecurityException e) {
-                try { res.put("error", "Chưa cấp quyền truy cập ảnh, video và âm thanh"); } catch (Exception x) { }
-            } catch (Exception e) {
-                try { res.put("error", "Không đọc được thư viện"); } catch (Exception x) { }
-            }
-            try { res.put("list", arr); } catch (Exception e) { }
-            return res.toString();
-        }
-        @JavascriptInterface public String getMediaThumb(String kind, long id, int size) {
-            try {
-                Uri u = ContentUris.withAppendedId(mediaUri(kind), id);
-                Bitmap bm;
-                if (Build.VERSION.SDK_INT >= 29) bm = getContentResolver().loadThumbnail(u, new Size(size, size), null);
-                else if ("vid".equals(kind)) bm = MediaStore.Video.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Video.Thumbnails.MINI_KIND, null);
-                else bm = MediaStore.Images.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Images.Thumbnails.MINI_KIND, null);
-                if (bm == null) return "";
-                ByteArrayOutputStream os = new ByteArrayOutputStream(); bm.compress(Bitmap.CompressFormat.JPEG, 80, os);
-                return "data:image/jpeg;base64," + Base64.encodeToString(os.toByteArray(), Base64.NO_WRAP);
-            } catch (Exception e) { return ""; }
-        }
-        @JavascriptInterface public boolean openMedia(String kind, long id) {
-            try {
-                Uri u = ContentUris.withAppendedId(mediaUri(kind), id);
-                String mime = getContentResolver().getType(u);
-                if (mime == null) mime = "vid".equals(kind) ? "video/*" : "aud".equals(kind) ? "audio/*" : "image/*";
-                go(new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
-                return true;
-            } catch (Exception e) { return false; }
-        }
-
-        /* ---- Tệp thật ---- */
-        @JavascriptInterface public String getRoots() {
-            try {
-                File r = Environment.getExternalStorageDirectory(); JSONObject o = new JSONObject();
-                o.put("root", r.getAbsolutePath());
-                o.put("pics", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath());
-                o.put("dcim", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath());
-                o.put("music", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).getAbsolutePath());
-                o.put("docs", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath());
-                o.put("down", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath());
-                return o.toString();
-            } catch (Exception e) { return "{}"; }
-        }
-        @JavascriptInterface public String listDir(String path) {
-            try {
-                File dir = safeFile(path); JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
-                if (dir == null) { res.put("error", "Đường dẫn không hợp lệ"); res.put("list", arr); return res.toString(); }
-                File[] fs = dir.listFiles();
-                if (fs == null) { res.put("error", filesOk() ? "Không đọc được thư mục này" : "Chưa cấp quyền truy cập tệp"); res.put("list", arr); return res.toString(); }
-                Arrays.sort(fs, new Comparator<File>() { public int compare(File a, File b) {
-                    if (a.isDirectory() != b.isDirectory()) return a.isDirectory() ? -1 : 1;
-                    return a.getName().compareToIgnoreCase(b.getName()); } });
-                for (File f : fs) {
-                    if (f.getName().startsWith(".")) continue;
-                    JSONObject o = new JSONObject(); o.put("n", f.getName()); o.put("d", f.isDirectory()); o.put("s", f.length()); o.put("m", f.lastModified()); arr.put(o);
-                }
-                res.put("list", arr); return res.toString();
-            } catch (Exception e) { return "{\"error\":\"Lỗi đọc thư mục\",\"list\":[]}"; }
-        }
-        @JavascriptInterface public boolean shareFile(String path) {
-            try {
-                File f = safeFile(path); if (f == null) return false;
-                String mime = mimeOf(f.getName());
-                Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
-                Intent i = new Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                go(Intent.createChooser(i, "Chia sẻ"));
-                return true;
-            } catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public boolean renameFile(String path, String newName) {
-            try {
-                if (newName == null) return false;
-                newName = newName.trim();
-                if (newName.length() == 0 || newName.contains("/") || newName.startsWith(".")) return false;
-                File f = safeFile(path); if (f == null || f.getParentFile() == null) return false;
-                File t = new File(f.getParentFile(), newName);
-                if (newName.contains("..") || newName.indexOf('\0') >= 0) return false;
-                if (t.exists()) return false;
-                boolean ok = f.renameTo(t);
-                if (ok) { try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t))); } catch (Exception e) { } }
-                return ok;
-            } catch (Exception e) { return false; }
-        }
-        /** Lưu ảnh chụp (dataUrl JPEG) vào thư viện ảnh của máy, thư mục Pictures/Desktop Mini. Trả đường dẫn/URI, rỗng nếu lỗi. */
-        @JavascriptInterface public String savePhoto(String dataUrl) {
-            try {
-                byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
-                String nm = "IMG_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss_SSS", java.util.Locale.US).format(new java.util.Date()) + ".jpg";
-                if (Build.VERSION.SDK_INT >= 29) {
-                    ContentValues v = new ContentValues();
-                    v.put(MediaStore.Images.Media.DISPLAY_NAME, nm);
-                    v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                    v.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Desktop Mini");
-                    v.put(MediaStore.Images.Media.IS_PENDING, 1);
-                    Uri u = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
-                    if (u == null) return "";
-                    OutputStream os = getContentResolver().openOutputStream(u);
-                    os.write(by); os.close();
-                    v.clear(); v.put(MediaStore.Images.Media.IS_PENDING, 0);
-                    getContentResolver().update(u, v, null, null);
-                    return u.toString();
-                }
-                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Desktop Mini"); dir.mkdirs();
-                File f = new File(dir, nm);
-                FileOutputStream os2 = new FileOutputStream(f); os2.write(by); os2.close();
-                /* Đưa vào MediaStore ngay để có id (mở thẳng ảnh vừa chụp trong app Ảnh) */
-                try {
-                    ContentValues v2 = new ContentValues();
-                    v2.put(MediaStore.Images.Media.DISPLAY_NAME, nm);
-                    v2.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                    v2.put(MediaStore.Images.Media.DATA, f.getAbsolutePath());
-                    Uri u2 = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v2);
-                    if (u2 != null) return u2.toString();
-                } catch (Exception e2) { }
-                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f)));
-                return f.getAbsolutePath();
-            } catch (Exception e) { return ""; }
-        }
-        /** Chuyển tệp/thư mục vào thư mục khác. Trả "" nếu xong, ngược lại là lý do lỗi. */
-        @JavascriptInterface public String moveFile(String src, String destDir) {
-            try {
-                File f = safeFile(src), d = safeFile(destDir);
-                if (f == null || d == null) return "Đường dẫn không hợp lệ";
-                if (!f.exists()) return "Không tìm thấy tệp nguồn";
-                if (!d.isDirectory()) return "Thư mục đích không hợp lệ";
-                File t = new File(d, f.getName());
-                if (t.exists()) return "Thư mục đích đã có tệp cùng tên";
-                if (f.isDirectory()) {
-                    String a1 = f.getCanonicalPath() + "/", b1 = d.getCanonicalPath() + "/";
-                    if (b1.startsWith(a1)) return "Không thể chuyển thư mục vào chính nó";
-                }
-                boolean ok = f.renameTo(t);
-                if (!ok && f.isFile()) {
-                    java.io.FileInputStream in = new java.io.FileInputStream(f);
-                    FileOutputStream out = new FileOutputStream(t);
-                    byte[] buf = new byte[65536]; int n;
-                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-                    out.close(); in.close();
-                    t.setLastModified(f.lastModified());
-                    ok = f.delete();
-                    if (!ok) t.delete();
-                }
-                if (!ok) return "Không chuyển được (khác bộ nhớ hoặc thiếu quyền)";
-                try {
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f)));
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t)));
-                } catch (Exception e) { }
-                return "";
-            } catch (Exception e) { return "Lỗi khi chuyển tệp"; }
-        }
-        /* ---- Nhật ký lỗi ---- */
-        @JavascriptInterface public void logError(String where, String msg) { CrashLog.logJs(MainActivity.this, where, msg); }
-        @JavascriptInterface public String crashLogPath() { return CrashLog.where(MainActivity.this); }
-        /* ---- Thùng rác thật (giữ 7 ngày) ---- */
-        @JavascriptInterface public boolean trashFile(String path) {
-            try {
-                File f = safeFile(path); if (f == null) return false;
-                String id = TrashStore.trashFile(MainActivity.this, f);
-                if (id == null) return false;
-                try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); } catch (Exception e) { }
-                return true;
-            } catch (Exception e) { return false; }
-        }
-        @JavascriptInterface public String trashList() { return TrashStore.list(MainActivity.this); }
-        @JavascriptInterface public String trashRestore(String id) { return TrashStore.restore(MainActivity.this, id); }
-        @JavascriptInterface public int trashPurge(String ids) { return TrashStore.purge(MainActivity.this, ids); }
-        @JavascriptInterface public int trashPurgeOld() { return TrashStore.purgeOld(MainActivity.this); }
-        /** Chép tệp / thư mục vào thư mục khác (dùng cho Chép / Cắt - Dán). Trả "" nếu xong, ngược lại là lý do lỗi. */
-        @JavascriptInterface public String copyFile(String src, String destDir, boolean move) {
-            try {
-                File f = safeFile(src), d = safeFile(destDir);
-                if (f == null || d == null) return "Đường dẫn không hợp lệ";
-                if (!f.exists()) return "Không tìm thấy tệp nguồn";
-                if (!d.isDirectory()) return "Thư mục đích không hợp lệ";
-                if (f.isDirectory()) { String a1 = f.getCanonicalPath() + "/", b1 = d.getCanonicalPath() + "/"; if (b1.startsWith(a1)) return "Không thể chép thư mục vào chính nó"; }
-                File t = new File(d, f.getName());
-                if (t.exists()) {
-                    if (move && t.getCanonicalPath().equals(f.getCanonicalPath())) return "";
-                    String n = f.getName(), base = n, ext = ""; int dot = n.lastIndexOf('.');
-                    if (dot > 0 && f.isFile()) { base = n.substring(0, dot); ext = n.substring(dot); }
-                    for (int i = 1; i < 1000 && t.exists(); i++) t = new File(d, base + " (" + (i + 1) + ")" + ext);
-                }
-                boolean ok;
-                if (move) { ok = f.renameTo(t); if (!ok) { ok = TrashStore.copyRec(f, t); if (ok) TrashStore.delRec(f); else TrashStore.delRec(t); } }
-                else ok = TrashStore.copyRec(f, t);
-                if (!ok) return move ? "Không chuyển được" : "Không chép được";
-                try { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t))); if (move) sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); } catch (Exception e) { }
-                return "";
-            } catch (Exception e) { return "Lỗi khi chép tệp"; }
-        }
-        @JavascriptInterface public boolean deleteFile(String path) {
-            try {
-                File f = safeFile(path); if (f == null) return false;
-                if (f.isDirectory()) { File[] k = f.listFiles(); if (k != null && k.length > 0) return false; }
-                boolean ok = f.delete();
-                if (ok) { try { MediaStore.Files.getContentUri("external"); sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); } catch (Exception e) { } }
-                return ok;
-            } catch (Exception e) { return false; }
-        }
-        /* ---- Mở mọi loại tệp: nhận diện MIME theo đuôi tệp, APK, giải nén ZIP, "Mở bằng…" ---- */
-        private String extOf(String name) {
-            String n = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
-            int d = n.lastIndexOf('.');
-            return d >= 0 ? n.substring(d + 1) : "";
-        }
-        private String mimeOf(String name) {
-            String ext = extOf(name);
-            String[][] X = {
-                {"apk", "application/vnd.android.package-archive"},
-                {"zip", "application/zip"}, {"rar", "application/vnd.rar"}, {"7z", "application/x-7z-compressed"},
-                {"tar", "application/x-tar"}, {"gz", "application/gzip"}, {"tgz", "application/gzip"},
-                {"doc", "application/msword"}, {"docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
-                {"xls", "application/vnd.ms-excel"}, {"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
-                {"ppt", "application/vnd.ms-powerpoint"}, {"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
-                {"odt", "application/vnd.oasis.opendocument.text"}, {"ods", "application/vnd.oasis.opendocument.spreadsheet"}, {"odp", "application/vnd.oasis.opendocument.presentation"},
-                {"pdf", "application/pdf"}, {"epub", "application/epub+zip"}, {"csv", "text/csv"}, {"txt", "text/plain"}, {"md", "text/plain"},
-                {"log", "text/plain"}, {"json", "application/json"}, {"xml", "text/xml"}, {"html", "text/html"}, {"htm", "text/html"},
-                {"vcf", "text/x-vcard"}, {"ics", "text/calendar"},
-                {"mp3", "audio/mpeg"}, {"m4a", "audio/mp4"}, {"aac", "audio/aac"}, {"flac", "audio/flac"}, {"wav", "audio/x-wav"},
-                {"ogg", "audio/ogg"}, {"opus", "audio/ogg"}, {"amr", "audio/amr"}, {"mid", "audio/midi"}, {"wma", "audio/x-ms-wma"},
-                {"mp4", "video/mp4"}, {"m4v", "video/mp4"}, {"mkv", "video/x-matroska"}, {"webm", "video/webm"}, {"3gp", "video/3gpp"},
-                {"avi", "video/x-msvideo"}, {"mov", "video/quicktime"}, {"flv", "video/x-flv"}, {"wmv", "video/x-ms-wmv"}, {"ts", "video/mp2t"},
-                {"jpg", "image/jpeg"}, {"jpeg", "image/jpeg"}, {"png", "image/png"}, {"gif", "image/gif"}, {"webp", "image/webp"},
-                {"bmp", "image/bmp"}, {"heic", "image/heic"}, {"svg", "image/svg+xml"}
-            };
-            for (String[] x : X) if (x[0].equals(ext)) return x[1];
-            String m = ext.length() == 0 ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-            return m == null ? "*/*" : m;
-        }
-        /** Mở Uri bằng app phù hợp; thử đúng loại trước rồi mới thử mọi loại. Trả đúng/sai thật (không nuốt lỗi như go()). */
-        private boolean viewUri(Uri u, String mime) {
-            String[] tries = "*/*".equals(mime) ? new String[]{"*/*"} : new String[]{mime, "*/*"};
-            for (String m : tries) {
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(u, m)
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK));
-                    return true;
-                } catch (Exception e) { }
-            }
-            return false;
-        }
-        /** Trả "" nếu mở được, ngược lại là lý do để hiện cho người dùng. */
-        @JavascriptInterface public String openFileMsg(String path) {
-            try {
-                File f = safeFile(path);
-                if (f == null) return "Đường dẫn không hợp lệ";
-                if (!f.exists()) return "Không tìm thấy tệp";
-                if (f.isDirectory()) return "Đây là thư mục";
-                String ext = extOf(f.getName());
-                Uri u;
-                try { u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f); }
-                catch (Exception e) { return "Không đọc được tệp"; }
-                if ("apk".equals(ext)) {
-                    if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
-                        go(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
-                        return "Hãy bật \"Cho phép từ nguồn này\" cho Desktop Mini rồi bấm lại tệp APK";
-                    }
-                    return viewUri(u, "application/vnd.android.package-archive") ? "" : "Không mở được trình cài đặt";
-                }
-                return viewUri(u, mimeOf(f.getName())) ? "" : "Máy chưa có ứng dụng nào mở được loại tệp ." + ext + " (thử \"Mở bằng…\")";
-            } catch (Exception e) { return "Không mở được tệp"; }
-        }
-        @JavascriptInterface public boolean openFile(String path) { return openFileMsg(path).length() == 0; }
-        /** "Mở bằng…": luôn hiện hộp chọn ứng dụng. */
-        @JavascriptInterface public boolean openFileWith(String path) {
-            try {
-                File f = safeFile(path); if (f == null) return false;
-                Uri u = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
-                Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mimeOf(f.getName())).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                Intent c = Intent.createChooser(v, "Mở bằng");
-                c.setClipData(android.content.ClipData.newRawUri("", u));
-                c.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(c);
-                return true;
-            } catch (Exception e) { return false; }
-        }
-
-        /** Giải nén ZIP vào thư mục cùng tên cạnh tệp (chạy nền). Xong gọi window.nativeZipDone(token, json). */
-        @JavascriptInterface public void extractZipAsync(final String path, final String token) {
-            new Thread(new Runnable() { public void run() {
-                JSONObject res = new JSONObject();
-                File out = null; boolean ok = false;
-                try {
-                    File z = safeFile(path); if (z == null || z.getParentFile() == null) throw new java.io.IOException("Đường dẫn không hợp lệ");
-                    File parent = z.getParentFile();
-                    String base = z.getName(); int d = base.lastIndexOf('.'); if (d > 0) base = base.substring(0, d);
-                    out = new File(parent, base); int k = 2;
-                    while (out.exists()) { out = new File(parent, base + " " + k); k++; }
-                    if (!out.mkdirs()) throw new java.io.IOException("Không tạo được thư mục đích");
-                    ArrayList<String> made = new ArrayList<String>();
-                    java.util.zip.ZipFile zf;
-                    try { zf = new java.util.zip.ZipFile(z); }
-                    catch (IllegalArgumentException e) { zf = new java.util.zip.ZipFile(z, java.nio.charset.StandardCharsets.ISO_8859_1); }
-                    String root = out.getCanonicalPath() + File.separator;
-                    int count = 0;
-                    try {
-                        java.util.Enumeration<? extends java.util.zip.ZipEntry> en = zf.entries();
-                        while (en.hasMoreElements()) {
-                            java.util.zip.ZipEntry e = en.nextElement();
-                            if (++count > 100000) throw new java.io.IOException("Tệp ZIP có quá nhiều mục");
-                            File t = new File(out, e.getName());
-                            String cp = t.getCanonicalPath();
-                            if (!(cp + File.separator).startsWith(root)) continue; /* chặn zip-slip */
-                            if (e.isDirectory()) { t.mkdirs(); continue; }
-                            File pr = t.getParentFile(); if (pr != null) pr.mkdirs();
-                            InputStream in = zf.getInputStream(e); FileOutputStream os = new FileOutputStream(t);
-                            try { byte[] buf = new byte[65536]; int n; while ((n = in.read(buf)) > 0) os.write(buf, 0, n); }
-                            finally { os.close(); in.close(); }
-                            long tm = e.getTime(); if (tm > 0) t.setLastModified(tm);
-                            made.add(t.getAbsolutePath());
-                        }
-                    } finally { zf.close(); }
-                    ok = true;
-                    try { android.media.MediaScannerConnection.scanFile(MainActivity.this, made.toArray(new String[0]), null, null); } catch (Exception e) { }
-                    res.put("dir", out.getAbsolutePath()); res.put("n", made.size());
-                } catch (Exception e) {
-                    try { res.put("error", e.getMessage() == null ? "Tệp ZIP lỗi hoặc có mật khẩu" : e.getMessage()); } catch (Exception x) { }
-                }
-                if (!ok && out != null) rmTree(out);
-                final String js = "window.nativeZipDone&&window.nativeZipDone(" + JSONObject.quote(token) + "," + JSONObject.quote(res.toString()) + ")";
-                runOnUiThread(new Runnable() { public void run() { if (web != null) web.evaluateJavascript(js, null); } });
-            }}).start();
-        }
-        private void rmTree(File f) {
-            File[] k = f.listFiles();
-            if (k != null) for (File c : k) rmTree(c);
-            f.delete();
-        }
-
-        /** Gmail thật: mở app Gmail trên máy; không có thì thử app thư khác, cuối cùng mới mở web. */
-        @JavascriptInterface public boolean openMail() {
-            try {
-                PackageManager pm = getPackageManager();
-                Intent i = pm.getLaunchIntentForPackage("com.google.android.gm");
-                if (i == null) {
-                    Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_EMAIL);
-                    List<ResolveInfo> l = pm.queryIntentActivities(q, 0);
-                    for (ResolveInfo r : l) { if (!r.activityInfo.packageName.equals(getPackageName())) { i = pm.getLaunchIntentForPackage(r.activityInfo.packageName); if (i != null) break; } }
-                }
-                if (i == null) i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com/"));
-                go(i); return true;
-            } catch (Exception e) { return false; }
-        }
-
-        /* ---- Tải xuống: toàn bộ tệp trong thư mục Download của máy (kể cả thư mục con), qua MediaStore ---- */
-        @JavascriptInterface public String listDownloads() {
-            JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
-            try {
-                Uri base = MediaStore.Files.getContentUri("external");
-                String sel, args[];
-                if (Build.VERSION.SDK_INT >= 29) { sel = MediaStore.MediaColumns.RELATIVE_PATH + " LIKE ?"; args = new String[]{"Download/%"}; }
-                else { sel = MediaStore.MediaColumns.DATA + " LIKE ?"; args = new String[]{"%/Download/%"}; }
-                sel += " AND " + MediaStore.Files.FileColumns.MEDIA_TYPE + " IS NOT NULL";
-                Cursor c = getContentResolver().query(base, new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.MediaColumns.MIME_TYPE, MediaStore.MediaColumns.DATA},
-                    sel, args, MediaStore.MediaColumns.DATE_MODIFIED + " DESC");
-                if (c == null) res.put("error", "Không đọc được thư mục Tải xuống");
-                else {
-                    int n = 0;
-                    while (c.moveToNext() && n++ < 10000) {
-                        String nm = c.getString(1); if (nm == null || nm.startsWith(".")) continue;
-                        JSONObject o = new JSONObject(); o.put("id", c.getLong(0)); o.put("n", nm); o.put("s", c.getLong(2)); o.put("m", c.getLong(3) * 1000L);
-                        String mt = c.getString(4); o.put("t", mt == null ? "" : mt); String dp = c.getString(5); o.put("p", dp == null ? "" : dp); arr.put(o);
-                    }
-                    c.close();
-                }
-            } catch (SecurityException e) {
-                try { res.put("error", "Chưa cấp quyền truy cập tệp"); } catch (Exception x) { }
-            } catch (Exception e) {
-                try { res.put("error", "Không đọc được thư mục Tải xuống"); } catch (Exception x) { }
-            }
-            try { res.put("list", arr); } catch (Exception e) { }
-            return res.toString();
-        }
-        @JavascriptInterface public boolean openDownload(long id, String mime) {
-            try {
-                Uri u = ContentUris.withAppendedId(MediaStore.Files.getContentUri("external"), id);
-                return viewUri(u, (mime == null || mime.length() == 0) ? "*/*" : mime);
-            } catch (Exception e) { return false; }
-        }
-
-        /* ---- Lịch thật của máy ---- */
-        @JavascriptInterface public String getDeviceEvents(long start, long end) {
-            JSONArray arr = new JSONArray();
-            try {
-                if (checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return "[]";
-                Uri.Builder b = CalendarContract.Instances.CONTENT_URI.buildUpon();
-                ContentUris.appendId(b, start); ContentUris.appendId(b, end);
-                Cursor c = getContentResolver().query(b.build(), new String[]{CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN, CalendarContract.Instances.END, CalendarContract.Instances.ALL_DAY}, null, null, CalendarContract.Instances.BEGIN + " ASC");
-                if (c != null) { int n = 0;
-                    while (c.moveToNext() && n++ < 500) {
-                        JSONObject o = new JSONObject(); String t = c.getString(0); o.put("t", t == null ? "(Không tiêu đề)" : t);
-                        o.put("s", c.getLong(1)); o.put("e", c.getLong(2)); o.put("all", c.getInt(3) == 1); arr.put(o);
-                    }
-                    c.close(); }
-            } catch (Exception e) { }
-            return arr.toString();
-        }
-
-
-        /* ---- Trình duyệt Gecko nhúng trong cửa sổ ---- */
-        @JavascriptInterface public void gkShow(final float x, final float y, final float w, final float h) {
-            runOnUiThread(new Runnable() { public void run() {
-                try {
-                    float d = getResources().getDisplayMetrics().density;
-                    for (WebView v : ext.values()) v.setVisibility(View.GONE);
-                    gkEnsure();
-                    FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
-                    lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
-                    gkView.setLayoutParams(lp); gkView.setVisibility(View.VISIBLE);
-                    gkPush();
-                } catch (Throwable t) { CrashLog.log(MainActivity.this, "Trình duyệt Gecko không mở được (gkShow)", t); gkToast("Không mở được trình duyệt: " + t + "\nChi tiết: " + CrashLog.where(MainActivity.this)); }
-            }});
-        }
-        @JavascriptInterface public void gkHide() { runOnUiThread(new Runnable() { public void run() { gkHideNow(); } }); }
-        @JavascriptInterface public void gkClose() {
-            runOnUiThread(new Runnable() { public void run() {
-                if (gkView == null) return;
-                try { gkSession.close(); } catch (Exception e) { }
-                try { root.removeView(gkView); } catch (Exception e) { }
-                gkView = null; gkSession = null;
-            }});
-        }
-        @JavascriptInterface public void gkGo(final String text) {
-            runOnUiThread(new Runnable() { public void run() {
-                try { gkEnsure(); String t = text == null ? "" : text.trim(); if (t.length() > 0) gkSession.loadUri(gkToUrl(t)); } catch (Throwable e) { }
-            }});
-        }
-        @JavascriptInterface public void gkBack() { runOnUiThread(new Runnable() { public void run() { if (gkSession != null) gkSession.goBack(); } }); }
-        @JavascriptInterface public void gkForward() { runOnUiThread(new Runnable() { public void run() { if (gkSession != null) gkSession.goForward(); } }); }
-        @JavascriptInterface public void gkReload() { runOnUiThread(new Runnable() { public void run() { if (gkSession != null) gkSession.reload(); } }); }
-
-        /* ---- Gmail / Lịch Google: trình duyệt nhúng trong cửa sổ ---- */
-        @JavascriptInterface public void extShow(final String key, final String url, final float x, final float y, final float w, final float h) {
-            runOnUiThread(new Runnable() { public void run() {
-                float d = getResources().getDisplayMetrics().density;
-                gkHideNow();
-                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
-                if ("webandr".equals(key)) {
-                    try {
-                        View bv = browserGet(url).getRoot();
-                        FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
-                        bl.leftMargin = Math.round(x * d); bl.topMargin = Math.round(y * d);
-                        bv.setLayoutParams(bl); bv.setVisibility(View.VISIBLE);
-                    } catch (Throwable t) {
-                        CrashLog.log(MainActivity.this, "Duyệt web không mở được (extShow webandr)", t);
-                        browserHost = null;
-                        gkToast("Duyệt web không mở được: " + t + "\nChi tiết: " + CrashLog.where(MainActivity.this));
-                    }
-                    return;
-                }
-                browserHide();
-                WebView v = extGet(key, url);
-                extHiddenAt.remove(key);
-                try { v.onResume(); } catch (Exception x) { }
-                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
-                lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
-                v.setLayoutParams(lp); v.setVisibility(View.VISIBLE);
-                ZoomHelper zz = zooms.get(key); if (zz != null) zz.onShown();
-            }});
-        }
-        /** true = Ổ mềm chạy nhúng trong cửa sổ (Android < 9); false = dùng màn hình hồ sơ riêng (Android 9+, process riêng). */
-        @JavascriptInterface public boolean omemEmbedded() { return com.desktopmini.launcher.drive3.DriveEmbed.enabled(); }
-        @JavascriptInterface public void omemOpen(final String profile, final boolean upload) {
-            runOnUiThread(new Runnable() { public void run() { omemSwitch(profile, upload); } });
-        }
-        @JavascriptInterface public void extHide(final String key) {
-            runOnUiThread(new Runnable() { public void run() {
-                if (key == null || key.length() == 0 || "webandr".equals(key)) browserHide();
-                for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } markExtHidden(e.getKey()); }
-            }});
-        }
-        @JavascriptInterface public void extReload(final String key) {
-            runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (browserHost != null) browserHost.reload(); return; } WebView v = ext.get(key); if (v != null) v.reload(); } });
-        }
-        @JavascriptInterface public void extGo(final String key, final String url) {
-            runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { browserGet(url).openUrl(url); return; } WebView v = extGet(key, url); v.loadUrl(url); } });
-        }
-        /** Back trong cửa sổ Gõ văn bản: đóng hộp thoại/màn hình Tệp của trang trước, hết thì đóng cửa sổ. */
-        @JavascriptInterface public void wordBack() {
-            runOnUiThread(new Runnable() { public void run() { if (wordHost != null) wordHost.back(); } });
-        }
-        @JavascriptInterface public void extForward(final String key) {
-            runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (browserHost != null) browserHost.forward(); return; } WebView v = ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
-        }
-        /** Đóng hẳn WebView nhúng (dừng phát video/âm thanh khi đóng cửa sổ). */
-        @JavascriptInterface public void extClose(final String key) {
-            runOnUiThread(new Runnable() { public void run() {
-                extHideFull();
-                if ("webandr".equals(key)) {
-                    if (browserHost == null) return;
-                    final BrowserHost bh = browserHost; browserHost = null;
-                    bh.onPause();
-                    try { root.removeView(bh.getRoot()); } catch (Exception e) { }
-                    bh.destroy();
-                    return;
-                }
-                if ("omem".equals(key)) {
-                    if (omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(MainActivity.this, omemProfile);
-                    omemProfile = ""; omemPending = null; omemReady = false;
-                }
-                final WebView v = ext.remove(key);
-                zooms.remove(key); extHiddenAt.remove(key);
-                if (v == null) return;
-                if ("word".equals(key) && wordHost != null) {
-                    /* lưu nội dung đang gõ rồi mới hủy trang (lệnh lưu chạy bất đồng bộ) */
-                    final WordHost h = wordHost; wordHost = null;
-                    h.save();
-                    v.setVisibility(View.GONE);
-                    root.postDelayed(new Runnable() { public void run() { h.destroy(); try { root.removeView(v); v.destroy(); } catch (Exception e) { } } }, 500);
-                    return;
-                }
-                try { v.loadUrl("about:blank"); root.removeView(v); v.destroy(); } catch (Exception e) { }
-            }});
-        }
-        @JavascriptInterface public String extUrl(final String key) {
-            if ("webandr".equals(key)) return browserHost == null ? "" : browserHost.currentUrl();
-            WebView v = ext.get(key); return v == null || v.getUrl() == null ? "" : v.getUrl();
-        }
-        @JavascriptInterface public void extBack(final String key) {
-            runOnUiThread(new Runnable() { public void run() {
-                if ("webandr".equals(key)) {
-                    /* hết việc để lùi (không còn bảng/trang/thẻ) thì đóng cửa sổ Duyệt web */
-                    if (browserHost == null || !browserHost.back()) web.evaluateJavascript("window.nativeCloseApp&&window.nativeCloseApp('webbrowser')", null);
-                    return;
-                }
-                WebView v = ext.get(key); if (v != null && v.canGoBack()) v.goBack(); } });
-        }
-    }
 }

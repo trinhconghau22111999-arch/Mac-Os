@@ -155,10 +155,9 @@ public class LockService extends AccessibilityService {
         private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG),
             ic = new Paint(Paint.ANTI_ALIAS_FLAG), tx = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rf = new RectF();
-        private Bitmap pic; private final Rect src = new Rect(), dst = new Rect();
+        private final Rect src = new Rect(), dst = new Rect();
         DeskButton(Context c) {
             super(c);
-            try { pic = BitmapFactory.decodeResource(c.getResources(), R.drawable.desk_bar_bg); } catch (Throwable t) { pic = null; }
             bg.setColor(0xFF000000); bg.setStyle(Paint.Style.FILL);
             ring.setColor(0x59FFFFFF); ring.setStyle(Paint.Style.STROKE); ring.setStrokeWidth(dp(1));
             ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.5f));
@@ -169,6 +168,7 @@ public class LockService extends AccessibilityService {
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), hh = getHeight(), cx = w / 2, cy = hh / 2;
             c.drawRect(0, 0, w, hh, bg);
+            Bitmap pic = barPic();
             if (pic != null) {
                 /* nền = dải cạnh dưới của hình, phủ kín chiều ngang, cắt bớt chiều dọc (căn giữa) */
                 int pw = pic.getWidth(), ph = pic.getHeight();
@@ -198,6 +198,21 @@ public class LockService extends AccessibilityService {
             }
             return true;
         }
+    }
+
+    /* Ảnh nền thanh: giải mã đúng một lần rồi dùng lại; chỉ giải phóng khi dịch vụ tắt hoặc máy báo thiếu RAM */
+    private Bitmap barPic; private boolean barPicTried;
+    private Bitmap barPic() {
+        if (barPic == null && !barPicTried) {
+            barPicTried = true;
+            try { barPic = BitmapFactory.decodeResource(getResources(), R.drawable.desk_bar_bg); } catch (Throwable t) { barPic = null; }
+        }
+        return barPic;
+    }
+    private void freeBarPic() { barPic = null; barPicTried = false; }
+    @Override public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (level >= TRIM_MEMORY_BACKGROUND || level >= TRIM_MEMORY_RUNNING_CRITICAL) freeBarPic();
     }
 
     /** Chiều cao thanh điều hướng của hệ thống (đúng theo hướng màn hình), tối thiểu 40dp để chắc chắn che kín. */
@@ -249,6 +264,6 @@ public class LockService extends AccessibilityService {
     }
 
     private void tearDown() {
-        removeButton(); setImmersivePolicy(false);
+        removeButton(); freeBarPic(); setImmersivePolicy(false);
     }
 }
