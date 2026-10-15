@@ -158,6 +158,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 .da .dl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
 .dghost{position:absolute;z-index:30;pointer-events:none;opacity:.92;transform:scale(1.1);background:rgba(255,255,255,.18);box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .da.dmov{opacity:.28}
+.da.dsel{background:rgba(110,165,255,.38);box-shadow:0 0 0 1.5px rgba(170,205,255,.9) inset}
+.mqbox{position:fixed;z-index:99999;border:1px solid #6aa7ff;background:rgba(80,140,255,.22);pointer-events:none;border-radius:3px}
 .da.dtgt{background:rgba(255,255,255,.28);box-shadow:0 0 0 2px rgba(255,255,255,.55) inset}
 .mcbg{position:absolute;inset:0;z-index:1;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s}
 .stage.mc .mcbg{background:rgba(0,0,0,.42);pointer-events:auto}
@@ -2469,6 +2471,38 @@ function buildRealFiles(b,w,arg,mode){
       window.addEventListener('pointermove',dMove); window.addEventListener('pointerup',dUp); window.addEventListener('pointercancel',dEnd);
     });
   }
+  /* Kéo khung trên khoảng trống để chọn nhiều tệp (chuột: kéo ngay; cảm ứng: giữ yên ~0,35 giây rồi kéo) */
+  (function(){
+    let mq=null, box=null;
+    const hit=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+    function stop(){ if(mq&&mq.t)clearTimeout(mq.t); mq=null; if(box){box.remove();box=null}; window.removeEventListener('pointermove',mm); window.removeEventListener('pointerup',mu); window.removeEventListener('pointercancel',mu) }
+    function mm(e){
+      if(!mq||e.pointerId!==mq.pid)return;
+      if(!mq.on){
+        const d=Math.hypot(e.clientX-mq.sx,e.clientY-mq.sy);
+        if(mq.touch&&!mq.armed){ if(d>8)stop(); return }
+        if(d<6)return;
+        mq.on=true; box=document.createElement('div'); box.className='mqbox'; document.body.appendChild(box);
+      }
+      if(e.cancelable)e.preventDefault();
+      const l=Math.min(mq.sx,e.clientX), t=Math.min(mq.sy,e.clientY), r=Math.max(mq.sx,e.clientX), b=Math.max(mq.sy,e.clientY);
+      box.style.left=l+'px'; box.style.top=t+'px'; box.style.width=(r-l)+'px'; box.style.height=(b-t)+'px';
+      const R={left:l,top:t,right:r,bottom:b};
+      SEL.clear(); mq.base.forEach(v=>SEL.add(v));
+      $$('.rfi,.mt',list).forEach(x=>{ if(x.dataset.full&&hit(R,x.getBoundingClientRect()))SEL.add(x.dataset.full) });
+      selUpdate();
+    }
+    function mu(){ const on=mq&&mq.on; stop(); if(on)noClick=Date.now()+500 }
+    list.addEventListener('pointerdown',e=>{
+      if(e.button!==0||D||mq)return;
+      if(e.target.closest('.rfi,.mt,button,input,a,[data-setup],.rnote'))return;
+      const touch=e.pointerType!=='mouse';
+      mq={sx:e.clientX,sy:e.clientY,on:false,touch,armed:!touch,pid:e.pointerId,t:null,base:(e.shiftKey||e.ctrlKey)?new Set(SEL):new Set()};
+      if(touch)mq.t=setTimeout(()=>{if(mq)mq.armed=true},350);
+      window.addEventListener('pointermove',mm); window.addEventListener('pointerup',mu); window.addEventListener('pointercancel',mu);
+    });
+    list.addEventListener('touchmove',e=>{if(mq&&mq.on&&e.cancelable)e.preventDefault()},{passive:false});
+  })();
   list.addEventListener('touchmove',e=>{if(D&&D.active&&e.cancelable)e.preventDefault()},{passive:false});
   list.addEventListener('contextmenu',e=>{if(D&&D.active){e.preventDefault();e.stopPropagation()}},true);
   list.addEventListener('click',e=>{if(Date.now()<noClick){e.preventDefault();e.stopPropagation()}},true);
@@ -3466,6 +3500,7 @@ const diskIcon='<span class="fic disk"><svg viewBox="0 0 48 40"><rect x="3" y="8
 function renderDesk(){
   const lay=deskLayout(deskRows());
   desk.innerHTML=deskApps().map(id=>'<div class="da" data-app="'+id+'" style="grid-column:'+(lay[id][0]+1)+';grid-row:'+(lay[id][1]+1)+'" tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
+  deskSelApply();
   return;
   let h='<div class="di" data-i="-1" aria-selected="'+(dsel===-1)+'" tabindex="0">'+diskIcon+'<span class="dl">Ổ đĩa</span></div>';
   FS.desk.forEach((it,i)=>{
@@ -3510,6 +3545,7 @@ let deskDragEnd=0, deskDragOn=false;
       const g=dr.el.cloneNode(true); g.className='da dghost'; g.style.width=r.width+'px'; g.style.height=r.height+'px';
       stage.appendChild(g); dr.gh=g; dr.el.classList.add('dmov');
       dr.pos=deskLayout(deskRows()); dr.from=dr.pos[dr.el.dataset.app]; dr.tgt=null; dr.occ=null; deskDragOn=true;
+      if(DSEL.size>1&&DSEL.has(dr.el.dataset.app)){dr.group=[...DSEL]; dr.group.forEach(k=>{const q=$('.da[data-app="'+k+'"]',desk); if(q)q.classList.add('dmov')})}
     }
     dr.gh.style.left=(e.clientX-dr.ox-sr.left)+'px'; dr.gh.style.top=(e.clientY-dr.oy-sr.top)+'px';
     const dRect=desk.getBoundingClientRect();
@@ -3519,6 +3555,7 @@ let deskDragEnd=0, deskDragOn=false;
     let maxCol=0; for(const k in dr.pos)maxCol=Math.max(maxCol,dr.pos[k][0]);
     row=Math.max(0,Math.min(m.rows-1,row)); col=Math.max(0,Math.min(maxCol+1,col));
     dr.tgt=[col,row];
+    if(dr.group)return;   /* kéo cả nhóm: icon gốc ở yên, chỉ tính ô đích */
     let occ=null; for(const k in dr.pos){if(k!==id&&dr.pos[k][0]===col&&dr.pos[k][1]===row){occ=k;break}}
     if(occ!==dr.occ){
       const old=dr.occ&&$('.da[data-app="'+dr.occ+'"]',desk); if(old)old.classList.remove('dtgt');
@@ -3536,6 +3573,16 @@ let deskDragEnd=0, deskDragOn=false;
     deskDragEnd=Date.now(); deskDragOn=false;
     if(d.gh)d.gh.remove();
     d.el.classList.remove('dmov');
+    if(d.group){
+      $$('.da.dmov',desk).forEach(q=>q.classList.remove('dmov'));
+      if(e.type==='pointerup'&&d.tgt&&d.from){
+        const dx=d.tgt[0]-d.from[0], dy=d.tgt[1]-d.from[1], rows=deskRows(), np={}; let ok=true;
+        d.group.forEach(k=>{const p=d.pos[k]; if(!p){ok=false;return} const c=p[0]+dx, r=p[1]+dy; if(c<0||r<0||r>=rows)ok=false; np[k]=[c,r]});
+        if(ok)for(const k in d.pos){if(d.group.indexOf(k)<0){const p=d.pos[k]; for(const g in np)if(np[g][0]===p[0]&&np[g][1]===p[1])ok=false}}
+        if(ok){const prev=DESKPOS; DESKPOS={}; for(const k in prev)if(Array.isArray(prev[k]))DESKPOS[k]=prev[k]; for(const k in d.pos)if(!Array.isArray(prev[k]))DESKPOS[k]=[d.pos[k][0],d.pos[k][1]]; for(const k in np)DESKPOS[k]=np[k]; saveDeskPos()}
+      }
+      renderDesk(); return;
+    }
     if(e.type==='pointerup'&&d.tgt&&d.from){
       const id=d.el.dataset.app, pos=d.pos;
       if(d.occ)pos[d.occ]=d.from; /* ô đích có icon: hai icon đổi chỗ, không dồn ai */
@@ -3549,6 +3596,41 @@ let deskDragEnd=0, deskDragOn=false;
     renderDesk();
   };
   window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
+})();
+/* Kéo khung trên nền trống (bằng chuột) để chọn nhiều icon; kéo 1 icon đã chọn thì cả nhóm di chuyển cùng; thả chuột ra là hiện menu Xóa khỏi màn hình */
+var DSEL=new Set();
+function deskSelApply(){ if(!DSEL)return; $$('.da',desk).forEach(el=>el.classList.toggle('dsel',DSEL.has(el.dataset.app))) }
+(function(){
+  let mq=null, box=null;
+  const hit=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+  desk.addEventListener('pointerdown',e=>{
+    if(e.button!==0||stage.classList.contains('mc'))return;
+    const ic=e.target.closest('.da');
+    if(ic){ if(!DSEL.has(ic.dataset.app)&&DSEL.size){DSEL.clear();deskSelApply()} return }
+    if(e.pointerType!=='mouse'||e.target.closest('.di,.rn'))return;
+    mq={sx:e.clientX,sy:e.clientY,on:false,pid:e.pointerId,base:(e.shiftKey||e.ctrlKey)?new Set(DSEL):new Set()};
+    if(!mq.base.size&&DSEL.size){DSEL.clear();deskSelApply()}
+  });
+  window.addEventListener('pointermove',e=>{
+    if(!mq||e.pointerId!==mq.pid)return;
+    if(!mq.on){ if(Math.hypot(e.clientX-mq.sx,e.clientY-mq.sy)<6)return; mq.on=true; closeAllPopups(); box=document.createElement('div'); box.className='mqbox'; document.body.appendChild(box) }
+    const l=Math.min(mq.sx,e.clientX), t=Math.min(mq.sy,e.clientY), r=Math.max(mq.sx,e.clientX), b=Math.max(mq.sy,e.clientY);
+    box.style.left=l+'px'; box.style.top=t+'px'; box.style.width=(r-l)+'px'; box.style.height=(b-t)+'px';
+    const R={left:l,top:t,right:r,bottom:b}; DSEL=new Set(mq.base);
+    $$('.da',desk).forEach(el=>{ if(hit(R,el.getBoundingClientRect()))DSEL.add(el.dataset.app) });
+    deskSelApply();
+  });
+  const end=e=>{
+    if(!mq||e.pointerId!==mq.pid)return;
+    const m=mq; mq=null; if(box){box.remove();box=null}
+    if(!m.on||e.type!=='pointerup')return;
+    deskDragEnd=Date.now();
+    if(!DSEL.size)return;
+    const n=DSEL.size, rc={left:e.clientX,top:e.clientY,right:e.clientX,bottom:e.clientY,width:0,height:0};
+    popAt(e.clientX,e.clientY,[{t:'Xóa '+n+' icon khỏi màn hình desktop',fn:()=>{const ids=[...DSEL]; DSEL.clear(); ids.forEach(id=>removeFromDesk(id)); deskSelApply()}},'-',{t:'Bỏ chọn',fn:()=>{DSEL.clear();deskSelApply()}}],rc);
+  };
+  window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
+  window.addEventListener('keydown',e=>{ if(e.key==='Escape'&&DSEL.size){DSEL.clear();deskSelApply()} });
 })();
 /* Xoay màn hình / đổi cỡ cửa sổ: số hàng đổi nên dựng lại lưới (vị trí đã lưu vẫn giữ, icon nào không còn vừa thì tạm vào ô trống đầu tiên) */
 let deskRzT; window.addEventListener('resize',()=>{clearTimeout(deskRzT);deskRzT=setTimeout(()=>{if(!deskDragOn)renderDesk()},150)});
