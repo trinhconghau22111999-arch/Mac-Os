@@ -578,6 +578,7 @@ public class MainActivity extends Activity {
     private final android.database.ContentObserver mediaObs = new android.database.ContentObserver(new android.os.Handler(android.os.Looper.getMainLooper())) {
         @Override public void onChange(boolean selfChange) {
             /* Thư viện vừa thay đổi (ảnh mới, quét xong...): chỉ nạp lại danh sách, không quét thêm để tránh lặp */
+            invalidatePhotos();
             reaper.removeCallbacks(doReload); reaper.postDelayed(doReload, 800);
         }
     };
@@ -620,6 +621,18 @@ public class MainActivity extends Activity {
         fileObs.clear();
         reaper.removeCallbacks(doScan); reaper.removeCallbacks(doReload);
     }
+    /* Bộ nhớ đệm ảnh nhỏ: RAM (tối đa ~10 MB) + ổ đĩa (cacheDir/thumbs, tự dọn khi quá nhiều) */
+    private final android.util.LruCache<String, String> thumbMem = new android.util.LruCache<String, String>(10 * 1024 * 1024) {
+        @Override protected int sizeOf(String k, String v) { return v.length() * 2; }
+    };
+    private void trimThumbs() {
+        try {
+            File[] fs = new File(getCacheDir(), "thumbs").listFiles();
+            if (fs == null || fs.length <= 4000) return;
+            java.util.Arrays.sort(fs, new java.util.Comparator<File>() { @Override public int compare(File a, File b) { return Long.compare(a.lastModified(), b.lastModified()); } });
+            for (int i = 0; i < fs.length - 3000; i++) fs[i].delete();
+        } catch (Exception e) { }
+    }
     private void scanNewMedia() { scanMedia(false); }
     /** Gốc các ổ lưu trữ: bộ nhớ trong + thẻ nhớ ngoài (nếu có). */
     private java.util.ArrayList<File> storageRoots() {
@@ -647,6 +660,35 @@ public class MainActivity extends Activity {
         return known;
     }
     /* Tìm mọi tệp ảnh/video/nhạc nằm trong bộ nhớ nhưng thư viện chưa biết (so với MediaStore, không dựa vào ngày sửa tệp) rồi nhờ hệ thống quét; xong thì nạp lại danh sách. */
+    private volatile String photosCache = null; private volatile int photosGen = 0;
+    private void invalidatePhotos() { photosGen++; photosCache = null; }
+    private final java.util.HashSet<String> triedMedia = new java.util.HashSet<String>();
+    private static final String[] PRIO_DIRS = {"DCIM", "Pictures", "Download", "Movies", "Music", "Documents"};
+    private void reloadUi() {
+        invalidatePhotos();
+        runOnUiThread(new Runnable() { public void run() { try { web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null); } catch (Exception e) { } } });
+    }
+    private void newestFirst(java.util.ArrayList<File> l) {
+        java.util.Collections.sort(l, new java.util.Comparator<File>() {
+            @Override public int compare(File a, File b) { return Long.compare(b.lastModified(), a.lastModified()); }
+        });
+    }
+    /** Nhờ hệ thống quét một lô tệp (tối đa 5000, mới nhất trước) và chờ quét xong. */
+    private void scanBatch(java.util.ArrayList<File> files, java.util.HashSet<String> done) {
+        int n = Math.min(files.size(), 5000); if (n == 0) return;
+        final String[] paths = new String[n];
+        for (int i = 0; i < n; i++) {
+            File f = files.get(i); paths[i] = f.getAbsolutePath(); done.add(paths[i]);
+            synchronized (triedMedia) { triedMedia.add(paths[i] + "|" + f.lastModified()); }
+        }
+        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(n);
+        android.media.MediaScannerConnection.scanFile(MainActivity.this, paths, null, new android.media.MediaScannerConnection.OnScanCompletedListener() {
+            @Override public void onScanCompleted(String path, Uri uri) { latch.countDown(); }
+        });
+        try { latch.await(180, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException e) { }
+    }
+    /* Tìm mọi tệp ảnh/video/nhạc nằm trong bộ nhớ nhưng thư viện chưa biết (so với MediaStore, không dựa vào ngày sửa tệp) rồi nhờ hệ thống quét.
+       Hai lượt: thư mục ảnh/video chính quét trước và hiện ngay, phần còn lại của bộ nhớ quét sau. */
     private void scanMedia(final boolean force) {
         if (scanBusy) { scanAgain = true; return; }
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
@@ -654,31 +696,25 @@ public class MainActivity extends Activity {
             && !(Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED)) return;
         scanBusy = true; scanAgain = false;
         new Thread(new Runnable() { public void run() {
-            boolean started = false;
             try {
+                trimThumbs();
                 final java.util.HashSet<String> known = knownMediaPaths();
-                final java.util.ArrayList<File> found = new java.util.ArrayList<File>();
-                for (File r : storageRoots()) walkMedia(r, known, found, 0);
-                if (found.isEmpty()) return;
-                java.util.Collections.sort(found, new java.util.Comparator<File>() {
-                    @Override public int compare(File a, File b) { return Long.compare(b.lastModified(), a.lastModified()); }
-                });
-                int n = Math.min(found.size(), 3000);
-                final String[] paths = new String[n];
-                for (int i = 0; i < n; i++) paths[i] = found.get(i).getAbsolutePath();
-                final int[] left = {n};
-                started = true;
-                android.media.MediaScannerConnection.scanFile(MainActivity.this, paths, null, new android.media.MediaScannerConnection.OnScanCompletedListener() {
-                    @Override public void onScanCompleted(String path, Uri uri) {
-                        boolean done; synchronized (left) { done = --left[0] <= 0; }
-                        if (done) {
-                            scanBusy = false;
-                            runOnUiThread(new Runnable() { public void run() { if (scanAgain) scanMedia(true); try { web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null); } catch (Exception e) { } } });
-                        }
-                    }
-                });
-            } catch (Throwable e) { started = false; } finally {
-                if (!started) { scanBusy = false; if (scanAgain) runOnUiThread(new Runnable() { public void run() { scanMedia(true); } }); }
+                final java.util.HashSet<String> done = new java.util.HashSet<String>();
+                java.util.ArrayList<File> roots = storageRoots();
+                java.util.ArrayList<File> f1 = new java.util.ArrayList<File>();
+                for (File r : roots) for (String sub : PRIO_DIRS) { File d = new File(r, sub); if (d.isDirectory()) walkMedia(d, known, f1, 1); }
+                newestFirst(f1);
+                if (!f1.isEmpty()) { scanBatch(f1, done); reloadUi(); }
+                java.util.ArrayList<File> f2 = new java.util.ArrayList<File>();
+                for (File r : roots) walkMedia(r, known, f2, 0);
+                java.util.Iterator<File> it = f2.iterator();
+                while (it.hasNext()) if (done.contains(it.next().getAbsolutePath())) it.remove();
+                newestFirst(f2);
+                if (!f2.isEmpty()) { scanBatch(f2, done); reloadUi(); }
+            } catch (Throwable e) { }
+            finally {
+                scanBusy = false;
+                if (scanAgain) runOnUiThread(new Runnable() { public void run() { scanMedia(true); } });
             }
         } }).start();
     }
@@ -692,7 +728,10 @@ public class MainActivity extends Activity {
             if (f.isDirectory()) { if (depth == 0 && nm.equals("Android")) continue; walkMedia(f, known, out, depth + 1); }
             else {
                 int i = nm.lastIndexOf('.');
-                if (i > 0 && f.length() > 0 && MEDIA_EXT.contains(nm.substring(i + 1).toLowerCase(java.util.Locale.ROOT)) && !known.contains(f.getAbsolutePath())) out.add(f);
+                if (i > 0 && f.length() > 0 && MEDIA_EXT.contains(nm.substring(i + 1).toLowerCase(java.util.Locale.ROOT)) && !known.contains(f.getAbsolutePath())) {
+                    boolean tried; synchronized (triedMedia) { tried = triedMedia.contains(f.getAbsolutePath() + "|" + f.lastModified()); }
+                    if (!tried) out.add(f);
+                }
             }
         }
     }
@@ -1817,6 +1856,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return false; }
         }
         @JavascriptInterface public boolean saveImage(String dataUrl) {
+            invalidatePhotos();
             try {
                 byte[] by = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
                 ContentValues v = new ContentValues();
@@ -1831,6 +1871,7 @@ public class MainActivity extends Activity {
         }
         /** 1 = đã xóa, 2 = đang chờ người dùng xác nhận trong hộp thoại hệ thống, 0 = thất bại. */
         @JavascriptInterface public int deletePhoto(long id) {
+            invalidatePhotos();
             final Uri u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
             try { return getContentResolver().delete(u, null, null) > 0 ? 1 : 0; }
             catch (final SecurityException se) {
@@ -2139,6 +2180,8 @@ public class MainActivity extends Activity {
         /** Ép quét lại bộ nhớ tìm ảnh/video/nhạc chưa có trong thư viện (gọi khi mở app Ảnh/Tệp). */
         @JavascriptInterface public void rescanMedia() { scanMedia(true); }
         @JavascriptInterface public String getPhotos() {
+            String pc = photosCache; if (pc != null) return pc;
+            final int gen = photosGen;
             JSONArray arr = new JSONArray();
             try {
                 /* Cột đường dẫn: RELATIVE_PATH (Android 10+) hoặc DATA, để phân loại Ảnh chụp / Ảnh chụp màn hình */
@@ -2171,10 +2214,26 @@ public class MainActivity extends Activity {
                     }
                 }
             } catch (Exception e) { }
-            return arr.toString();
+            String out = arr.toString();
+            /* Chỉ nhớ khi đã có bộ theo dõi báo thay đổi, để danh sách luôn mới */
+            if (mediaWatching && arr.length() > 0 && gen == photosGen) photosCache = out;
+            return out;
         }
         @JavascriptInterface public String getPhotoData(long id, int size) {
             try {
+                final boolean cacheable = size <= 400;
+                final String ck = id + "_" + size;
+                if (cacheable) {
+                    String hit = thumbMem.get(ck); if (hit != null) return hit;
+                    File tf = new File(new File(getCacheDir(), "thumbs"), ck + ".jpg");
+                    if (tf.isFile() && tf.length() > 0) {
+                        try {
+                            java.io.FileInputStream fi = new java.io.FileInputStream(tf); byte[] bb = new byte[(int) tf.length()];
+                            int off = 0; while (off < bb.length) { int r = fi.read(bb, off, bb.length - off); if (r < 0) break; off += r; } fi.close();
+                            if (off == bb.length) { String d = "data:image/jpeg;base64," + Base64.encodeToString(bb, Base64.NO_WRAP); thumbMem.put(ck, d); return d; }
+                        } catch (Exception e) { }
+                    }
+                }
                 Uri u = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
                 Bitmap bm;
                 if (Build.VERSION.SDK_INT >= 29) bm = getContentResolver().loadThumbnail(u, new Size(size, size), null);
@@ -2185,7 +2244,16 @@ public class MainActivity extends Activity {
                     in = getContentResolver().openInputStream(u); bm = BitmapFactory.decodeStream(in, null, o); in.close();
                 }
                 ByteArrayOutputStream os = new ByteArrayOutputStream(); bm.compress(Bitmap.CompressFormat.JPEG, 82, os);
-                return "data:image/jpeg;base64," + Base64.encodeToString(os.toByteArray(), Base64.NO_WRAP);
+                byte[] jb = os.toByteArray();
+                String res = "data:image/jpeg;base64," + Base64.encodeToString(jb, Base64.NO_WRAP);
+                if (cacheable) {
+                    thumbMem.put(ck, res);
+                    try {
+                        File td = new File(getCacheDir(), "thumbs"); td.mkdirs();
+                        java.io.FileOutputStream fo = new java.io.FileOutputStream(new File(td, ck + ".jpg")); fo.write(jb); fo.close();
+                    } catch (Exception e) { }
+                }
+                return res;
             } catch (Exception e) { return ""; }
         }
 

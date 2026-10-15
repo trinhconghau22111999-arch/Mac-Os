@@ -2849,7 +2849,7 @@ function buildClock(b,w){
     $$('.seg3 button',b).forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.k===tab)));
     if(tab==='world'){
       body.innerHTML='<div class="wgrid">'+CITIES.map(c=>'<div class="wc" data-tz="'+c[1]+'">'+face()+'<b>'+c[0]+'</b><span class="wt"></span><small class="wd"></small></div>').join('')+'</div>';
-      worldTick(); timers.push(setInterval(worldTick,1000));
+      worldTick(); timers.push(setInterval(()=>{if(!document.hidden)worldTick()},1000));
     }else if(tab==='sw'){
       let run=false, t0=0, el=0, laps=[];
       body.innerHTML='<div class="swb"><div class="big sd">00:00.00</div><div class="swc"><button class="btn lp2">Vòng</button><button class="btn pri st">Bắt đầu</button></div><ol class="laps"></ol></div>';
@@ -2861,7 +2861,7 @@ function buildClock(b,w){
         if(run){laps.unshift(f(el+performance.now()-t0))}else{el=0;laps=[];st.textContent='Bắt đầu';lp.textContent='Vòng'}
         ol.innerHTML=laps.map((x,i)=>'<li><span>Vòng '+(laps.length-i)+'</span><span>'+x+'</span></li>').join(''); upd();
       });
-      timers.push(setInterval(upd,47));
+      timers.push(setInterval(()=>{if(!document.hidden)upd()},47));
     }else{
       const NA2=()=>window.AndroidLauncher||null;
       let AL=jget('dm-alarms',[]), SND=[{name:'Mặc định',uri:''}], sel=0, rep=false;

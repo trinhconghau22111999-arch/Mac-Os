@@ -29,6 +29,8 @@ android {
         // Muốn đóng cho máy khác: -Pabis=arm64-v8a (hoặc nhập ở nút Run workflow), ví dụ 'arm64-v8a,x86_64,x86' cho cả ba loại CPU
         def abis = ((project.findProperty('abis') ?: 'x86') as String).split(',').collect { it.trim() }.findAll { it }
         ndk { abiFilters.addAll(abis) }
+        // Chỉ giữ tài nguyên tiếng Việt + tiếng Anh của các thư viện (bỏ hàng chục ngôn ngữ không dùng) cho APK nhẹ hơn
+        resConfigs 'vi', 'en'
     }
     signingConfigs {
         release {
