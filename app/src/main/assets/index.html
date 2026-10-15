@@ -3985,11 +3985,13 @@ function otFmt(s){const m=Math.floor(s/60),h=Math.floor(m/60);return h?h+'h'+pad
 function otTick(){
   const now=Date.now(), day=new Date().toDateString();
   if(OT.d!==day){OT.d=day;OT.s=0}
-  if(OT.last&&!document.hidden){const dt=(now-OT.last)/1000; if(dt>0&&dt<120)OT.s+=dt}
-  OT.last=document.hidden?0:now;
+  if(!OT.native){   /* chạy ngoài app Android: tạm đo theo lúc trang đang hiện */
+    if(OT.last&&!document.hidden){const dt=(now-OT.last)/1000; if(dt>0&&dt<120)OT.s+=dt}
+    OT.last=document.hidden?0:now;
+  }
   const el=$('#ontimetx'); if(el)el.textContent='OnTime '+otFmt(OT.s);
   const b=$('#ontime'); if(b)b.title='Thời gian sử dụng màn hình hôm nay: '+otFmt(OT.s);
-  try{lsSet('dm-ontime',JSON.stringify({d:OT.d,s:Math.round(OT.s)}))}catch(e){}
+  if(!OT.native)try{lsSet('dm-ontime',JSON.stringify({d:OT.d,s:Math.round(OT.s)}))}catch(e){}
 }
 try{const o=JSON.parse(lsGet('dm-ontime')||'{}'); if(o.d===new Date().toDateString()){OT.d=o.d;OT.s=+o.s||0}}catch(e){}
 otTick(); setInterval(otTick,5000);
@@ -4141,6 +4143,9 @@ if(window.AndroidLauncher){(function(){
   /* RAM thật: cập nhật mỗi 5 giây */
   function realRam(){if(!A.getRam)return;const o=safe(()=>JSON.parse(A.getRam()),{});if(o.total)ramUpdate(o.total,o.free||0)}
   dmEvery(realRam,5000); realRam();
+  /* OnTime: thời gian màn hình sáng thật của cả máy do Android đo (ScreenTime) */
+  function realOT(){if(!A.getScreenOnMs)return;const ms=safe(()=>A.getScreenOnMs(),-1);if(ms>=0){OT.native=true;OT.s=ms/1000;otTick()}}
+  dmEvery(realOT,5000); realOT();
   /* Độ sáng thấp nhất khi không dùng: báo cài đặt đã lưu cho phần gốc mỗi lần mở app */
   applySto(stoOn());
   /* Nhạc thật trong máy */

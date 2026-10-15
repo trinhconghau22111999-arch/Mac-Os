@@ -284,6 +284,7 @@ public class MainActivity extends Activity {
         }
         IntentFilter f = new IntentFilter("com.desktopmini.launcher.MEDIA");
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(media, f, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(media, f);
+        ScreenTime.start(this);
         IntentFilter sf = new IntentFilter(Intent.ACTION_SCREEN_OFF);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(scr, sf, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(scr, sf);
         IntentFilter pf = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);

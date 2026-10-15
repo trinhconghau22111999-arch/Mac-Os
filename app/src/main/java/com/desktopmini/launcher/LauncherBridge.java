@@ -368,6 +368,8 @@ public class LauncherBridge {
             try { act.go(new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)); } catch (Exception e) { act.go(new Intent(Intent.ACTION_POWER_USAGE_SUMMARY)); }
             return false;
         }
+        /** Tổng mili giây màn hình đã sáng trong hôm nay (OnTime trên thanh menu). */
+        @JavascriptInterface public long getScreenOnMs() { return ScreenTime.todayMs(act); }
         /** RAM đang dùng / tổng RAM của máy (byte), cho thanh menu phía trên. */
         @JavascriptInterface public String getRam() {
             try {

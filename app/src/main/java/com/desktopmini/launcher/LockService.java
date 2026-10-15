@@ -76,6 +76,7 @@ public class LockService extends AccessibilityService {
 
     @Override protected void onServiceConnected() {
         inst = this; wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        ScreenTime.start(this); /* đo thời gian sáng màn hình ngay cả khi Desktop Mini không hiện */
         barLock = isBarLock(this);
         if (!isEnabled(this)) setImmersivePolicy(false);
         apply();
