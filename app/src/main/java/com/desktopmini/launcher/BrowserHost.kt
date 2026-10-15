@@ -647,6 +647,16 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         progress.visibility = View.GONE
         updateBookmarkBtn()
         updateTranslateBtn()
+        trimLiveTabs()
+    }
+
+    // Mo nhieu tab: chi giu toi da MAX_LIVE_BG tab nen con WebView song, tab dung lau nhat bi giai phong
+    // (nho URL + lich su) de may khong bi khung / het RAM; bam vao tab do se nap lai dung trang cu.
+    private val MAX_LIVE_BG = 3
+    private fun trimLiveTabs() {
+        val live = tabs.filter { it !== active && !it.discarded && !it.playing && it.url.startsWith("http") }
+        if (live.size <= MAX_LIVE_BG) return
+        live.sortedBy { it.lastUsed }.take(live.size - MAX_LIVE_BG).forEach { discardTab(it) }
     }
 
     private fun closeTab(tab: Tab) {
@@ -2222,7 +2232,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
 
     private val ui = Handler(Looper.getMainLooper())
     private val SWEEP_MS = 3000L
-    private val IDLE_TAB_MS = 10 * 60 * 1000L
+    private val IDLE_TAB_MS = 4 * 60 * 1000L
     private val PLAY_JS = "(function(){try{var m=document.querySelectorAll('video,audio');" +
             "for(var i=0;i<m.length;i++){var e=m[i];if(!e.paused&&!e.ended&&e.readyState>2)return true}}" +
             "catch(x){}return false})()"
