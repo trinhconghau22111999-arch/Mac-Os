@@ -4071,43 +4071,52 @@ function renderRuler() {
   textZone.style.width = ((rightBoundaryPx - leftPx) * z) + 'px';
   rulerTrack.appendChild(textZone);
 
-  // Vạch chia: đặt liên tục theo hệ tọa độ neo tại mép lề trái (0 = mép lề trái)
-  // để vạch không bị lệch khi lề được kéo tới giá trị lẻ.
-  const startCm = -Math.ceil(leftPx / PX_PER_CM);
-  const endCm = Math.ceil((wPx - leftPx) / PX_PER_CM);
-  for (let half = startCm * 2; half <= endCm * 2; half++) {
+  // Vạch chia + số: tính từ MÉP GIẤY BÊN TRÁI (0 cm = mép giấy), đánh số trên toàn bộ chiều ngang tờ giấy.
+  // Kéo lề trái tới vạch 10 thì lề nằm đúng vạch 10, lề phải kéo tới 20 thì nằm đúng vạch 20.
+  const endCm = Math.ceil(wPx / PX_PER_CM);
+  for (let half = 0; half <= endCm * 2; half++) {
     const cmVal = half / 2;
-    const absPos = leftPx + cmVal * PX_PER_CM;
-    if (absPos < 0 || absPos > wPx) continue;
+    const absPos = cmVal * PX_PER_CM;
+    if (absPos > wPx + 0.5) continue;
     const isMajor = Number.isInteger(cmVal);
     const tick = document.createElement('div');
     tick.className = 'ruler-tick' + (isMajor ? ' major' : '');
     tick.style.left = (absPos * z) + 'px';
     rulerTrack.appendChild(tick);
-    // Chỉ đánh số trong vùng gõ (giữa 2 lề), giống Word thật - không đánh số "0" tại mép lề
-    if (isMajor && cmVal !== 0 && absPos >= leftPx && absPos <= rightBoundaryPx) {
+    if (isMajor && cmVal !== 0) {
       const num = document.createElement('div');
       num.className = 'ruler-num';
       num.style.left = (absPos * z) + 'px';
-      num.textContent = Math.abs(cmVal);
+      num.textContent = cmVal;
       rulerTrack.appendChild(num);
     }
   }
+  const fmtCm = px => (Math.round(px / PX_PER_CM * 10) / 10).toString().replace('.', ',');
 
   // Handle kéo lề trái/phải
   const leftHandle = document.createElement('div');
   leftHandle.className = 'ruler-handle left-handle';
   leftHandle.style.left = (leftPx * z) + 'px';
-  leftHandle.title = 'Kéo để đổi lề trái';
+  leftHandle.title = 'Lề trái: ' + fmtCm(leftPx) + ' cm (kéo để đổi)';
   leftHandle.addEventListener('pointerdown', (e) => startRulerDrag(e, 'left', wPx));
   rulerTrack.appendChild(leftHandle);
 
   const rightHandle = document.createElement('div');
   rightHandle.className = 'ruler-handle right-handle';
   rightHandle.style.left = (rightBoundaryPx * z) + 'px';
-  rightHandle.title = 'Kéo để đổi lề phải';
+  rightHandle.title = 'Lề phải: ' + fmtCm(rightBoundaryPx) + ' cm tính từ mép trái (kéo để đổi)';
   rightHandle.addEventListener('pointerdown', (e) => startRulerDrag(e, 'right', wPx));
   rulerTrack.appendChild(rightHandle);
+
+  // Nhãn số cm hiện ngay trên móc lúc đang kéo (đúng vị trí tính từ mép giấy)
+  if (rulerDragState) {
+    const side = rulerDragState.side, px = side === 'left' ? leftPx : rightBoundaryPx;
+    const lab = document.createElement('div');
+    lab.className = 'ruler-val';
+    lab.style.cssText = 'position:absolute;top:1px;transform:translateX(-50%);padding:1px 5px;border-radius:4px;background:#2b579a;color:#fff;font-size:10px;white-space:nowrap;pointer-events:none;z-index:5;left:' + (px * z) + 'px';
+    lab.textContent = fmtCm(px) + ' cm';
+    rulerTrack.appendChild(lab);
+  }
 }
 
 function startRulerDrag(e, side, wPx) {
