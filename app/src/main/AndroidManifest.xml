@@ -59,7 +59,7 @@
         <!-- App con "Duyệt web" (chép từ repo Webandr), app riêng, không phải trình duyệt mặc định của hệ thống -->
         <activity android:name=".WebBrowserActivity" android:label="@string/browser_name" android:exported="true"
             android:launchMode="singleTask" android:windowSoftInputMode="adjustResize"
-            android:theme="@style/BrowserTheme"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar"
             android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode">
         </activity>
         <!-- App con "YouTube": chỉ mở YouTube, không thanh địa chỉ, không mở link ngoài, chặn quảng cáo -->

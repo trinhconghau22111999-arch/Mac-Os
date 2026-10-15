@@ -1708,23 +1708,13 @@ function flyOut(w,id,done){
 /* Trình duyệt thật: lần đầu chọn, các lần sau mở thẳng trình duyệt đã chọn */
 function openApp(id,arg){
   closeAllPopups();
-  /* Mở app khác từ Dock/Launchpad khi "Duyệt web" đang hiện dạng khung -> đóng trình duyệt (các thẻ được nhớ, mở lại là có) */
-  if(id!=='webbrowser'&&window.AndroidLauncher&&window.AndroidLauncher.closeWebBrowser){try{window.AndroidLauncher.closeWebBrowser()}catch(e){}}
   if(id==='launchpad'){toggleLP();return}
   if(typeof id==='string'&&id.indexOf('x:')===0){if(typeof lpOn!=='undefined'&&lpOn)closeLP();extLaunch(id.slice(2));return}
   if(!APPS[id])return;
   /* "Duyệt web" là trình duyệt Webandr đầy đủ (thẻ, dấu sao, phím tắt, dịch, chụp màn hình...) nên mở màn hình trình duyệt thật; thoát thì quay về Desktop Mini */
   if(id==='webbrowser'&&window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser){
-    const u=typeof arg==='string'?arg:(arg&&arg.url), A=window.AndroidLauncher;
-    /* Mặc định mở dạng khung phía trên, chừa đáy cho Dock (vẫn là trình duyệt Webandr đầy đủ chức năng); tắt trong Cài đặt → Màn hình nền và Dock, hoặc khi Dock tự ẩn thì mở toàn màn hình */
-    let rs=0;
-    try{
-      if(pref('webDock',true)&&!pref('hideDock',false)&&A.openWebBrowserDocked){
-        const r=dock.getBoundingClientRect(), sr=stage.getBoundingClientRect();
-        rs=Math.round((sr.bottom-r.top+6)*(window.devicePixelRatio||1)); if(!(rs>40))rs=0;
-      }
-      if(rs>0)A.openWebBrowserDocked(u||'',rs); else A.openWebBrowser(u||'');
-    }catch(e){}
+    const u=typeof arg==='string'?arg:(arg&&arg.url);
+    try{window.AndroidLauncher.openWebBrowser(u||'')}catch(e){}
     return;
   }
   /* "Ổ mềm" = app Drive 3 hồ sơ (Ảnh / Video / Tệp): Android < 9 chạy nhúng trong cửa sổ (thấy Dock, xem buildDrive3Stub); Android 9+ mở màn hình riêng (process riêng từng hồ sơ), thoát thì quay về Desktop Mini */

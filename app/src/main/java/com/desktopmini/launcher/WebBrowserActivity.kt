@@ -28,7 +28,6 @@ import android.text.InputType
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -84,52 +83,7 @@ private const val COLOR_TAB_ON = 0xFFFFFFFF.toInt()
 private const val COLOR_TAB_TEXT = 0xFF5A4A7A.toInt()
 
 @Suppress("DEPRECATION")
-/** Vùng trong suốt phía dưới (chỗ Dock của Desktop Mini): chuyển mọi cú chạm sang trang Desktop ở phía sau để bấm Dock bình thường. */
-private class DockPass(ctx: Context) : View(ctx) {
-    @SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(e: MotionEvent): Boolean {
-        val w = MainActivity.dockWeb() ?: return true
-        try {
-            val c = MotionEvent.obtain(e)
-            val a = IntArray(2); val b = IntArray(2)
-            getLocationOnScreen(a); w.getLocationOnScreen(b)
-            c.offsetLocation((a[0] - b[0]).toFloat(), (a[1] - b[1]).toFloat())
-            w.dispatchTouchEvent(c)
-            c.recycle()
-        } catch (ex: Exception) { }
-        return true
-    }
-}
-
 class WebBrowserActivity : Activity() {
-
-    companion object {
-        /** Màn hình trình duyệt đang mở (để Desktop Mini đóng lại khi bấm mở app khác trên Dock). */
-        @JvmField var current: WebBrowserActivity? = null
-    }
-
-    /** Số px chừa ở đáy cho Dock của Desktop Mini; 0 = mở toàn màn hình như trước. */
-    private var dockReserve = 0
-
-    private fun immersiveDocked() {
-        if (dockReserve <= 0) return
-        if (Build.VERSION.SDK_INT >= 30) {
-            window.insetsController?.let {
-                it.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                it.hide(android.view.WindowInsets.Type.navigationBars() or android.view.WindowInsets.Type.statusBars())
-            }
-            return
-        }
-        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus && customView == null) immersiveDocked()
-    }
 
     private class Tab(var webView: WebView, val button: TextView, val holder: View = button) {
         var title: String = "Tab mới"
@@ -229,10 +183,7 @@ class WebBrowserActivity : Activity() {
         prefs = getSharedPreferences("webandr", Context.MODE_PRIVATE)
         oneTapOn = prefs.getBoolean("oneTap", true)
         adSkipOn = prefs.getBoolean("adSkip", true)
-        current = this
-        dockReserve = intent?.getIntExtra("reserve", 0) ?: 0
         buildUi()
-        immersiveDocked()
         ui.postDelayed(sweep, SWEEP_MS)
         // Da tung dung Truyen tep -> mo ngam de tu ket noi lai.
         if (prefs.getBoolean("camUsed", false)) ensureCamWeb()
@@ -277,7 +228,6 @@ class WebBrowserActivity : Activity() {
     }
 
     override fun onDestroy() {
-        if (current === this) current = null
         ui.removeCallbacks(sweep)
         for (t in tabs) if (!t.discarded) t.webView.destroy()
         qrWeb?.destroy()
@@ -488,13 +438,7 @@ class WebBrowserActivity : Activity() {
         rootFrame.addView(col, FrameLayout.LayoutParams(MATCH, MATCH))
         buildDrawer()
         buildDownloads()
-        if (dockReserve > 0) {
-            /* Dạng khung: trình duyệt nằm phía trên, chừa đáy trong suốt cho Dock của Desktop Mini */
-            val outer = FrameLayout(this)
-            outer.addView(rootFrame, FrameLayout.LayoutParams(MATCH, MATCH).apply { bottomMargin = dockReserve })
-            outer.addView(DockPass(this), FrameLayout.LayoutParams(MATCH, dockReserve, Gravity.BOTTOM))
-            setContentView(outer)
-        } else setContentView(rootFrame)
+        setContentView(rootFrame)
         applySplitLayout()
     }
 
@@ -936,7 +880,7 @@ class WebBrowserActivity : Activity() {
         customView = null
         customCallback?.onCustomViewHidden()
         customCallback = null
-        if (dockReserve > 0) immersiveDocked() else window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
     }
 
     @Deprecated("Deprecated in Java")
