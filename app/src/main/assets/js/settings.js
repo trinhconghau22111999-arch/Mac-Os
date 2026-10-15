@@ -47,7 +47,8 @@ function buildSettings(b,w,arg){
           if(cn.length)h+=hd('Đang kết nối')+'<div class="grp">'+cn.map(net).join('')+'</div>';
           if(ot.length)h+=hd('Mạng khác')+'<div class="grp">'+ot.map(net).join('')+'</div>';
           if(!o.loc)h+=hd('Cấp quyền Vị trí cho Desktop Mini (Cài đặt → Quyền) để thấy danh sách mạng xung quanh.');
-          else if(!ot.length)h+=hd('Đang quét mạng… Nếu vẫn trống, hãy bật Vị trí của máy.');
+          else if(o.locOn===false)h+=hd('Android chỉ cho quét mạng khi Vị trí của máy đang bật. Hãy bật Vị trí rồi quay lại đây.');
+          else if(!ot.length)h+=hd('Đang quét mạng… Nếu vẫn trống, hãy đợi vài giây.');
         }
         return ['Wi-Fi',h];
       }
@@ -66,7 +67,11 @@ function buildSettings(b,w,arg){
           if(ds.length)h+=hd('Đã ghép đôi · chưa kết nối')+'<div class="grp">'+ds.map(d=>dev(d,'Chưa kết nối',false)).join('')+'</div>';
           if(F.length)h+=hd('Thiết bị xung quanh')+'<div class="grp">'+F.map(d=>dev(d,'Chưa ghép đôi',false)).join('')+'</div>';
           if(o.perm===false)h+=hd('Cấp quyền Bluetooth cho Desktop Mini để thấy thiết bị đã ghép đôi.');
-          else if(!P2.length&&!F.length)h+=hd(o.loc?'Chưa có thiết bị nào. Đang tìm thiết bị xung quanh…':'Cấp quyền Vị trí cho Desktop Mini (Cài đặt → Quyền) để tìm thiết bị xung quanh.');
+          else if(o.scanPerm===false)h+=hd('Cấp quyền “Thiết bị ở gần” cho Desktop Mini để tìm thiết bị Bluetooth xung quanh (đang hỏi quyền…).');
+          else if(!o.loc)h+=hd('Cấp quyền Vị trí cho Desktop Mini (Cài đặt → Quyền) để tìm thiết bị xung quanh.');
+          else if(o.locOn===false)h+=hd('Android chỉ cho tìm thiết bị Bluetooth khi Vị trí của máy đang bật. Hãy bật Vị trí rồi quay lại đây.');
+          else if(!F.length)h+=hd(o.scanning?'Đang tìm thiết bị xung quanh…':'Chưa thấy thiết bị nào xung quanh. Hãy bật chế độ ghép đôi trên thiết bị kia.');
+          else if(o.scanning)h+=hd('Đang tìm thêm thiết bị…');
         }
         return ['Bluetooth',h];
       }
@@ -122,6 +127,8 @@ function buildSettings(b,w,arg){
   }
   function setPrefQuiet(k,v){P[k]=v;jset('dm-prefs',P);applyPrefs();bus.emit('slider')}
   live(w,'ui',()=>{const f=document.activeElement;/* đang kéo thanh trượt hoặc đang gõ chữ thì không vẽ lại, nếu không ô nhập bị mất focus và bàn phím tắt */if(f&&((f.classList&&f.classList.contains('rg'))||f.tagName==='INPUT'||f.tagName==='TEXTAREA'||f.tagName==='SELECT'))return;render()});
+  /* Trang Wi-Fi / Bluetooth: tự làm mới 3 giây/lần để mạng và thiết bị mới quét được hiện ra ngay */
+  const rfT=setInterval(()=>{if(!document.body.contains(w)){clearInterval(rfT);return}if(key==='wifi'||key==='bt')bus.emit('ui')},3000);
   render();
   return {open(a){if(a&&a.pane){key=a.pane;render()}}};
 }

@@ -1350,9 +1350,18 @@ const saveDeskApps=l=>{DESKAPPS=l;jset('dm-deskapps',l)};
 /* Vị trí ô (cột,hàng) của từng icon desktop: thả vào ô nào thì nằm yên ở ô đó, không dồn các icon khác */
 let DESKPOS=jget('dm-deskpos',null); if(!DESKPOS||typeof DESKPOS!=='object'||Array.isArray(DESKPOS))DESKPOS={};
 const saveDeskPos=()=>jset('dm-deskpos',DESKPOS);
+/* Cân đối khoảng cách: icon cách đều thanh tìm kiếm Google ở trên và Dock ở dưới (phần dư của hàng cuối chia đôi lên/xuống) */
 const deskRows=()=>{
-  const cs=getComputedStyle(desk), h=desk.clientHeight-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0), gy=parseFloat(cs.rowGap)||0;
-  return h>0?Math.max(1,Math.floor((h+gy)/(98+gy))):6;
+  const gy=parseFloat(getComputedStyle(desk).rowGap)||4, GAP=26;
+  const top=(stage.classList.contains('gbon')?84:40)+GAP;
+  const dh=(dock&&!dock.classList.contains('hide'))?(dock.offsetHeight||80):0;
+  const bot=Math.max(60,dh+8+GAP);
+  const h=desk.clientHeight-top-bot;
+  if(!(h>0)){desk.style.paddingTop='';desk.style.paddingBottom='';return 6}
+  const n=Math.max(1,Math.floor((h+gy)/(98+gy)));
+  const left=Math.max(0,h-(n*98+(n-1)*gy));
+  desk.style.paddingTop=(top+left/2)+'px'; desk.style.paddingBottom=(bot+left/2)+'px';
+  return n;
 };
 function deskLayout(rows){
   const ids=deskApps(), pos={}, used=new Set(), key=(c,r)=>c+','+r;

@@ -164,15 +164,25 @@ public class MainActivity extends Activity {
     private final BroadcastReceiver btRx = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
             try {
-                if (!BluetoothDevice.ACTION_FOUND.equals(i.getAction())) return;
+                String act = i.getAction();
+                if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(act)) { btDiscovering = false; return; }
+                if (!BluetoothDevice.ACTION_FOUND.equals(act)) return;
                 BluetoothDevice d = i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if (d == null || d.getBondState() == BluetoothDevice.BOND_BONDED) return;
-                String nm = d.getName(); if (nm == null || nm.length() == 0) return;
-                JSONObject o = new JSONObject(); o.put("name", nm); o.put("addr", d.getAddress());
-                synchronized (btFound) { btFound.put(d.getAddress(), o); }
+                String nm = i.getStringExtra(BluetoothDevice.EXTRA_NAME);
+                if (nm == null || nm.length() == 0) { try { nm = d.getName(); } catch (Exception e) { } }
+                boolean named = nm != null && nm.length() > 0;
+                String ad = d.getAddress();
+                JSONObject o = new JSONObject(); o.put("name", named ? nm : "Thiết bị " + (ad == null ? "" : ad)); o.put("addr", ad); o.put("named", named);
+                synchronized (btFound) {
+                    JSONObject old = btFound.get(ad);
+                    if (old != null && old.optBoolean("named") && !named) return;
+                    btFound.put(ad, o);
+                }
             } catch (Exception e) { }
         }
     };
+    private boolean btDiscovering = false;
 
 
     /** Origin ảo của trang chính; các tệp trong assets/ được phục vụ qua WebViewAssetLoader. */
@@ -391,7 +401,7 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33) {
             need.add(Manifest.permission.READ_MEDIA_AUDIO); need.add(Manifest.permission.READ_MEDIA_IMAGES); need.add(Manifest.permission.READ_MEDIA_VIDEO); need.add(Manifest.permission.POST_NOTIFICATIONS);
         } else need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-        if (Build.VERSION.SDK_INT >= 31) need.add(Manifest.permission.BLUETOOTH_CONNECT);
+        if (Build.VERSION.SDK_INT >= 31) { need.add(Manifest.permission.BLUETOOTH_CONNECT); need.add(Manifest.permission.BLUETOOTH_SCAN); }
         need.add(Manifest.permission.RECORD_AUDIO);
         need.add(Manifest.permission.CAMERA);
         need.add(Manifest.permission.READ_CALENDAR);
@@ -1603,6 +1613,13 @@ public class MainActivity extends Activity {
             return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         }
+        private boolean locServiceOn() {
+            try {
+                android.location.LocationManager lm = (android.location.LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (Build.VERSION.SDK_INT >= 28) return lm.isLocationEnabled();
+                return Settings.Secure.getInt(getContentResolver(), Settings.Secure.LOCATION_MODE, 0) != Settings.Secure.LOCATION_MODE_OFF;
+            } catch (Exception e) { return true; }
+        }
         private String cleanSsid(String s) {
             if (s == null) return "";
             if (s.length() > 1 && s.startsWith("\"") && s.endsWith("\"")) s = s.substring(1, s.length() - 1);
@@ -1614,7 +1631,7 @@ public class MainActivity extends Activity {
             JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();
             try {
                 WifiManager wm = wifiMgr();
-                boolean on = wm.isWifiEnabled(); res.put("on", on); res.put("loc", locOk());
+                boolean on = wm.isWifiEnabled(); res.put("on", on); res.put("loc", locOk()); res.put("locOn", locServiceOn());
                 String cur = ""; boolean conn = false; int curLvl = 0;
                 WifiInfo wi = wm.getConnectionInfo();
                 if (on && wi != null && wi.getNetworkId() != -1 && wi.getSupplicantState() == SupplicantState.COMPLETED) {
@@ -1675,14 +1692,17 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void btScan() {
             try {
                 BluetoothAdapter a = btAdapter(); if (a == null || !a.isEnabled()) return;
+                if (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                    runOnUiThread(new Runnable() { public void run() { try { requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, 8); } catch (Exception e) { } } });
+                    return;
+                }
                 if (!btRecv) {
-                    IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                    IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND); f.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
                     if (Build.VERSION.SDK_INT >= 33) registerReceiver(btRx, f, Context.RECEIVER_EXPORTED); else registerReceiver(btRx, f);
                     btRecv = true;
                 }
-                synchronized (btFound) { btFound.clear(); }
-                if (a.isDiscovering()) a.cancelDiscovery();
-                a.startDiscovery();
+                if (a.isDiscovering()) return; /* đang quét thì để yên, không hủy giữa chừng */
+                btDiscovering = a.startDiscovery();
             } catch (Exception e) { }
         }
         private void btProxies(BluetoothAdapter a) {
@@ -1699,7 +1719,9 @@ public class MainActivity extends Activity {
             try {
                 BluetoothAdapter a = btAdapter();
                 if (a == null) { res.put("none", true); return res.toString(); }
-                boolean on = a.isEnabled(); res.put("on", on); res.put("loc", locOk());
+                boolean on = a.isEnabled(); res.put("on", on); res.put("loc", locOk()); res.put("locOn", locServiceOn());
+                if (Build.VERSION.SDK_INT >= 31) res.put("scanPerm", checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED);
+                try { res.put("scanning", a.isDiscovering()); } catch (Exception e) { }
                 JSONArray paired = new JSONArray(), found = new JSONArray();
                 if (on) {
                     btProxies(a);
