@@ -1321,7 +1321,7 @@ public class LauncherBridge {
             act.runOnUiThread(new Runnable() { public void run() {
                 float d = act.getResources().getDisplayMetrics().density;
                 act.gkHideNow();
-                for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } act.markExtHidden(e.getKey()); }
+                for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); act.extPause(e.getKey(), e.getValue()); act.markExtHidden(e.getKey()); }
                 if ("webandr".equals(key)) {
                     try {
                         View bv = act.browserGet(url).getRoot();
@@ -1353,7 +1353,7 @@ public class LauncherBridge {
         @JavascriptInterface public void extHide(final String key) {
             act.runOnUiThread(new Runnable() { public void run() {
                 if (key == null || key.length() == 0 || "webandr".equals(key)) act.browserHide();
-                for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); try { e.getValue().onPause(); } catch (Exception x) { } act.markExtHidden(e.getKey()); }
+                for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); act.extPause(e.getKey(), e.getValue()); act.markExtHidden(e.getKey()); }
             }});
         }
         @JavascriptInterface public void extReload(final String key) {

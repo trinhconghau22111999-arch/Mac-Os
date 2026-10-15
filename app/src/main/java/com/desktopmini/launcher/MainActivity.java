@@ -85,6 +85,8 @@ public class MainActivity extends Activity {
     /* Tự đóng hẳn trang web nhúng đã ẩn lâu để giải phóng RAM, như điện thoại đóng ứng dụng nền.
        Mở lại cửa sổ đó thì trang được tạo mới và tải lại (extShow -> extGet). Đổi EXT_IDLE_MS để chỉnh thời gian chờ. */
     private static final long EXT_IDLE_MS = 10 * 60 * 1000L;
+    /* YouTube: báo cho trang luôn là "đang hiển thị" để trình phát không tự dừng khi cửa sổ bị ẩn / app khác che */
+    private static final String YT_KEEP_JS = "(function(){try{var d=document;Object.defineProperty(d,'hidden',{configurable:true,get:function(){return false}});Object.defineProperty(d,'visibilityState',{configurable:true,get:function(){return 'visible'}});['visibilitychange','webkitvisibilitychange'].forEach(function(t){d.addEventListener(t,function(e){e.stopImmediatePropagation()},true)});window.addEventListener('blur',function(e){e.stopImmediatePropagation()},true)}catch(e){}})();";
     final HashMap<String, Long> extHiddenAt = new HashMap<String, Long>();
     private final android.os.Handler reaper = new android.os.Handler(android.os.Looper.getMainLooper());
     /* Cài/gỡ/cập nhật app: dựng lại danh sách app cho Launchpad và Tìm kiếm (gộp các sự kiện bắn liền nhau, chờ 2 giây) */
@@ -301,8 +303,17 @@ public class MainActivity extends Activity {
         if (wordHost != null) wordHost.save();
         if (omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(this, omemProfile);
         /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
-        for (WebView v : ext.values()) { try { v.onPause(); } catch (Exception e) { } }
+        for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) extPause(e.getKey(), e.getValue());
         for (String k : ext.keySet()) markExtHidden(k);
+    }
+
+    /** Tạm dừng trang web nhúng khi bị ẩn. Riêng YouTube đang phát video/nhạc thì KHÔNG tạm dừng: cứ phát tiếp dù cửa sổ bị thu nhỏ, bị app khác che hoặc rời khỏi Desktop Mini. */
+    void extPause(String key, WebView v) {
+        if (v == null) return;
+        if ("youtube".equals(key)) {
+            try { if (((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive()) return; } catch (Exception e) { }
+        }
+        try { v.onPause(); } catch (Exception e) { }
     }
 
     /** Ghi lại thời điểm trang bắt đầu bị ẩn (chỉ ghi lần đầu, không đặt lại khi ẩn tiếp). */
@@ -320,7 +331,7 @@ public class MainActivity extends Activity {
         long now = android.os.SystemClock.elapsedRealtime();
         boolean music = false;
         try { music = ((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive(); } catch (Exception e) { }
-        if (music) return;
+        if (music && minIdleMs > 0) return; /* đang phát thì giữ nguyên; chỉ khi máy sắp hết RAM (minIdleMs = 0) mới đóng cả trang đang phát */
         for (String key : new ArrayList<String>(ext.keySet())) {
             Long t = extHiddenAt.get(key);
             WebView v = ext.get(key);
@@ -1185,7 +1196,7 @@ public class MainActivity extends Activity {
                     if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
                         java.util.HashSet<String> origins = new java.util.HashSet<String>();
                         origins.add("https://*.youtube.com"); origins.add("https://youtube.com");
-                        androidx.webkit.WebViewCompat.addDocumentStartJavaScript(v, "window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, origins);
+                        androidx.webkit.WebViewCompat.addDocumentStartJavaScript(v, "window.__wbAdSkip=true;" + YT_KEEP_JS + YouTubeActivityKt.YT_ONLY_AD_JS, origins);
                     }
                 } catch (Exception e) { }
             } else {
@@ -1255,7 +1266,7 @@ public class MainActivity extends Activity {
                     }
                     if (yt || br || ms) {
                         /* WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần) */
-                        try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
+                        try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YT_KEEP_JS + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
                         if (u != null && u.startsWith("http") && (yt || br)) view.evaluateJavascript(YouTubeActivityKt.VOICE_HOOK_JS, null);   // nối nút mic
                         extNav(key, view, 100);
                     }
