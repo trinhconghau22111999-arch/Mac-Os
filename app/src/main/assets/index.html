@@ -799,12 +799,12 @@ a.btn.pri{color:#fff}
 .laps li{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 
 /* Dock */
-.dock{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px;max-width:calc(100% - 2*(var(--base) + 24px));
+.dock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px 28px 0 0;max-width:calc(100% - 2*(var(--base) + 24px));
   background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);transition:transform .25s ease}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
 /* Nút tìm kiếm (trái) và nút chụp ảnh màn hình (phải): vuông, cùng cỡ và cùng hàng với icon Dock; Dock chừa chỗ hai bên nên không bao giờ che chúng */
-.aib,.qshot{position:absolute;bottom:17px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
+.aib,.qshot{position:absolute;bottom:9px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
 .qshot{right:12px;width:var(--base);border:0;padding:0;display:grid;place-items:center;transition:transform .12s ease-out}
 .qshot:active{transform:scale(.92)}
 .qshot svg{width:58%;height:58%}
