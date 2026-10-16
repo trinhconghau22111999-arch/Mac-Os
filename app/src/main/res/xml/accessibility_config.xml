@@ -5,4 +5,5 @@
     android:notificationTimeout="0"
     android:accessibilityFlags="flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="false"
+    android:canTakeScreenshot="true"
     android:description="@string/a11y_desc" />

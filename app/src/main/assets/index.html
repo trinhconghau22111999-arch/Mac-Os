@@ -1585,7 +1585,7 @@ function fitDock(){
   const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
   /* chừa chỗ hai bên cho nút tìm kiếm và nút chụp màn hình (mỗi bên rộng bằng 1 icon + 24px) */
   let base=Math.floor((sw-100-(tot-1)*6-seps*8)/(n+2));
-  let pc=pref('dockPct',null); if(pc==null){const o=pref('dockSize',null); pc=o==null?60:Math.round(o/45*100)}
+  const pc=66; /* Dock ở màn hình chính cố định 66% */
   const ps=Math.round(Math.max(40,Math.min(100,pc))*0.45*100)/100; /* 40–100% của 45px = 18–45px, chỉnh từng 1% */
   /* màn rộng (>560px): cho icon nhỏ tới 30px để Dock vẫn vừa, không chuyển sang chế độ cuộn (chế độ cuộn tắt hiệu ứng phóng đại) */
   const flo=window.matchMedia('(max-width:560px)').matches?44:30;
@@ -1633,6 +1633,7 @@ const applyMag=()=>{
   });
 };
 const magnify=e=>{
+  return; /* đã bỏ phóng đại khi lướt: bấm icon thì nảy một cái rồi mở app */
   if(dkDragOn||!pref('magnify',true)||narrowDock())return; /* màn hẹp: dock là thanh cuộn ngang, không phóng đại để lướt mượt */
   if(!centers.length)calcCenters();
   if(!centers.length)return;
@@ -1807,7 +1808,8 @@ function openApp(id,arg){
   setTimeout(()=>{if(dk)dk.classList.remove('bounce');delete opening[id];createWin(id,arg)},(dk&&!reduce)?540:0);
 }
 /* Chiều cao Dock hiện tại (cỡ icon + 18px): cửa sổ chừa đúng chừng này ở đáy, Dock thu nhỏ thì cửa sổ mở rộng theo */
-const dockRes=()=>(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||27)+18;
+const DOCK_OV=8; /* cửa sổ chui xuống dưới Dock 8px nên không còn hở lộ hình nền khi Dock nhỏ lại */
+const dockRes=()=>(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||27)+18-DOCK_OV;
 function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
@@ -1842,14 +1844,14 @@ function minWin(w){
 function fitMax(w){
   const sr=stage.getBoundingClientRect();
   w.style.left='0px'; w.style.top='28px'; w.style.width=sr.width+'px';
-  w.style.height=(sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+18))+'px';
+  w.style.height=(sr.height-28-dockRes())+'px';
 }
 const MAXK='dm-maxwins';
 const maxMem=()=>{try{return JSON.parse(lsGet(MAXK)||'{}')||{}}catch(e){return {}}};
 /* Chia đôi: kéo thanh tiêu đề tới mép trái / phải = nửa màn hình (vẫn chừa Dock), tới mép trên = phóng to */
 function snapHalf(w,side){
   const sr=stage.getBoundingClientRect(), hw=Math.floor(sr.width/2);
-  const H=sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+18);
+  const H=sr.height-28-dockRes();
   if(!w._snap)w._snap={prev:[w.style.left,w.style.top,w.style.width,w.style.height]};
   w._snap.side=side;
   w.style.left=(side==='l'?0:hw)+'px'; w.style.top='28px'; w.style.width=hw+'px'; w.style.height=H+'px'; kickSync();

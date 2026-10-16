@@ -85,7 +85,6 @@ public class LockService extends AccessibilityService {
 
     @Override protected void onServiceConnected() {
         inst = this; wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        userDockBase = getSharedPreferences(PK, 0).getInt("base", userDockBase);
         ScreenTime.start(this); /* đo thời gian sáng màn hình ngay cả khi Desktop Mini không hiện */
         barLock = isBarLock(this);
         loadWallFiles();
@@ -119,6 +118,7 @@ public class LockService extends AccessibilityService {
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
         if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
+        trackExt(pk);
         dismissPop(); fgLabel = labelOf(pk); if (topBar != null) topBar.invalidate();
         videoFull = false; /* app khác lên trước: không còn video của mình ở toàn màn hình */
         setLauncherFront(false);
@@ -892,7 +892,7 @@ public class LockService extends AccessibilityService {
     private static final int DOCK_GAP_DP = 0;
     private static volatile int dockBase = 46;
     /** Cỡ người dùng chỉnh (chỉ áp dụng khi đang ở Desktop Mini). */
-    private static volatile int userDockBase = 46;
+    private static volatile int userDockBase = 30; /* Dock ở màn hình chính cố định 66% (66% của 45px ≈ 30px), không còn chỉnh được */
     /** Khi đang mở app khác, Dock nổi bắt buộc cố định 53% (53% của 45px ≈ 24px), không theo cỡ người dùng. */
     private static final int EXT_DOCK_BASE = 24;
     private int effectiveDockBase() { return launcherFront ? userDockBase : EXT_DOCK_BASE; }
@@ -978,7 +978,7 @@ public class LockService extends AccessibilityService {
             s.desktopGapPx = v; s.applyDockBase();
         } });
     }
-    private int dockGrowPx() { return dockGrown ? dp(Math.round(dockBase * 0.7f) + 8) : 0; }
+    private int dockGrowPx() { return 0; } /* không còn phóng đại nên cửa sổ Dock không bao giờ đổi cao */
     /** Đặt cửa sổ theo toạ độ tuyệt đối từ mép trên của màn hình THẬT (như thanh Desktop cũ) nên đè được lên thanh điều hướng. */
     private void placeDock(WindowManager.LayoutParams lp) {
         Point real = realSize(); int hh = dockBarPx() + dockGrowPx();
@@ -1029,11 +1029,7 @@ public class LockService extends AccessibilityService {
     }
     public static boolean isRunning() { return inst != null; }
     public static void setDockBase(Context c, int base) {
-        int nb = Math.max(18, Math.min(80, base));
-        if (nb == userDockBase && inst != null) return; /* không đổi: khỏi đo/vẽ lại Dock */
-        userDockBase = nb;
-        try { c.getSharedPreferences(PK, 0).edit().putInt("base", nb).apply(); } catch (Exception e) { }
-        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.applyDockBase(); } });
+        /* cỡ Dock đã cố định 66%: bỏ qua giá trị giao diện gửi sang */
     }
     private int pushedBase = -1, pushedH = -1;
     private void applyDockBase() {
@@ -1057,7 +1053,7 @@ public class LockService extends AccessibilityService {
     } };
     /** Nới cao cửa sổ Dock lúc phóng đại icon (nền thanh vẫn nằm sát đáy, phần nới ra trong suốt). */
     private void growDock(boolean on) {
-        dockGrown = on && dockMag; applyDockBase();
+        /* bỏ phóng đại: không nới cửa sổ nữa (nguyên nhân Dock giật lên xuống khi chạm giữ) */
     }
     private void showHot() {
         if (hotView != null || wm == null) return;
@@ -1104,22 +1100,171 @@ public class LockService extends AccessibilityService {
         @JavascriptInterface public void multitask() { h.post(new Runnable() { public void run() { openMultitask(); } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
+        @JavascriptInterface public void shotRegion() { h.post(new Runnable() { public void run() { dockShotRegion(); } }); }
+        @JavascriptInterface public void openExt(final String pk) { h.post(new Runnable() { public void run() { openExternal(pk); } }); }
         @JavascriptInterface public void touch() { peekDock(); }
         @JavascriptInterface public void grow(final boolean on) { h.post(new Runnable() { public void run() { growDock(on); } }); }
     }
-    /** Chụp màn hình app đang dùng (hệ thống tự lưu vào Ảnh chụp màn hình); ẩn Dock một lúc để không lọt vào ảnh. */
-    private void dockShot() {
-        if (Build.VERSION.SDK_INT < 28) {
-            /* Android dưới 9 không có chụp toàn hệ thống cho dịch vụ trợ năng: ở Desktop Mini thì chụp cửa sổ Desktop như nút cũ */
-            if (launcherFront) forward("qshot");
-            else android.widget.Toast.makeText(this, "Android 7 chỉ chụp được màn hình Desktop Mini. Ở ứng dụng khác hãy dùng phím cứng: Nguồn + Giảm âm lượng.", android.widget.Toast.LENGTH_LONG).show();
-            return;
+    /* ================= App ngoài trên Dock =================
+     * App nào vừa lên trước (Zalo, Chrome...) thì icon thật của nó hiện ngay sau các icon Dock, có chấm bên dưới; bấm vào để mở lại. */
+    private final java.util.LinkedList<String> extPk = new java.util.LinkedList<String>();
+    private final java.util.HashMap<String, String> extIcons = new java.util.HashMap<String, String>();
+    private Set<String> homePk;
+    private void trackExt(String pk) {
+        try {
+            if (pk.equals("android") || pk.equals(getPackageName())) return;
+            if (homePk == null) {
+                homePk = new HashSet<String>();
+                Intent hi = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+                for (android.content.pm.ResolveInfo r : getPackageManager().queryIntentActivities(hi, 0)) homePk.add(r.activityInfo.packageName);
+            }
+            if (homePk.contains(pk)) return;
+            if (getPackageManager().getLaunchIntentForPackage(pk) == null) return;
+        } catch (Throwable t) { return; }
+        if (!extPk.isEmpty() && extPk.getFirst().equals(pk)) return;
+        extPk.remove(pk); extPk.addFirst(pk);
+        while (extPk.size() > 4) extPk.removeLast();
+        pushExt();
+    }
+    private String extIconUrl(String p) {
+        String u = extIcons.get(p); if (u != null) return u;
+        try {
+            android.graphics.drawable.Drawable d = getPackageManager().getApplicationIcon(p);
+            int sz = dp(48);
+            Bitmap b = Bitmap.createBitmap(sz, sz, Bitmap.Config.ARGB_8888);
+            d.setBounds(0, 0, sz, sz); d.draw(new Canvas(b));
+            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+            b.compress(Bitmap.CompressFormat.PNG, 100, bo); b.recycle();
+            u = "data:image/png;base64," + android.util.Base64.encodeToString(bo.toByteArray(), android.util.Base64.NO_WRAP);
+            extIcons.put(p, u); return u;
+        } catch (Throwable t) { return null; }
+    }
+    private void pushExt() {
+        if (dockWeb == null || !dockReady) return;
+        try {
+            org.json.JSONArray arr = new org.json.JSONArray();
+            for (String p : extPk) {
+                String u = extIconUrl(p); if (u == null) continue;
+                org.json.JSONObject o = new org.json.JSONObject();
+                o.put("p", p); o.put("n", labelOf(p)); o.put("u", u); arr.put(o);
+            }
+            dockWeb.evaluateJavascript("window.setExt&&setExt(" + arr.toString() + ")", null);
+        } catch (Throwable t) { }
+    }
+    private void openExternal(String pk) {
+        try {
+            Intent i = getPackageManager().getLaunchIntentForPackage(pk);
+            if (i != null) startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
+        } catch (Throwable t) { }
+    }
+
+    /* ================= Chụp màn hình =================
+     * Bấm 1 lần: chụp cả màn hình (app ngoài lẫn app trong). Bấm 2 lần: nhấn giữ và kéo để chọn vùng, chỉ chụp đúng vùng đó. */
+    /** Ẩn Dock một lúc (ShotService gọi sau khi hộp thoại xin quyền đóng). */
+    public static void quietDock(final long ms) {
+        final LockService s = inst; if (s == null) return;
+        s.h.post(new Runnable() { public void run() { s.dockQuietUntil = android.os.SystemClock.uptimeMillis() + ms + 800; s.hideDockBar(); } });
+    }
+    private void toastShot(String m) { try { android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show(); } catch (Throwable t) { } }
+    /** Lấy ảnh toàn màn hình (Android 11+: API trợ năng; máy cũ như Android 7: MediaProjection, xin quyền một lần). */
+    private void grabScreen(final ShotService.Cb cb) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                takeScreenshot(android.view.Display.DEFAULT_DISPLAY, getMainExecutor(), new AccessibilityService.TakeScreenshotCallback() {
+                    @Override public void onSuccess(AccessibilityService.ScreenshotResult r) {
+                        Bitmap out = null;
+                        try {
+                            Bitmap hw = Bitmap.wrapHardwareBuffer(r.getHardwareBuffer(), r.getColorSpace());
+                            out = hw.copy(Bitmap.Config.ARGB_8888, false);
+                            r.getHardwareBuffer().close();
+                        } catch (Throwable t) { out = null; }
+                        cb.done(out);
+                    }
+                    @Override public void onFailure(int code) { cb.done(null); }
+                });
+                return;
+            } catch (Throwable t) { /* rơi xuống MediaProjection */ }
         }
-        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 2000;
+        ShotService.capture(this, cb);
+    }
+    private void dockShot() {
+        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 2500;
         hideDockBar();
         h.postDelayed(new Runnable() { public void run() {
-            try { performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT); } catch (Throwable t) { }
+            if (Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT < 30) {
+                try { performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT); } catch (Throwable t) { }
+                return;
+            }
+            grabScreen(new ShotService.Cb() { public void done(Bitmap b) {
+                if (b == null) { toastShot("Không chụp được màn hình"); return; }
+                toastShot(ShotService.save(LockService.this, b) ? "Đã lưu ảnh chụp màn hình" : "Không lưu được ảnh");
+            } });
         } }, 350);
+    }
+    private android.view.View selView;
+    private void dockShotRegion() {
+        if (selView != null) return;
+        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 20000;
+        hideDockBar();
+        final Point real = realSize();
+        final float dens = getResources().getDisplayMetrics().density;
+        final RectF sel = new RectF(); final boolean[] has = {false};
+        final Paint dim = new Paint(); dim.setColor(0x80000000);
+        final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG); edge.setColor(0xFFFFFFFF); edge.setStyle(Paint.Style.STROKE); edge.setStrokeWidth(2 * dens);
+        final Paint txt = new Paint(Paint.ANTI_ALIAS_FLAG); txt.setColor(0xFFFFFFFF); txt.setTextSize(16 * dens); txt.setTextAlign(Paint.Align.CENTER); txt.setShadowLayer(3 * dens, 0, 1, 0xFF000000);
+        final View v = new View(this) {
+            @Override protected void onDraw(Canvas c) {
+                int w = getWidth(), hh = getHeight();
+                if (!has[0]) { c.drawRect(0, 0, w, hh, dim); c.drawText("Kéo để chọn vùng chụp", w / 2f, hh / 2f, txt); return; }
+                c.drawRect(0, 0, w, sel.top, dim); c.drawRect(0, sel.bottom, w, hh, dim);
+                c.drawRect(0, sel.top, sel.left, sel.bottom, dim); c.drawRect(sel.right, sel.top, w, sel.bottom, dim);
+                c.drawRect(sel, edge);
+            }
+        };
+        final Runnable[] kill = new Runnable[1];
+        kill[0] = new Runnable() { public void run() { closeSel(); } };
+        v.setOnTouchListener(new View.OnTouchListener() {
+            float x0, y0;
+            @Override public boolean onTouch(View view, MotionEvent e) {
+                switch (e.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN: x0 = e.getX(); y0 = e.getY(); has[0] = true; sel.set(x0, y0, x0, y0); h.removeCallbacks(kill[0]); view.invalidate(); return true;
+                    case MotionEvent.ACTION_MOVE:
+                        sel.set(Math.min(x0, e.getX()), Math.min(y0, e.getY()), Math.max(x0, e.getX()), Math.max(y0, e.getY())); view.invalidate(); return true;
+                    case MotionEvent.ACTION_UP: {
+                        sel.set(Math.min(x0, e.getX()), Math.min(y0, e.getY()), Math.max(x0, e.getX()), Math.max(y0, e.getY()));
+                        final RectF r = new RectF(sel); int[] loc = new int[2]; view.getLocationOnScreen(loc);
+                        r.offset(loc[0], loc[1]); /* toạ độ trong cửa sổ -> toạ độ màn hình thật */
+                        closeSel();
+                        if (r.width() < 16 * dens || r.height() < 16 * dens) { dockQuietUntil = 0; return true; }
+                        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 2500;
+                        h.postDelayed(new Runnable() { public void run() {
+                            grabScreen(new ShotService.Cb() { public void done(Bitmap b) {
+                                if (b == null) { toastShot("Không chụp được màn hình"); return; }
+                                try {
+                                    float sx = b.getWidth() / (float) real.x, sy = b.getHeight() / (float) real.y;
+                                    int l = Math.max(0, Math.round(r.left * sx)), t = Math.max(0, Math.round(r.top * sy));
+                                    int rr = Math.min(b.getWidth(), Math.round(r.right * sx)), bb = Math.min(b.getHeight(), Math.round(r.bottom * sy));
+                                    Bitmap crop = Bitmap.createBitmap(b, l, t, Math.max(1, rr - l), Math.max(1, bb - t));
+                                    toastShot(ShotService.save(LockService.this, crop) ? "Đã lưu ảnh vùng chọn" : "Không lưu được ảnh");
+                                } catch (Throwable ex) { toastShot("Không cắt được vùng chọn"); }
+                            } });
+                        } }, 250);
+                        return true;
+                    }
+                    case MotionEvent.ACTION_CANCEL: closeSel(); dockQuietUntil = 0; return true;
+                }
+                return true;
+            }
+        });
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, real.y,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = 0;
+        try { wm.addView(v, lp); selView = v; h.postDelayed(kill[0], 15000); } catch (Throwable t) { dockQuietUntil = 0; }
+    }
+    private void closeSel() {
+        if (selView != null) { try { wm.removeView(selView); } catch (Throwable t) { } selView = null; }
     }
     private void showDockBar() {
         if (wm == null || dockShown) return;
@@ -1264,6 +1409,7 @@ public class LockService extends AccessibilityService {
         String d = getSharedPreferences(PK, 0).getString("data", "[]");
         pushDockPrefs(); pushDockWall();
         dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ");window.setDock&&setDock(" + d + ");window.setShot&&setShot(true)", null);
+        pushExt();
     }
     @Override public void onTrimMemory(int level) {
         super.onTrimMemory(level);

@@ -4,19 +4,24 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 html,body{height:100%;background:transparent;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none}
-body{position:relative;--base:46px}
+body{position:relative;--base:46px;--ics:calc(var(--barh,calc(var(--base) + 18px)) - var(--pad,0px) - 12px);--ic:var(--ics)}
 /* Thanh chữ nhật dài, MỘT nền duy nhất, bám đáy cửa sổ; phần trong suốt phía trên chỉ xuất hiện lúc phóng đại icon */
 .pill{position:absolute;left:0;right:0;bottom:0;height:var(--barh,calc(var(--base) + 18px));display:flex;align-items:center;justify-content:center;gap:10px;padding:0 12px var(--pad,0px);background:#111113;box-shadow:0 1px 0 rgba(255,255,255,.16) inset}
-.sb{flex:none;width:var(--base);height:var(--base);border:0;background:none;color:#fff;display:grid;place-items:center;padding:0}
+.sb{flex:none;width:var(--ics);height:var(--ics);border:0;background:none;color:#fff;display:grid;place-items:center;padding:0}
 .sb:active{transform:scale(.9);opacity:.7}
 .sb svg{width:72%;height:72%}
 .sep{display:none}
 .sc{flex:1 1 auto;min-width:0;height:100%;display:flex;align-items:center;overflow:visible}
 .apps{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto}
-.dk{flex:none;width:var(--base);height:var(--base);border:0;background:none;padding:0;position:relative}
+.dk{flex:none;width:var(--ic);height:var(--ic);border:0;background:none;padding:0;position:relative}
+.dk.ext .ic{background:rgba(255,255,255,.12)}
+.dk.ext .ic img{width:100%;height:100%;object-fit:cover;display:block}
+.sp{flex:none;width:1px;height:60%;background:rgba(255,255,255,.28);margin:0 2px}
+@keyframes bnc{0%{transform:translateY(0)}35%{transform:translateY(-34%)}60%{transform:translateY(0)}78%{transform:translateY(-12%)}100%{transform:translateY(0)}}
+.dk.bn .ic{animation:bnc .5s ease-out}
 .dk:active .ic{filter:brightness(.8)}
-.dk.run::after{content:"";position:absolute;left:50%;bottom:-6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:rgba(255,255,255,.85)}
-.ic{position:relative;display:grid;place-items:center;width:100%;height:100%;border-radius:22.5%;overflow:hidden;container-type:inline-size;transform-origin:50% 100%;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.28)}
+.dk.run::after{content:"";position:absolute;left:50%;bottom:-5px;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:rgba(255,255,255,.85)}
+.ic{position:relative;display:grid;place-items:center;width:100%;height:100%;border-radius:22.5%;overflow:hidden;container-type:inline-size;transform-origin:50% 100%;will-change:transform;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.28)}
 body[data-ics="circle"] .ic{border-radius:50%}
 body[data-ics="square"] .ic{border-radius:10%}
 .ic::before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,0) 46%);pointer-events:none}
@@ -30,27 +35,30 @@ body[data-ics="square"] .ic{border-radius:10%}
 <div class="pill" id="pill">
   <button class="sb" id="ai" type="button" aria-label="AI giọng nói"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.5 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0h-2a7 7 0 0 0 6 6.9V22h2v-3.1A7 7 0 0 0 17.5 12zM19 1.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg></button>
   <span class="sep"></span>
-  <div class="sc"><div class="apps" id="apps"></div></div>
+  <div class="sc" id="sc"><div class="apps" id="apps"></div></div>
   <span class="sep" id="sep2"></span>
   <button class="sb" id="shot" type="button" aria-label="Chụp ảnh màn hình"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/></svg></button>
 </div>
 <script>
 var apps=document.getElementById('apps'),shot=document.getElementById('shot'),sep2=document.getElementById('sep2'),pill=document.getElementById('pill');
-var magOn=true,grown=false,centers=[],els=[],mgX=0,raf=0,downT=false,mvd=0;
+
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function B(){return parseFloat(getComputedStyle(document.body).getPropertyValue('--base'))||46}
 window.setLayout=function(h,pad){var st=document.body.style;st.setProperty('--barh',h+'px');st.setProperty('--pad',pad+'px')};
 window.setBase=function(b){document.body.style.setProperty('--base',b+'px')};
 window.setIcs=function(v){document.body.setAttribute('data-ics',v||'round')};
-window.setMag=function(on){magOn=!!on;if(!magOn)unmag()};
-window.setDock=function(list){
+var lastList=[],lastExt=[];
+function ico(a){return '<button class="dk'+(a.r?' run':'')+'" type="button" data-id="'+esc(a.id)+'" aria-label="'+esc(a.name)+'"><span class="ic" style="background:'+a.bg+'">'+a.g+'</span></button>'}
+function ico2(a){return '<button class="dk ext run" type="button" data-pk="'+esc(a.p)+'" aria-label="'+esc(a.n)+'"><span class="ic"><img alt="" src="'+a.u+'"></span></button>'}
+function render(){
   try{
-    apps.innerHTML=list.map(function(a){
-      return '<button class="dk'+(a.r?' run':'')+'" type="button" data-id="'+esc(a.id)+'" aria-label="'+esc(a.name)+'"><span class="ic" style="background:'+a.bg+'">'+a.g+'</span></button>';
-    }).join('');
+    apps.innerHTML=lastList.map(ico).join('')+(lastExt.length&&lastList.length?'<span class="sp"></span>':'')+lastExt.map(ico2).join('');
   }catch(e){}
-  els=[];centers=[];
-};
+  fitIcons();
+}
+window.setDock=function(list){lastList=list||[];render()};
+/* App ngoài đang/đã mở (Zalo, Chrome...): hiện icon thật của app ngay sau các icon Dock, có chấm bên dưới */
+window.setExt=function(list){lastExt=list||[];render()};
 /* Hình nền liền với Desktop: nền Dock là lát phía dưới của chính hình nền (u = data URL, h = cao CSS px của lát). Cửa sổ Dock full chiều ngang nên lát rộng 100% là khớp màn hình.
    Chỉ phủ lớp tối rất nhẹ tăng dần về đáy (mép trên = 0) và bỏ viền sáng, để không lộ đường ranh với Desktop. */
 window.setWall=function(u,h){
@@ -59,40 +67,19 @@ window.setWall=function(u,h){
   pill.style.background='linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.16)),url("'+u+'") left bottom/100% '+h+'px no-repeat';
 };
 window.setShot=function(on){shot.style.display=on?'':'none'};
-/* Phóng đại: chuột rê qua Dock, hoặc chạm giữ rồi trượt ngón tay dọc Dock; nhả ra thì thu lại. Cửa sổ Dock được nới cao lên lúc phóng đại. */
-function calc(){els=[].slice.call(document.querySelectorAll('.dk'));centers=els.map(function(d){var r=d.getBoundingClientRect();return r.left+r.width/2})}
-function grow(on){if(grown===on)return;grown=on;try{DockApp.grow(on)}catch(e){}}
-function apply(){
-  raf=0;if(!centers.length)return;var b=B();
-  var sc=centers.map(function(c){var d=mgX-c;return 1+.62*Math.exp(-(d*d)/(2*58*58))});
-  var tot=sc.reduce(function(a,v){return a+(v-1)*b},0),acc=0;
-  els.forEach(function(d,i){var ext=(sc[i]-1)*b,dx=acc+ext/2-tot/2;acc+=ext;
-    d.style.transform='translateX('+dx.toFixed(1)+'px)';d.firstElementChild.style.transform='scale('+sc[i].toFixed(3)+')'});
+/* Không còn phóng đại khi rê/lướt: bấm icon thì nảy lên một nhịp rồi mở đúng app đó. Cửa sổ Dock luôn giữ nguyên kích thước. */
+window.setMag=function(){};
+function fitIcons(){
+  var n=apps.children.length; if(!n){return}
+  var avail=document.getElementById('sc').clientWidth||0; if(avail<=0)return;
+  var st=document.body.style; st.removeProperty('--ic');
+  var full=parseFloat(getComputedStyle(apps.firstElementChild).width)||40, gap=10, seps=apps.querySelectorAll('.sp').length;
+  var need=(n-seps)*full+(n-1)*gap+seps*4;
+  if(need>avail){var w=Math.max(22,Math.floor((avail-(n-1)*gap-seps*4)/(n-seps)));st.setProperty('--ic',w+'px')}
 }
-function mag(e){
-  if(!magOn)return;
-  if(!grown){grow(true)}
-  if(!centers.length)calc(); if(!centers.length)return;
-  mgX=e.clientX; if(!raf)raf=requestAnimationFrame(apply);
-}
-function unmag(){
-  if(raf){cancelAnimationFrame(raf);raf=0}
-  els.forEach(function(d){d.style.transform='';if(d.firstElementChild)d.firstElementChild.style.transform=''});
-  centers=[];grow(false);
-}
-pill.addEventListener('pointerdown',function(e){downT=e.pointerType==='touch';mvd=0;try{DockApp.touch()}catch(x){}; if(!downT||true){calc()}});
-pill.addEventListener('pointermove',function(e){
-  try{DockApp.touch()}catch(x){}
-  if(e.pointerType==='touch'){ if(!(e.buttons&1))return; if(++mvd<3)return } /* chạm thường (không trượt) thì không nới cửa sổ */
-  mag(e);
-},{passive:true});
-['pointerup','pointercancel'].forEach(function(t){pill.addEventListener(t,function(e){if(e.pointerType==='touch')unmag()})});
-/* Cửa sổ Dock đổi cao lúc phóng đại làm WebView bắn pointerleave giả: chờ một chút, nếu con trỏ vẫn đang di chuyển thì bỏ qua (trước đây bị thu lại ngay nên phải bấm mới nổi) */
-var lastMv=0,leaveT=0;
-pill.addEventListener('pointermove',function(){lastMv=Date.now();if(leaveT){clearTimeout(leaveT);leaveT=0}},{passive:true});
-pill.addEventListener('pointerenter',function(e){if(e.pointerType!=='touch'){lastMv=Date.now();mag(e)}});
-pill.addEventListener('pointerleave',function(e){if(e.pointerType==='touch'){unmag();return}
-  var t0=Date.now();clearTimeout(leaveT);leaveT=setTimeout(function(){leaveT=0;if(lastMv<t0)unmag()},160)});
+window.addEventListener('resize',function(){setTimeout(fitIcons,50)});
+/* rê/chạm vào Dock: báo cho dịch vụ giữ Dock hiện (khi bật tự ẩn) */
+['pointerdown','pointermove'].forEach(function(t){pill.addEventListener(t,function(){try{DockApp.touch()}catch(x){}},{passive:true})});
 /* Chạm 2 lần vào chỗ trống trên Dock (không trúng icon/nút) = mở đa nhiệm, giống chạm 2 lần chỗ trống trên Desktop */
 var tapDn=null,lastTap=null;
 pill.addEventListener('pointerdown',function(e){tapDn=e.target.closest('.dk,.sb')?null:{x:e.clientX,y:e.clientY,t:Date.now()}});
@@ -102,10 +89,21 @@ pill.addEventListener('pointerup',function(e){
   if(lastTap&&now-lastTap.t<450&&Math.abs(e.clientX-lastTap.x)<48&&Math.abs(e.clientY-lastTap.y)<48){lastTap=null;try{DockApp.multitask()}catch(x){}return}
   lastTap={x:e.clientX,y:e.clientY,t:now};
 });
+var shotT=0;
 document.addEventListener('click',function(e){
-  var d=e.target.closest('[data-id]'); if(d){DockApp.open(d.dataset.id);return}
+  var d=e.target.closest('.dk');
+  if(d){
+    d.classList.remove('bn');void d.offsetWidth;d.classList.add('bn');
+    var id=d.dataset.id,pk=d.dataset.pk;
+    setTimeout(function(){d.classList.remove('bn');try{if(pk)DockApp.openExt(pk);else DockApp.open(id)}catch(x){}},230);
+    return;
+  }
   if(e.target.closest('#ai')){DockApp.ai();return}
-  if(e.target.closest('#shot')){DockApp.shot()}
+  if(e.target.closest('#shot')){
+    /* 1 lần bấm = chụp toàn màn hình; bấm 2 lần = kéo chọn vùng chụp */
+    if(shotT){clearTimeout(shotT);shotT=0;try{DockApp.shotRegion()}catch(x){}return}
+    shotT=setTimeout(function(){shotT=0;try{DockApp.shot()}catch(x){}},300);
+  }
 });
 </script>
 
