@@ -2235,7 +2235,7 @@ var FCLIP={mode:'copy',paths:[]};   /* bảng nhớ tạm Chép / Cắt của ap
 function confirmBox(title,sub,okText,fn){
   const o=document.createElement('div'); o.className='bpk';
   o.innerHTML='<div class="bps"><b></b><div style="margin-top:6px;opacity:.7;padding:0 6px"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn rc">Hủy</button><button type="button" class="btn ok" style="background:#e53935;color:#fff"></button></div></div>';
-  $('b',o).textContent=title; $('div div',o).textContent=sub; $('.ok',o).textContent=okText;
+  $('b',o).textContent=title; $('.bps>div',o).textContent=sub; $('.ok',o).textContent=okText;
   stage.appendChild(o);
   $('.rc',o).addEventListener('click',()=>o.remove());
   o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
