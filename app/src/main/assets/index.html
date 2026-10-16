@@ -3436,7 +3436,7 @@ const lkDel=k=>{const o=lk();delete o[k];if(k==='pin')delete o.pl;jset(LK,o)};
 const lkChk=(k,v)=>lk()[k]===lkHash(k,v);
 const isPortrait=()=>window.innerHeight>=window.innerWidth;
 /* Ngang -> mật khẩu ký tự; dọc -> PIN hoặc hình vẽ theo lựa chọn. Nếu kiểu cần chưa đặt thì dùng kiểu đã đặt, không để lọt khóa. */
-function lockKind(){const o=lk(),want=isPortrait()?pref('lockPm','pin'):'pw';return o[want]?want:(['pw','pin','pat'].find(k=>o[k])||'pw')}
+function lockKind(){const o=lk(),want=isPortrait()?'pin':'pw';return o[want]?want:(['pw','pin','pat'].find(k=>o[k])||'pw')}
 
 function authUI(el,kind,o){
   el.innerHTML='<div class="amsg"></div><div class="abody"></div>';
