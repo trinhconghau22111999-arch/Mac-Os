@@ -733,7 +733,17 @@ public class LockService extends AccessibilityService {
             /* ---- bên phải, từ phải sang trái: giờ, trung tâm điều khiển, tìm kiếm, Wi-Fi, pin, OnTime ---- */
             float rx = w - pad;
             String clock = tf.format(new java.util.Date()); float cw = tx.measureText(clock);
-            c.drawText(clock, rx - cw, cy + dp(4.5f), tx); hit.put("clk", new RectF(rx - cw - dp(8), 0, rx + dp(8), hh)); rx -= cw + dp(14);
+            c.drawText(clock, rx - cw, cy + dp(4.5f), tx);
+            /* ngày tháng bên trái giờ, cùng dạng với thanh cũ: "T6 16 thg 10" (màn hình hẹp thì bỏ) */
+            float dw = 0;
+            if (w >= dp(480)) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                String[] dn = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
+                String dt = dn[cal.get(java.util.Calendar.DAY_OF_WEEK) - 1] + " " + cal.get(java.util.Calendar.DAY_OF_MONTH) + " thg " + (cal.get(java.util.Calendar.MONTH) + 1);
+                dw = tx.measureText(dt) + dp(10);
+                c.drawText(dt, rx - cw - dw, cy + dp(4.5f), tx);
+            }
+            hit.put("clk", new RectF(rx - cw - dw - dp(8), 0, rx + dp(8), hh)); rx -= cw + dw + dp(14);
             /* trung tâm điều khiển: 2 thanh bo tròn */
             rf.set(rx - dp(15), cy - dp(5.5f), rx, cy - dp(1)); c.drawRoundRect(rf, dp(2.3f), dp(2.3f), ic);
             rf.set(rx - dp(15), cy + dp(1), rx, cy + dp(5.5f)); c.drawRoundRect(rf, dp(2.3f), dp(2.3f), ic);
