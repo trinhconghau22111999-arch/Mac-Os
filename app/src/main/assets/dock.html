@@ -15,6 +15,7 @@ body{position:relative;--base:46px}
 .apps{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto}
 .dk{flex:none;width:var(--base);height:var(--base);border:0;background:none;padding:0;position:relative}
 .dk:active .ic{filter:brightness(.8)}
+.dk.run::after{content:"";position:absolute;left:50%;bottom:-6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:rgba(255,255,255,.85)}
 .ic{position:relative;display:grid;place-items:center;width:100%;height:100%;border-radius:22.5%;overflow:hidden;container-type:inline-size;transform-origin:50% 100%;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.28)}
 body[data-ics="circle"] .ic{border-radius:50%}
 body[data-ics="square"] .ic{border-radius:10%}
@@ -45,7 +46,7 @@ window.setMag=function(on){magOn=!!on;if(!magOn)unmag()};
 window.setDock=function(list){
   try{
     apps.innerHTML=list.map(function(a){
-      return '<button class="dk" type="button" data-id="'+esc(a.id)+'" aria-label="'+esc(a.name)+'"><span class="ic" style="background:'+a.bg+'">'+a.g+'</span></button>';
+      return '<button class="dk'+(a.r?' run':'')+'" type="button" data-id="'+esc(a.id)+'" aria-label="'+esc(a.name)+'"><span class="ic" style="background:'+a.bg+'">'+a.g+'</span></button>';
     }).join('');
   }catch(e){}
   els=[];centers=[];
@@ -79,7 +80,12 @@ pill.addEventListener('pointermove',function(e){
   mag(e);
 },{passive:true});
 ['pointerup','pointercancel'].forEach(function(t){pill.addEventListener(t,function(e){if(e.pointerType==='touch')unmag()})});
-pill.addEventListener('pointerleave',function(e){unmag()});
+/* Cửa sổ Dock đổi cao lúc phóng đại làm WebView bắn pointerleave giả: chờ một chút, nếu con trỏ vẫn đang di chuyển thì bỏ qua (trước đây bị thu lại ngay nên phải bấm mới nổi) */
+var lastMv=0,leaveT=0;
+pill.addEventListener('pointermove',function(){lastMv=Date.now();if(leaveT){clearTimeout(leaveT);leaveT=0}},{passive:true});
+pill.addEventListener('pointerenter',function(e){if(e.pointerType!=='touch'){lastMv=Date.now();mag(e)}});
+pill.addEventListener('pointerleave',function(e){if(e.pointerType==='touch'){unmag();return}
+  var t0=Date.now();clearTimeout(leaveT);leaveT=setTimeout(function(){leaveT=0;if(lastMv<t0)unmag()},160)});
 document.addEventListener('click',function(e){
   var d=e.target.closest('[data-id]'); if(d){DockApp.open(d.dataset.id);return}
   if(e.target.closest('#ai')){DockApp.ai();return}

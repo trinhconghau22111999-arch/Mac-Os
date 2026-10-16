@@ -1520,7 +1520,7 @@ function dockLeave(b){
 function removeTempDock(id){
   const i=TEMP.indexOf(id); if(i<0)return;
   TEMP.splice(i,1); dockLeave(dockBtn(id));
-  unmagnify();
+  unmagnify(); try{window.__syncDock&&window.__syncDock()}catch(e){}
 }
 function addToDock(id){
   if(!APPS[id]||DOCK.indexOf(id)>=0)return;
@@ -1579,7 +1579,7 @@ function bindHold(host,sel,onMenu){
   host.addEventListener('pointermove',e=>{if(Math.abs(e.clientX-hx)+Math.abs(e.clientY-hy)>8)cancel()});
   host.addEventListener('contextmenu',e=>{const el=e.target.closest(sel);if(!el)return;e.preventDefault();e.stopPropagation();onMenu(el,e.clientX,e.clientY)},true);
 }
-function syncDock(){$$('.dk',dock).forEach(d=>d.classList.toggle('run',!!wins[d.dataset.id]))}
+function syncDock(){$$('.dk',dock).forEach(d=>d.classList.toggle('run',!!wins[d.dataset.id])); try{window.__syncDock&&window.__syncDock()}catch(e){}}
 function setBadge(id,n){const b=dockBtn(id);if(!b)return;const e=$('.bdg',b);e.hidden=!n;e.textContent=n>99?'99+':n}
 function fitDock(){
   const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
@@ -1594,6 +1594,7 @@ function fitDock(){
   stage.style.setProperty('--base',base+'px');
   try{if(window.AndroidLauncher&&AndroidLauncher.setDockBase)AndroidLauncher.setDockBase(Math.round(base))}catch(e){}
   try{$$('.win.max',layer).forEach(fitMax)}catch(e){}   /* cửa sổ phóng to theo kịp chiều cao Dock mới */
+  try{$$('.win',layer).forEach(w=>{if(w._snap&&w._snap.side&&!w.classList.contains('max'))snapHalf(w,w._snap.side)})}catch(e){}   /* cửa sổ chia đôi cũng theo kịp, khỏi hở với Dock */
   /* Nếu vẫn chưa vừa chiều ngang thì chuyển sang chế độ vuốt ngang (Dock vẫn nằm giữa, icon dư bị ẩn) */
   dock.classList.remove('scroll');
   /* tính theo bề rộng cuối cùng của các ô (không đo DOM: ô đang mở rộng/thu lại có bề rộng giữa chừng); mỗi vạch ngăn rộng 1px + lề 2×2px */
@@ -4522,7 +4523,8 @@ if(window.AndroidLauncher){(function(){
   function syncDockFloat(){
     const A=window.AndroidLauncher; if(!A||!A.setDockData)return;
     try{
-      const d=JSON.stringify(DOCK.filter(x=>x!=='|'&&ICONS[x]).map(id=>({id:id,name:appTitle(id),bg:ICONS[id].bg,g:ICONS[id].g})));
+      /* icon ghim + icon tạm của app đang mở (như Dock trong giao diện), kèm cờ r = đang chạy để vẽ chấm */
+      const d=JSON.stringify(DOCK.concat(TEMP).filter(x=>x!=='|'&&ICONS[x]).map(id=>({id:id,name:appTitle(id),bg:ICONS[id].bg,g:ICONS[id].g,r:wins[id]?1:0})));
       if(d!==_dd){_dd=d;A.setDockData(d)}
       A.setDockOverlay(!!pref('dockFloat',true));
       markND();

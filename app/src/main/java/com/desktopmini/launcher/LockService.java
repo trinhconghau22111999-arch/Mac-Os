@@ -950,7 +950,17 @@ public class LockService extends AccessibilityService {
         return barMax;
     }
     /** Chiều cao cửa sổ Dock (px): ở Desktop = đúng thanh icon; ở app khác = đủ cao để phủ kín thanh điều hướng/thanh tác vụ của ROM. */
-    private int dockBarPx() { int bar = dp(dockBase + 18); return launcherFront ? bar : Math.max(bar, sysBarHeight()); }
+    private int dockBarPx() { int bar = dp(dockBase + 18); return launcherFront ? bar + desktopGapPx : Math.max(bar, sysBarHeight()); }
+    /** Phần màn hình thật nằm dưới vùng Desktop (thanh điều hướng còn hiện...): Dock kéo dài phủ kín, icon nâng lên bằng đúng phần đó nên không còn khoảng trống. */
+    private volatile int desktopGapPx = 0;
+    public static void setDesktopGap(final int px) {
+        final LockService s = inst; if (s == null) return;
+        s.h.post(new Runnable() { public void run() {
+            int v = Math.max(0, Math.min(px, s.dp(96)));
+            if (Math.abs(v - s.desktopGapPx) <= s.dp(1)) return;
+            s.desktopGapPx = v; s.applyDockBase();
+        } });
+    }
     private int dockGrowPx() { return dockGrown ? dp(Math.round(dockBase * 0.7f) + 8) : 0; }
     /** Đặt cửa sổ theo toạ độ tuyệt đối từ mép trên của màn hình THẬT (như thanh Desktop cũ) nên đè được lên thanh điều hướng. */
     private void placeDock(WindowManager.LayoutParams lp) {
@@ -991,13 +1001,13 @@ public class LockService extends AccessibilityService {
     }
     private static final int DOCK_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
     private int dockHDp() { return Math.round(dockBarPx() / getResources().getDisplayMetrics().density); }
-    private int dockPadDp() { return 0; }
+    private int dockPadDp() { return launcherFront ? Math.round(desktopGapPx / getResources().getDisplayMetrics().density) : 0; }
     private int lastBarPx = -1;
     private void relayoutDock() {
         if (!dockShown || dockLp == null || dockView == null) return;
         int y = dockLp.y, hh = dockLp.height; placeDock(dockLp);
         int bp = dockBarPx();
-        if (bp != lastBarPx) { lastBarPx = bp; if (!yAdjLocked) { calTries = 0; h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); } if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setLayout&&setLayout(" + dockHDp() + ",0)", null); }
+        if (bp != lastBarPx) { lastBarPx = bp; if (!yAdjLocked) { calTries = 0; h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); } if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ")", null); }
         if (y != dockLp.y || hh != dockLp.height) { try { wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
     }
     public static boolean isRunning() { return inst != null; }

@@ -238,6 +238,8 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
+        root.addOnLayoutChangeListener(new View.OnLayoutChangeListener() { public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or2, int ob) {
+            if (b != ob || t != ot) reportDockGap(); } });
         if (Build.VERSION.SDK_INT >= 30) {
             /* Không để hệ thống tự chừa chỗ cho thanh trạng thái/điều hướng: nếu không, mỗi lần thanh hiện thoáng qua (vuốt mép, quay lại app...)
                giao diện bị đẩy xuống ("giật"), có lúc kẹt lại một khoảng trống bằng thanh menu ở trên cùng. Chỉ chừa chỗ cho bàn phím. */
@@ -649,10 +651,18 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().postDelayed(new Runnable() { public void run() { immersive(); } }, 400);
     }
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
+    /** Đo phần màn hình thật nằm dưới vùng Desktop để Dock nổi phủ kín, không để hở giữa Dock và cửa sổ app. */
+    private void reportDockGap() {
+        try {
+            int[] loc = new int[2]; root.getLocationOnScreen(loc);
+            android.graphics.Point p = new android.graphics.Point(); getWindowManager().getDefaultDisplay().getRealSize(p);
+            if (root.getHeight() > 0) LockService.setDesktopGap(p.y - (loc[1] + root.getHeight()));
+        } catch (Throwable t) { }
+    }
     @Override protected void onResume() {
         super.onResume();
         inFg = true; lastTouchAt = android.os.SystemClock.elapsedRealtime();
-        imeUp = false; hideBars(); LockService.launcherResumed(); prefetchApps(); scanNewMedia(); startMediaWatch();
+        imeUp = false; hideBars(); LockService.launcherResumed(); reportDockGap(); root.postDelayed(new Runnable() { public void run() { reportDockGap(); } }, 700); prefetchApps(); scanNewMedia(); startMediaWatch();
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) { try { if (e.getValue().getVisibility() == View.VISIBLE) { e.getValue().onResume(); extHiddenAt.remove(e.getKey()); } } catch (Exception x) { } }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
