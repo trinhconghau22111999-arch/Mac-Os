@@ -745,7 +745,8 @@ public class LockService extends AccessibilityService {
             hit.clear();
             if (wallTop != null) {
                 /* một hình liền với Desktop: lát phía trên của hình nền + lớp phủ tối nhẹ cho chữ dễ đọc */
-                c.drawBitmap(wallTop, new Rect(0, 0, wallTop.getWidth(), Math.min(wallTop.getHeight(), (int) hh)), new RectF(0, 0, w, hh), null);
+                float sh = Math.min(wallTop.getHeight(), hh);
+                c.drawBitmap(wallTop, new Rect(0, 0, wallTop.getWidth(), (int) sh), new RectF(0, 0, w, sh), null);
                 /* phủ tối nhẹ giảm dần về mép dưới (mép dưới = 0) để thanh menu hoà liền vào Desktop, không lộ đường ranh */
                 if (tintH != hh) { tintH = hh; tintP.setShader(new android.graphics.LinearGradient(0, 0, 0, hh, 0x38000000, 0x00000000, android.graphics.Shader.TileMode.CLAMP)); }
                 c.drawRect(0, 0, w, hh, tintP);
@@ -887,7 +888,6 @@ public class LockService extends AccessibilityService {
     private android.webkit.WebView dockWeb;
     private boolean dockReady, dockShown;
     private long dockQuietUntil = 0;
-    private int dockWidthDp = 0;
     private WindowManager.LayoutParams dockLp;
     private static final int DOCK_GAP_DP = 0;
     private static volatile int dockBase = 46;
@@ -1042,16 +1042,6 @@ public class LockService extends AccessibilityService {
         if (dockWeb != null && dockReady && (dockBase != pushedBase || hdp != pushedH)) { pushedBase = dockBase; pushedH = hdp; dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ")", null); }
         relayoutDock();
     }
-    /** Thu cửa sổ Dock vừa khít viên thuốc, căn giữa; phần còn lại của màn hình chạm xuyên xuống app bên dưới. */
-    private void resizeDock() {
-        if (!dockShown || dockLp == null || dockView == null || dockWidthDp <= 0) return;
-        try {
-            Point real = realSize();
-            dockLp.width = Math.min(real.x, dp(dockWidthDp));
-            dockLp.x = 0; dockLp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-            wm.updateViewLayout(dockView, dockLp);
-        } catch (Exception e) { }
-    }
     private final Runnable dockTick = new Runnable() { public void run() {
         h.removeCallbacks(dockTick);
         if (!enabled || wm == null) return;
@@ -1116,7 +1106,6 @@ public class LockService extends AccessibilityService {
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
         @JavascriptInterface public void touch() { peekDock(); }
         @JavascriptInterface public void grow(final boolean on) { h.post(new Runnable() { public void run() { growDock(on); } }); }
-        @JavascriptInterface public void size(final int wDp) { h.post(new Runnable() { public void run() { /* thanh dài full chiều ngang: không cần thu cửa sổ */ } }); }
     }
     /** Chụp màn hình app đang dùng (hệ thống tự lưu vào Ảnh chụp màn hình); ẩn Dock một lúc để không lọt vào ảnh. */
     private void dockShot() {
@@ -1145,7 +1134,7 @@ public class LockService extends AccessibilityService {
             dockWeb.setVerticalScrollBarEnabled(false); dockWeb.setHorizontalScrollBarEnabled(false);
             dockWeb.addJavascriptInterface(new DockJs(), "DockApp");
             dockWeb.setWebViewClient(new android.webkit.WebViewClient() {
-                @Override public void onPageFinished(android.webkit.WebView v, String url) { dockReady = true; pushDockData(); }
+                @Override public void onPageFinished(android.webkit.WebView v, String url) { dockReady = true; wallPushed = null; pushDockData(); }
             });
             dockView.addView(dockWeb, new android.widget.FrameLayout.LayoutParams(-1, -1));
             dockReady = false;
@@ -1167,11 +1156,13 @@ public class LockService extends AccessibilityService {
     /* ================= Hình nền liền một khối: thanh menu trên – Desktop – Dock dưới =================
      * Giao diện Desktop gửi nguồn hình nền (data URL / "asset"); dịch vụ cắt lát phía trên và lát phía dưới theo đúng kiểu cover
      * của Desktop rồi vẽ làm nền cho thanh menu nổi và Dock nổi, nên cả ba nhìn như một hình duy nhất, ở cả Desktop lẫn app khác. */
-    private static volatile String wallSrc = "";
+    private static volatile String wallSrc = null; /* null = Desktop chưa gửi lần nào: lát nạp từ file chỉ là bản tạm cho tới khi Desktop xác nhận */
     private volatile Bitmap wallTop;
     private volatile String wallDockUrl = "";
-    private int wallGen = 0;
-    private static final int WALL_TOP_DP = 120, WALL_DOCK_DP = 200;
+    private volatile int wallGen = 0;
+    private final Object wallLock = new Object();
+    private String wallPushed = null; /* data URL đã gửi cho WebView Dock: không gửi lại khi không đổi */
+    private static final int WALL_TOP_DP = 64, WALL_DOCK_DP = 200;
     public static void setWall(String src) {
         String n = src == null ? "" : src;
         if (n.equals(wallSrc)) return;
@@ -1190,39 +1181,43 @@ public class LockService extends AccessibilityService {
     }
     private Bitmap wallStrip(Bitmap bm, float s, float x0, float y0, int w, int yScreen, int hPx) {
         Bitmap out = Bitmap.createBitmap(w, hPx, Bitmap.Config.ARGB_8888);
-        Rect src = new Rect(Math.round(x0 / s), Math.round((yScreen + y0) / s), Math.round((x0 + w) / s), Math.round((yScreen + y0 + hPx) / s));
+        /* kẹp trong biên ảnh: làm tròn có thể vượt 1px */
+        Rect src = new Rect(Math.max(0, Math.round(x0 / s)), Math.max(0, Math.round((yScreen + y0) / s)),
+            Math.min(bm.getWidth(), Math.round((x0 + w) / s)), Math.min(bm.getHeight(), Math.round((yScreen + y0 + hPx) / s)));
         Paint p = new Paint(Paint.FILTER_BITMAP_FLAG);
         new Canvas(out).drawBitmap(bm, src, new Rect(0, 0, w, hPx), p);
         return out;
     }
     private void rebuildWall() {
+        if (wallSrc == null) return;   /* chưa có nguồn từ Desktop: giữ nguyên lát đã nạp từ file */
         final String src = wallSrc; final int gen = ++wallGen; final Point real = realSize();
         final int topPx = dp(WALL_TOP_DP), dockPx = Math.min(dp(WALL_DOCK_DP), real.y / 2);
         new Thread(new Runnable() { public void run() {
             Bitmap top = null; String url = "";
             try {
                 byte[] b = src.length() == 0 ? null : wallBytes(src);
+                Bitmap bm = null;
                 if (b != null) {
                     BitmapFactory.Options o = new BitmapFactory.Options(); o.inJustDecodeBounds = true;
                     BitmapFactory.decodeByteArray(b, 0, b.length, o);
                     int ss = 1; while (o.outWidth / (ss * 2) >= real.x) ss *= 2;
                     o = new BitmapFactory.Options(); o.inSampleSize = ss;
-                    Bitmap bm = BitmapFactory.decodeByteArray(b, 0, b.length, o);
-                    if (bm != null) {
-                        /* cùng cách phủ "cover, căn giữa" như hình nền của Desktop */
-                        float s = Math.max((float) real.x / bm.getWidth(), (float) real.y / bm.getHeight());
-                        float x0 = (bm.getWidth() * s - real.x) / 2f, y0 = (bm.getHeight() * s - real.y) / 2f;
-                        top = wallStrip(bm, s, x0, y0, real.x, 0, topPx);
-                        Bitmap bot = wallStrip(bm, s, x0, y0, real.x, real.y - dockPx, dockPx);
-                        java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
-                        bot.compress(Bitmap.CompressFormat.JPEG, 88, bo);
-                        byte[] db = bo.toByteArray();
-                        url = "data:image/jpeg;base64," + android.util.Base64.encodeToString(db, android.util.Base64.NO_WRAP);
-                        saveWallFiles(top, db, real.x);
-                        bm.recycle(); bot.recycle();
-                    }
-                } else clearWallFiles();
-            } catch (Throwable t) { top = null; url = ""; }
+                    bm = BitmapFactory.decodeByteArray(b, 0, b.length, o);
+                }
+                if (bm != null) {
+                    /* cùng cách phủ "cover, căn giữa" như hình nền của Desktop */
+                    float s = Math.max((float) real.x / bm.getWidth(), (float) real.y / bm.getHeight());
+                    float x0 = (bm.getWidth() * s - real.x) / 2f, y0 = (bm.getHeight() * s - real.y) / 2f;
+                    top = wallStrip(bm, s, x0, y0, real.x, 0, topPx);
+                    Bitmap bot = wallStrip(bm, s, x0, y0, real.x, real.y - dockPx, dockPx);
+                    java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                    bot.compress(Bitmap.CompressFormat.JPEG, 88, bo);
+                    byte[] db = bo.toByteArray();
+                    url = "data:image/jpeg;base64," + android.util.Base64.encodeToString(db, android.util.Base64.NO_WRAP);
+                    synchronized (wallLock) { if (gen == wallGen) saveWallFiles(top, db, real.x); }   /* bản build cũ không được ghi đè bản mới */
+                    bm.recycle(); bot.recycle();
+                } else synchronized (wallLock) { if (gen == wallGen) clearWallFiles(); }   /* hình chuyển màu hoặc không đọc được: xoá lát cũ */
+            } catch (Throwable t) { top = null; url = ""; synchronized (wallLock) { if (gen == wallGen) clearWallFiles(); } }
             final Bitmap ft = top; final String fu = url;
             h.post(new Runnable() { public void run() {
                 if (gen != wallGen) return;
@@ -1258,14 +1253,14 @@ public class LockService extends AccessibilityService {
     private void pushDockWall() {
         if (dockWeb == null || !dockReady) return;
         String u = wallDockUrl;
+        if (u.equals(wallPushed)) return;   /* pushDockData chạy mỗi lần mở/đóng app: không gửi lại cả data URL khi hình không đổi */
+        wallPushed = u;
         float d = getResources().getDisplayMetrics().density;
-        dockWeb.evaluateJavascript(u.length() == 0 ? "window.setWall&&setWall('',0,0)" : "window.setWall&&setWall('" + u + "'," + Math.round(Math.min(dp(WALL_DOCK_DP), realSize().y / 2) / d) + "," + Math.round(realSize().x / d) + ")", null);
+        dockWeb.evaluateJavascript(u.length() == 0 ? "window.setWall&&setWall('',0)" : "window.setWall&&setWall('" + u + "'," + Math.round(Math.min(dp(WALL_DOCK_DP), realSize().y / 2) / d) + ")", null);
     }
     private void pushDockData() {
         if (dockWeb == null || !dockReady) return;
         dockBase = effectiveDockBase(); pushedBase = dockBase; pushedH = dockHDp();
-        /* mở rộng cửa sổ hết cỡ trước để viên thuốc đo đúng bề rộng tự nhiên, rồi JS gọi size() để thu lại */
-        if (dockShown && dockLp != null && dockView != null) { try { dockLp.width = realSize().x; wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
         String d = getSharedPreferences(PK, 0).getString("data", "[]");
         pushDockPrefs(); pushDockWall();
         dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ");window.setDock&&setDock(" + d + ");window.setShot&&setShot(true)", null);

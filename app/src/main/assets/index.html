@@ -4526,13 +4526,16 @@ if(window.AndroidLauncher){(function(){
   function pushBarWall(){
     try{
       const A=window.AndroidLauncher; if(!A||!A.setBarWall)return;
-      const bi=getComputedStyle(stage).backgroundImage||'', m=bi.match(/url\((?:"|')?(.*?)(?:"|')?\)/);
-      let src=''; if(m&&m[1]) src=/^data:/i.test(m[1])?m[1]:(/wallpaper\.jpg/i.test(m[1])?'asset':'');
+      const bi=getComputedStyle(stage).backgroundImage||'';
+      /* không dùng regex trên chuỗi data URL dài vài MB */
+      let src='';
+      if(/^url\(["']?data:/i.test(bi.slice(0,24))){ const s0=bi.indexOf('data:'); let e=bi.lastIndexOf(')'); if(bi[e-1]==='"'||bi[e-1]==="'")e--; src=bi.slice(s0,e) }
+      else if(/^url\(.*wallpaper\.jpg/i.test(bi.slice(0,300))) src='asset';
       const sig=src.length+':'+src.slice(0,40)+src.slice(-40);
       if(sig===_wsig)return; _wsig=sig; A.setBarWall(src);
     }catch(e){}
   }
-  window.__pushBarWall=pushBarWall; setInterval(pushBarWall,3000);
+  setInterval(pushBarWall,3000);
   let _dd='';
   function markND(){try{const A=window.AndroidLauncher;document.body.classList.toggle('nd',!!(A&&A.dockOverlayLive&&A.dockOverlayLive()&&pref('dockFloat',true)))}catch(e){}}
   setInterval(markND,2500);
