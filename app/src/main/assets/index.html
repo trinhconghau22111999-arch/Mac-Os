@@ -1564,7 +1564,7 @@ function fitDock(){
   const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
   /* chừa chỗ hai bên cho nút tìm kiếm và nút chụp màn hình (mỗi bên rộng bằng 1 icon + 24px) */
   let base=Math.floor((sw-100-(tot-1)*6-seps*8)/(n+2));
-  const ps=pref('dockSize',54);
+  const ps=Math.max(18,Math.min(36,pref('dockSize',27))); /* thanh trượt 18–36px (giảm 50% so với 36–72 trước đây) */
   /* màn rộng (>560px): cho icon nhỏ tới 30px để Dock vẫn vừa, không chuyển sang chế độ cuộn (chế độ cuộn tắt hiệu ứng phóng đại) */
   const flo=window.matchMedia('(max-width:560px)').matches?44:30;
   base=Math.max(Math.min(flo,ps),Math.min(ps,base));
