@@ -51,6 +51,11 @@ window.setDock=function(list){
   }catch(e){}
   els=[];centers=[];
 };
+/* Hình nền liền với Desktop: nền thanh Dock là lát phía dưới của chính hình nền (u = data URL, h = cao CSS px của lát) + lớp phủ tối nhẹ */
+window.setWall=function(u,h){
+  if(!u){pill.style.background='';return}
+  pill.style.background='linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url("'+u+'") left bottom/100% '+h+'px no-repeat';
+};
 window.setShot=function(on){shot.style.display=on?'':'none'};
 /* Phóng đại: chuột rê qua Dock, hoặc chạm giữ rồi trượt ngón tay dọc Dock; nhả ra thì thu lại. Cửa sổ Dock được nới cao lên lúc phóng đại. */
 function calc(){els=[].slice.call(document.querySelectorAll('.dk'));centers=els.map(function(d){var r=d.getBoundingClientRect();return r.left+r.width/2})}

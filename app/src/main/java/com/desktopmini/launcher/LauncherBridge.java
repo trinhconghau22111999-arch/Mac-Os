@@ -641,6 +641,7 @@ public class LauncherBridge {
         @JavascriptInterface public void setBarInfo(String app) { LockService.setBarInfo(app); }
         @JavascriptInterface public void setBarHide(boolean hide) { LockService.setBarHide(hide); }
         @JavascriptInterface public void setBarGeom(int dp) { LockService.setBarGeom(dp); }
+        @JavascriptInterface public void setBarWall(String src) { LockService.setWall(src); }
         @JavascriptInterface public boolean isHomeDefault() { return act.isDefaultHome(); }
         @JavascriptInterface public String getStatus() {
             try {
