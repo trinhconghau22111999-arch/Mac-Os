@@ -865,6 +865,11 @@ public class LockService extends AccessibilityService {
             dockWeb.evaluateJavascript("window.setIcs&&setIcs('" + dockIcs.replaceAll("[^a-z]", "") + "');window.setMag&&setMag(" + dockMag + ")", null);
     }
     private void peekDock() { dockPeekUntil = android.os.SystemClock.uptimeMillis() + 3500; }
+    /** Android dưới 8: nếu đã cấp quyền "Hiển thị trên ứng dụng khác" thì dùng loại cửa sổ cao nhất (TYPE_SYSTEM_ERROR) để đè lên cả thanh điều hướng/thanh tác vụ của ROM; không thì dùng lớp phủ trợ năng. */
+    private boolean canTopOverlay() {
+        try { return Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT < 26 && android.provider.Settings.canDrawOverlays(this); } catch (Throwable t) { return false; }
+    }
+    private int dockWinType() { return canTopOverlay() ? WindowManager.LayoutParams.TYPE_SYSTEM_ERROR : WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY; }
     private int navMaxPx = 0;
     /** Chiều cao thanh điều hướng (px), lấy giá trị lớn nhất từng đo để không nhảy khi app vào/ra toàn màn hình. */
     private int navPx() {
@@ -901,6 +906,9 @@ public class LockService extends AccessibilityService {
     private final Runnable dockTick = new Runnable() { public void run() {
         h.removeCallbacks(dockTick);
         if (!enabled || wm == null) return;
+        if (dockShown && dockLp != null && dockLp.type != dockWinType() && dockLp.type != WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY) { hideDockBar(); }
+        if (dockShown && dockLp != null && dockLp.type == WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY && canTopOverlay()) { hideDockBar(); }
+        if (hotView != null && canTopOverlay()) { hideHot(); }
         int nb = navMaxPx; navPx(); if (navMaxPx != nb && dockShown) applyDockBase(); /* đo được thanh điều hướng cao hơn thì phủ thêm */
         if (android.os.SystemClock.uptimeMillis() >= dockQuietUntil) {
             boolean peeking = android.os.SystemClock.uptimeMillis() < dockPeekUntil;
@@ -924,7 +932,7 @@ public class LockService extends AccessibilityService {
             peekDock(); h.post(dockTick); return false; } });
         Point real = realSize();
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(10),
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            dockWinType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.BOTTOM | Gravity.LEFT; lp.x = 0; lp.y = 0;
@@ -997,12 +1005,15 @@ public class LockService extends AccessibilityService {
         } else pushDockData();
         Point real = realSize();
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(dockHDp()),
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            dockWinType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL; lp.x = 0; lp.y = 0;
         dockLp = lp;
-        try { wm.addView(dockView, lp); dockShown = true; } catch (Exception e) { dockShown = false; }
+        try { wm.addView(dockView, lp); dockShown = true; }
+        catch (Throwable e) { /* loại cửa sổ cao bị từ chối: quay về lớp phủ trợ năng */
+            try { lp.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY; wm.addView(dockView, lp); dockShown = true; } catch (Throwable e2) { dockShown = false; }
+        }
     }
     private void hideDockBar() {
         if (dockView != null && dockShown) { try { wm.removeView(dockView); } catch (Exception e) { } }

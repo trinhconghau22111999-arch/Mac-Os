@@ -628,7 +628,18 @@ public class LauncherBridge {
         }
         /* ---- Dock nổi trên app khác (qua dịch vụ trợ năng) ---- */
         @JavascriptInterface public void setDockData(String json) { LockService.saveData(act, json); }
-        @JavascriptInterface public void setDockOverlay(boolean on) { LockService.saveEnabled(act, on); }
+        private boolean askedOverlay = false;
+        @JavascriptInterface public void setDockOverlay(boolean on) {
+            LockService.saveEnabled(act, on);
+            /* Android 6–7: xin quyền "Hiển thị trên ứng dụng khác" để Dock đè lên cả thanh điều hướng (hỏi một lần mỗi lần mở app) */
+            if (on && !askedOverlay && android.os.Build.VERSION.SDK_INT >= 23 && android.os.Build.VERSION.SDK_INT < 26) {
+                askedOverlay = true;
+                act.runOnUiThread(new Runnable() { public void run() { try {
+                    if (!android.provider.Settings.canDrawOverlays(act))
+                        act.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:" + act.getPackageName())));
+                } catch (Throwable t) { } } });
+            }
+        }
         @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(act); }
         @JavascriptInterface public void setDockPrefs(String ics, boolean magnify, boolean autoHide) { LockService.setDockPrefs(act, ics, magnify, autoHide); }
         @JavascriptInterface public void setDockBase(int px) { LockService.setDockBase(act, px); }
