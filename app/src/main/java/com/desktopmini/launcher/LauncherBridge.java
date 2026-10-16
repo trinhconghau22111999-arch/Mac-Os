@@ -702,6 +702,15 @@ public class LauncherBridge {
         }
         /** Nút chụp ảnh màn hình: chụp xong gọi window.shotDone(true/false). */
         @JavascriptInterface public void takeScreenshot() { act.runOnUiThread(new Runnable() { public void run() { act.captureScreen(); } }); }
+        /** Tìm tệp theo tên trong máy; kết quả (JSON) trả về qua window.fsCb(id, json). */
+        @JavascriptInterface public void searchFiles(final String q, final int cb) {
+            new Thread(new Runnable() { public void run() {
+                final String json = act.findFiles(q).toString();
+                act.runOnUiThread(new Runnable() { public void run() {
+                    if (act.web != null) act.web.evaluateJavascript("window.fsCb&&window.fsCb(" + cb + "," + JSONObject.quote(json) + ")", null);
+                } });
+            } }).start();
+        }
         /** Nút AI: có dịch vụ nhận dạng giọng nói trên máy không. */
         @JavascriptInterface public boolean aiAvailable() { return act.aiAvailable(); }
         /** Nút AI: bắt đầu nghe lệnh; kết quả / mức âm / lỗi trả về qua window.aiVoice(obj). */

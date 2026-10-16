@@ -247,7 +247,9 @@ ul,ol{margin:0;padding:0;list-style:none}
 .sr{display:flex;align-items:center;gap:12px;padding:6px 10px;border-radius:10px;text-align:left;width:100%}
 .sr[aria-selected="true"],.sr:hover:not(.nores){background:var(--accent);color:#fff}
 .sr .ic{width:34px;height:34px;border-radius:8px;flex:none}
-.sr small{margin-left:auto;opacity:.7;white-space:nowrap}
+.sr small{margin-left:auto;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48%}
+.sr .st{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr .sf{display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700;overflow:hidden}
 .nores{color:var(--muted);justify-content:center}
 
 /* Launchpad */
@@ -1087,7 +1089,7 @@ body.native .stage{border-radius:0;min-height:0}
 
   <div class="spot" id="spot" hidden>
     <button class="xb s sx" data-x="spot" type="button" aria-label="Đóng">✕</button>
-    <div class="sin"><svg viewBox="0 0 16 16"><path d="M6.7 1a5.7 5.7 0 1 0 3.4 10.3l3.3 3.3 1.2-1.2-3.3-3.3A5.7 5.7 0 0 0 6.7 1zm0 1.7a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg><input id="sq" type="text" placeholder="Spotlight tìm kiếm" autocomplete="off" aria-label="Tìm kiếm ứng dụng, tệp hoặc phép tính"></div>
+    <div class="sin"><svg viewBox="0 0 16 16"><path d="M6.7 1a5.7 5.7 0 1 0 3.4 10.3l3.3 3.3 1.2-1.2-3.3-3.3A5.7 5.7 0 0 0 6.7 1zm0 1.7a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg><input id="sq" type="text" placeholder="Tìm ứng dụng, tệp trong máy" autocomplete="off" aria-label="Tìm ứng dụng trong giao diện, ứng dụng đã cài trên máy, tệp hoặc phép tính"></div>
     <div class="sres" id="sres"></div>
   </div>
 
@@ -3182,24 +3184,54 @@ function openAny(it,ref){
   if(it.x==='md'){openApp('notes',{file:it.n});return}
   quickLook(it);
 }
-function renderSpot(){
+/* Tìm trong Spotlight: ứng dụng của giao diện + ứng dụng đã cài trên máy + tệp trong máy (tìm theo tên) */
+const SPQA=window.AndroidLauncher;
+let spTok=0, spTimer=0, spN=0, spDev=null, spDevV=null; const spCbs={};
+window.fsCb=function(id,json){const f=spCbs[id]; delete spCbs[id]; if(!f)return; let r=[]; try{r=JSON.parse(json)}catch(e){} f(r)};
+const spApps=()=>{const v=SPQA&&SPQA.getAppsVersion?SPQA.getAppsVersion():0; if(!spDev||v!==spDevV){try{spDev=SPQA&&SPQA.getApps?JSON.parse(SPQA.getApps()):[]}catch(e){spDev=[]} spDevV=v} return spDev};
+const spSize=n=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+const SPCOL={jpg:'#e0457b',jpeg:'#e0457b',png:'#e0457b',gif:'#e0457b',webp:'#e0457b',heic:'#e0457b',mp4:'#d9534f',mkv:'#d9534f',webm:'#d9534f',mov:'#d9534f',mp3:'#8e5ad7',m4a:'#8e5ad7',wav:'#8e5ad7',flac:'#8e5ad7',pdf:'#e5493a',doc:'#2b6fd6',docx:'#2b6fd6',xls:'#1f9d55',xlsx:'#1f9d55',ppt:'#e07b1f',pptx:'#e07b1f',zip:'#a07a3c',rar:'#a07a3c',apk:'#3ddc84',txt:'#6b7280',md:'#6b7280'};
+const spPath=p=>p.replace(/\/[^\/]*$/,'').replace(/^\/storage\/emulated\/0/,'Bộ nhớ trong').replace(/^\/sdcard/,'Bộ nhớ trong');
+function renderSpot(files,pending){
   const raw=sq.value.trim(), term=norm(raw); hits=[]; sel=0; sres.innerHTML='';
   if(term){
     const c=calcExpr(raw); if(c)hits.push({ic:'calc',t:'= '+c,s:'Máy tính',fn:()=>{try{navigator.clipboard.writeText(c)}catch(e){}openApp('calc')}});
-    LP_APPS.forEach(id=>{if(norm(APPS[id].name).indexOf(term)>=0)hits.push({ic:id,t:APPS[id].name,s:'Ứng dụng',fn:()=>openApp(id)})});
-    hits=hits.slice(0,8);
+    const apps=[];
+    LP_APPS.forEach(id=>{if(norm(APPS[id].name).indexOf(term)>=0)apps.push({ic:id,t:APPS[id].name,s:'Ứng dụng',fn:()=>openApp(id)})});
+    spApps().forEach(a=>{if(norm(a.label).indexOf(term)>=0)apps.push({img:a.icon||'',t:a.label,s:'Ứng dụng trên máy',fn:()=>extLaunch(a.pkg)})});
+    hits=hits.concat(apps.slice(0,10));
+    (files||[]).forEach(f=>{
+      const ext=(f.n.indexOf('.')>0?f.n.split('.').pop():'').toLowerCase();
+      hits.push({ext:ext,t:f.n,s:spSize(f.s||0)+' • '+spPath(f.p),fn:()=>{
+        let m=''; try{m=SPQA.openFileMsg?SPQA.openFileMsg(f.p):(SPQA.openFile(f.p)?'':'Không mở được tệp')}catch(err){m='Không mở được tệp'}
+        if(m)notify({app:'Tìm kiếm',title:'Không mở được tệp',body:m,icon:'files'});
+      }});
+    });
   }
   hits.forEach((h,i)=>{
     const r=document.createElement('button'); r.className='sr'; r.setAttribute('aria-selected',String(i===sel));
-    r.innerHTML=iconHTML(h.ic)+'<span>'+esc(h.t)+'</span><small>'+esc(h.s)+'</small>';
+    const ic=h.ext!==undefined?'<span class="ic sf" style="background:'+(SPCOL[h.ext]||'#6b7280')+'">'+esc((h.ext||'tệp').slice(0,4).toUpperCase())+'</span>'
+      :h.img!==undefined?'<img class="ic" alt="" src="'+esc(h.img)+'" style="object-fit:cover">':iconHTML(h.ic);
+    r.innerHTML=ic+'<span class="st">'+esc(h.t)+'</span><small>'+esc(h.s)+'</small>';
     r.addEventListener('click',()=>{closeAllPopups();h.fn()});
     sres.appendChild(r);
   });
-  if(term&&!hits.length)sres.innerHTML='<div class="sr nores">Không có kết quả</div>';
+  if(term&&pending)sres.insertAdjacentHTML('beforeend','<div class="sr nores">Đang tìm tệp…</div>');
+  else if(term&&!hits.length)sres.innerHTML='<div class="sr nores">Không có kết quả</div>';
 }
-function openSpot(){closeAllPopups();if(lpOn)closeLP();pops.spot.hidden=false;sq.value='';renderSpot();setTimeout(()=>sq.focus(),0)}
+function spSearch(){
+  clearTimeout(spTimer); const tok=++spTok, raw=sq.value.trim();
+  const can=!!(SPQA&&SPQA.searchFiles)&&raw.length>=2;
+  renderSpot(null,can);
+  if(!can)return;
+  spTimer=setTimeout(()=>{
+    const id=++spN; spCbs[id]=r=>{if(tok!==spTok||pops.spot.hidden)return; renderSpot(r,false)};
+    try{SPQA.searchFiles(raw,id)}catch(e){delete spCbs[id];renderSpot(null,false)}
+  },280);
+}
+function openSpot(){closeAllPopups();if(lpOn)closeLP();pops.spot.hidden=false;sq.value='';spSearch();setTimeout(()=>sq.focus(),0)}
 $('#srch').addEventListener('click',e=>{e.stopPropagation();if(pops.spot.hidden)openSpot();else closeAllPopups()});
-sq.addEventListener('input',renderSpot);
+sq.addEventListener('input',spSearch);
 sq.addEventListener('keydown',e=>{
   const mark=()=>$$('.sr',sres).forEach((r,i)=>r.setAttribute('aria-selected',String(i===sel)));
   if(e.key==='ArrowDown'&&hits.length){sel=(sel+1)%hits.length;mark();e.preventDefault()}

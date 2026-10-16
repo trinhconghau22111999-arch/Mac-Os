@@ -940,6 +940,63 @@ public class MainActivity extends Activity {
         return true;
     }
 
+    /* ================= Tìm tệp trong máy (Spotlight) ================= */
+    JSONArray findFiles(String q) {
+        JSONArray arr = new JSONArray();
+        q = q == null ? "" : q.trim();
+        if (q.length() < 2) return arr;
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+            && !(Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager())
+            && !(Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED)) return arr;
+        java.util.HashSet<String> seen = new java.util.HashSet<String>();
+        try {
+            String like = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+            Cursor c = getContentResolver().query(MediaStore.Files.getContentUri("external"),
+                new String[]{MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED},
+                MediaStore.MediaColumns.DISPLAY_NAME + " LIKE ? ESCAPE '\\' AND " + MediaStore.MediaColumns.MIME_TYPE + " IS NOT NULL",
+                new String[]{like}, MediaStore.MediaColumns.DATE_MODIFIED + " DESC");
+            if (c != null) {
+                try {
+                    while (c.moveToNext() && arr.length() < 30) {
+                        String path = c.getString(1);
+                        if (path == null || path.contains("/.") || path.contains("/Android/data/") || path.contains("/Android/obb/") || !seen.add(path)) continue;
+                        File f = new File(path);
+                        if (!f.isFile()) continue;
+                        JSONObject o = new JSONObject();
+                        o.put("n", c.getString(0)); o.put("p", path); o.put("s", c.getLong(2)); o.put("t", c.getLong(3));
+                        arr.put(o);
+                    }
+                } finally { c.close(); }
+            }
+        } catch (Exception e) { }
+        /* MediaStore chưa lập chỉ mục tệp nào khớp: duyệt thư mục (chỉ khi được cấp quyền mọi tệp) */
+        if (arr.length() == 0 && (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager())) {
+            try {
+                final String lq = q.toLowerCase(java.util.Locale.ROOT);
+                java.util.ArrayDeque<File> dq = new java.util.ArrayDeque<File>();
+                java.util.ArrayDeque<Integer> dp = new java.util.ArrayDeque<Integer>();
+                dq.add(Environment.getExternalStorageDirectory()); dp.add(0);
+                int visited = 0; long end = System.currentTimeMillis() + 3500;
+                while (!dq.isEmpty() && arr.length() < 30 && visited < 15000 && System.currentTimeMillis() < end) {
+                    File d = dq.poll(); int depth = dp.poll();
+                    File[] l = d.listFiles(); if (l == null) continue;
+                    for (File f : l) {
+                        visited++;
+                        String nm = f.getName();
+                        if (nm.startsWith(".")) continue;
+                        if (f.isDirectory()) { if (depth < 6 && !nm.equals("Android")) { dq.add(f); dp.add(depth + 1); } }
+                        else if (nm.toLowerCase(java.util.Locale.ROOT).contains(lq) && arr.length() < 30) {
+                            JSONObject o = new JSONObject();
+                            o.put("n", nm); o.put("p", f.getAbsolutePath()); o.put("s", f.length()); o.put("t", f.lastModified() / 1000);
+                            arr.put(o);
+                        }
+                    }
+                }
+            } catch (Exception e) { }
+        }
+        return arr;
+    }
+
     /** Mở app "Ổ mềm" = Drive 3 hồ sơ (màn hình chọn Ảnh / Video / Tệp). */
     void openDriveHome() {
         Intent i = new Intent(this, com.desktopmini.launcher.drive3.HomeActivity.class);
