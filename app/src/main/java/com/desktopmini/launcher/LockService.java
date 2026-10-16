@@ -911,9 +911,9 @@ public class LockService extends AccessibilityService {
         Point real = realSize();
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(10),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.BOTTOM | Gravity.LEFT; lp.x = 0; lp.y = navInset();
+        lp.gravity = Gravity.BOTTOM | Gravity.LEFT; lp.x = 0; lp.y = 0;
         try { wm.addView(hotView, lp); } catch (Exception e) { hotView = null; }
     }
     private void hideHot() {
@@ -983,9 +983,9 @@ public class LockService extends AccessibilityService {
         Point real = realSize();
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(dockHDp()),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL; lp.x = 0; lp.y = navInset() + dp(DOCK_GAP_DP);
+        lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL; lp.x = 0; lp.y = 0;
         dockLp = lp;
         try { wm.addView(dockView, lp); dockShown = true; } catch (Exception e) { dockShown = false; }
     }
