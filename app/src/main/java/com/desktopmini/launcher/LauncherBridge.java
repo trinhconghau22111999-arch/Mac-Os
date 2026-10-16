@@ -634,6 +634,7 @@ public class LauncherBridge {
         @JavascriptInterface public boolean isBarLock() { return LockService.isBarLock(act); }
         @JavascriptInterface public void setMenuBar(boolean on) { LockService.saveMenuBar(act, on); }
         @JavascriptInterface public boolean isMenuBar() { return LockService.isMenuBar(act); }
+        @JavascriptInterface public boolean isMenuBarActive() { return LockService.inst != null && LockService.isMenuBar(act); }
         @JavascriptInterface public void setBarInfo(String app) { LockService.setBarInfo(app); }
         @JavascriptInterface public void setBarHide(boolean hide) { LockService.setBarHide(hide); }
         @JavascriptInterface public void setBarGeom(int dp) { LockService.setBarGeom(dp); }

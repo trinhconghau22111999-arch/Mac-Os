@@ -112,7 +112,7 @@ public class LockService extends AccessibilityService {
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
         if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
-        fgLabel = labelOf(pk); if (topBar != null) topBar.invalidate();
+        dismissPop(); fgLabel = labelOf(pk); if (topBar != null) topBar.invalidate();
         videoFull = false; setBarHidden(false); /* app khác lên trước: không còn video của mình ở toàn màn hình */
         setLauncherFront(false);
         scheduleRefreshBar(); /* app khác vừa lên: đo lại để phủ kín thanh đa nhiệm */
@@ -155,6 +155,7 @@ public class LockService extends AccessibilityService {
     private void setLauncherFront(boolean b) {
         if (launcherFront == b) return;
         launcherFront = b;
+        dismissPop();
         updateButton();
         updateTopBar();
     }
@@ -448,13 +449,230 @@ public class LockService extends AccessibilityService {
         final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.removeTopBar(); s.updateTopBar(); } });
     }
 
-    /** Chạm vào thanh: đang ở Desktop Mini thì bấm thẳng nút tương ứng của thanh menu HTML; đang ở app ngoài thì đưa Desktop Mini lên trước rồi bấm. */
-    private void menuTap(String id) {
+    /** Đưa Desktop Mini lên trước và bấm nút tương ứng của thanh menu HTML (khi đang ở Desktop Mini thì bấm thẳng, không chuyển màn hình). */
+    private void forward(String id) {
         try {
             startActivity(new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 .putExtra("mbClick", id).putExtra("mbFront", launcherFront));
         } catch (Exception e) { }
+    }
+    private void openInLauncher(String app) {
+        try {
+            startActivity(new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                .putExtra("openApp", app));
+        } catch (Exception e) { }
+    }
+    private void startSafe(Intent i) { try { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e) { } }
+
+    /** Chạm vào thanh: ở Desktop Mini -> menu HTML thật; ở app ngoài -> menu thả xuống gốc, mở thẳng trên app đang dùng. */
+    private void menuTap(String id) {
+        if (launcherFront) { dismissPop(); forward(id); return; }
+        if (id.equals(popId)) { dismissPop(); return; }
+        dismissPop();
+        if (!showPop(id)) forward(id);
+    }
+
+    /* ---------------- Menu thả xuống gốc (cửa sổ nổi riêng) ---------------- */
+    private interface SliderSet { void set(int v); }
+    private static class PI {
+        int type; /* 0 mục bấm, 1 gạch ngăn, 2 chữ (không bấm), 3 thanh trượt */
+        String label; Runnable act; int val; SliderSet setter; float y, h;
+    }
+    private PI pItem(String l, Runnable r) { PI p = new PI(); p.type = 0; p.label = l; p.act = r; p.h = dp(38); return p; }
+    private PI pText(String l) { PI p = new PI(); p.type = 2; p.label = l; p.h = dp(30); return p; }
+    private PI pSep() { PI p = new PI(); p.type = 1; p.h = dp(9); return p; }
+    private PI pSlider(String l, int v, SliderSet st) { PI p = new PI(); p.type = 3; p.label = l; p.val = v; p.setter = st; p.h = dp(56); return p; }
+
+    private PopView pop; private String popId = "";
+    private void dismissPop() {
+        popId = "";
+        if (pop != null) { try { wm.removeView(pop); } catch (Exception e) { } pop = null; }
+    }
+
+    private void lockPhone() {
+        try {
+            android.app.admin.DevicePolicyManager dpm = (android.app.admin.DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+            android.content.ComponentName cn = new android.content.ComponentName(this, AdminReceiver.class);
+            if (dpm.isAdminActive(cn)) { dpm.lockNow(); return; }
+            if (Build.VERSION.SDK_INT >= 28) { performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN); return; }
+            startSafe(new Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, cn)
+                .putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Cho phép Desktop Mini tắt màn hình khi bạn bấm Tắt máy. Quyền này chỉ dùng để khóa màn hình."));
+        } catch (Exception e) { }
+    }
+    private boolean isDefaultHomeNow() {
+        try {
+            android.content.pm.ResolveInfo r = getPackageManager().resolveActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY);
+            return r != null && r.activityInfo != null && getPackageName().equals(r.activityInfo.packageName);
+        } catch (Exception e) { return false; }
+    }
+    private android.media.AudioManager audio() { return (android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE); }
+
+    /** Dựng danh sách mục cho nút `id`; trả false nếu nút này không có menu gốc (sẽ chuyển sang Desktop Mini). */
+    private boolean showPop(String id) {
+        java.util.ArrayList<PI> L = new java.util.ArrayList<PI>();
+        if ("logo".equals(id)) {
+            L.add(pItem("Giới thiệu về Desktop Mini", new Runnable() { public void run() { openInLauncher("about"); } }));
+            L.add(pSep());
+            L.add(pItem("Cài đặt hệ thống…", new Runnable() { public void run() { openInLauncher("settings"); } }));
+            L.add(pItem("Buộc thoát…", new Runnable() { public void run() { openInLauncher("forcequit"); } }));
+            L.add(pSep());
+            if (isDefaultHomeNow()) L.add(pText("Desktop Mini là màn hình chính mặc định ✓"));
+            else L.add(pItem("Đặt làm launcher mặc định…", new Runnable() { public void run() { startSafe(new Intent(Settings.ACTION_HOME_SETTINGS)); } }));
+            L.add(pItem("Khởi động lại…", new Runnable() { public void run() { performGlobalAction(GLOBAL_ACTION_POWER_DIALOG); } }));
+            L.add(pItem("Tắt máy…", new Runnable() { public void run() { lockPhone(); } }));
+        } else if ("app".equals(id)) {
+            L.add(pText(fgLabel == null || fgLabel.length() == 0 ? "Ứng dụng" : fgLabel));
+            L.add(pSep());
+            L.add(pItem("Về Desktop", new Runnable() { public void run() { goDesktop(); } }));
+            L.add(pItem("Mission Control (đa nhiệm)", new Runnable() { public void run() { forward("mc"); } }));
+            L.add(pItem("Launchpad", new Runnable() { public void run() { forward("lp"); } }));
+            L.add(pSep());
+            L.add(pItem("Quay lại (Back)", new Runnable() { public void run() { performGlobalAction(GLOBAL_ACTION_BACK); } }));
+        } else if ("batt".equals(id)) {
+            int b = topBar == null ? -1 : topBar.battery();
+            L.add(pText("Pin: " + (b >= 0 ? b + "%" : "không rõ")));
+            try {
+                Intent bi = registerReceiver(null, new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                int st = bi == null ? -1 : bi.getIntExtra("status", -1);
+                L.add(pText(st == 2 || st == 5 ? "Đang sạc" : "Đang dùng pin"));
+            } catch (Throwable t) { }
+            L.add(pSep());
+            L.add(pItem("Cài đặt Pin…", new Runnable() { public void run() { startSafe(new Intent(Intent.ACTION_POWER_USAGE_SUMMARY)); } }));
+        } else if ("wifi".equals(id)) {
+            String st = "Không rõ trạng thái";
+            try {
+                android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                android.net.NetworkInfo ni = cm.getActiveNetworkInfo();
+                st = ni != null && ni.isConnected() ? "Đã kết nối (" + ni.getTypeName() + ")" : "Không có kết nối";
+            } catch (Throwable t) { }
+            L.add(pText(st));
+            L.add(pSep());
+            L.add(pItem("Cài đặt Wi-Fi…", new Runnable() { public void run() { startSafe(new Intent(Settings.ACTION_WIFI_SETTINGS)); } }));
+        } else if ("ccb".equals(id)) {
+            int br = 100;
+            try { int v = Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS); br = Math.max(1, Math.min(100, (int) Math.round(Math.sqrt(v / 255.0) * 100))); } catch (Throwable t) { }
+            L.add(pSlider("Độ sáng", br, new SliderSet() { public void set(int v) {
+                if (!Settings.System.canWrite(LockService.this)) { startSafe(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, android.net.Uri.parse("package:" + getPackageName()))); dismissPop(); return; }
+                int pc = Math.max(1, Math.min(100, v)), val = Math.max(1, Math.min(255, (int) Math.round(255.0 * (pc / 100.0) * (pc / 100.0))));
+                try {
+                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                    Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, val);
+                } catch (Throwable t) { }
+            } }));
+            android.media.AudioManager am = audio();
+            int vol = Math.round(am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) * 100f / Math.max(1, am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)));
+            L.add(pSlider("Âm lượng", vol, new SliderSet() { public void set(int v) {
+                android.media.AudioManager a = audio(); int max = a.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+                a.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, Math.round(v * max / 100f))), 0);
+            } }));
+            L.add(pSep());
+            boolean rot = false;
+            try { rot = Settings.System.getInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION) == 1; } catch (Throwable t) { }
+            final boolean rotOn = rot;
+            L.add(pItem("Tự xoay màn hình: " + (rot ? "Bật" : "Tắt"), new Runnable() { public void run() {
+                if (!Settings.System.canWrite(LockService.this)) { startSafe(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, android.net.Uri.parse("package:" + getPackageName()))); return; }
+                try {
+                    if (rotOn) Settings.System.putInt(getContentResolver(), Settings.System.USER_ROTATION, wm.getDefaultDisplay().getRotation());
+                    Settings.System.putInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, rotOn ? 0 : 1);
+                } catch (Throwable t) { }
+            } }));
+            L.add(pItem("Khóa màn hình", new Runnable() { public void run() { lockPhone(); } }));
+        } else if ("clk".equals(id)) {
+            L.add(pText(new java.text.SimpleDateFormat("EEEE, dd/MM/yyyy", new java.util.Locale("vi", "VN")).format(new java.util.Date())));
+            L.add(pSep());
+            L.add(pItem("Mở thông báo và widget…", new Runnable() { public void run() { forward("clk"); } }));
+        } else if ("splitb".equals(id)) {
+            dismissPop();
+            try { performGlobalAction(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN); } catch (Throwable t) { }
+            return true;
+        } else if ("ramb".equals(id)) {
+            try {
+                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                ((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
+                double g = 1073741824.0;
+                L.add(pText(String.format(java.util.Locale.US, "Đang dùng: %.1f GB", (mi.totalMem - mi.availMem) / g).replace('.', ',')));
+                L.add(pText(String.format(java.util.Locale.US, "Còn trống: %.1f GB", mi.availMem / g).replace('.', ',')));
+                L.add(pText(String.format(java.util.Locale.US, "Tổng: %.1f GB", mi.totalMem / g).replace('.', ',')));
+            } catch (Throwable t) { return false; }
+        } else if ("ontime".equals(id)) {
+            long m = ScreenTime.todayMs(this) / 60000;
+            L.add(pText("Màn hình đã bật hôm nay: " + (m / 60 > 0 ? m / 60 + " giờ " : "") + (m % 60) + " phút"));
+        } else return false;
+        if (topBar == null || topLp == null) return false;
+        RectF r = topBar.rect(id);
+        final PopView pv = new PopView(this, L, r == null ? 0 : r.left);
+        Point sz = realSize();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(sz.x, Math.max(1, sz.y - topLp.height),
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = topLp.height;
+        try { wm.addView(pv, lp); pop = pv; popId = id; } catch (Exception e) { pop = null; popId = ""; return false; }
+        return true;
+    }
+
+    private class PopView extends View {
+        private final java.util.List<PI> items; private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG), t = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF panel = new RectF(), rf = new RectF();
+        private PI active = null;
+        PopView(Context c, java.util.List<PI> it, float anchorX) {
+            super(c); items = it;
+            t.setTextSize(dp(14)); t.setColor(0xFFFFFFFF);
+            float w = dp(230), hh = dp(10);
+            for (PI i : items) { if (i.label != null) w = Math.max(w, t.measureText(i.label) + dp(36)); i.y = hh; hh += i.h; }
+            hh += dp(6);
+            float sw = realSize().x, x = Math.max(dp(6), Math.min(anchorX, sw - w - dp(6)));
+            panel.set(x, dp(2), x + w, dp(2) + hh);
+        }
+        @Override protected void onDraw(Canvas c) {
+            p.setStyle(Paint.Style.FILL); p.setColor(0xF2232326); c.drawRoundRect(panel, dp(10), dp(10), p);
+            for (PI i : items) {
+                float top = panel.top + i.y, cy = top + i.h / 2;
+                if (i.type == 1) { p.setColor(0x33FFFFFF); c.drawRect(panel.left + dp(10), cy, panel.right - dp(10), cy + dp(1), p); continue; }
+                if (i == active && i.type == 0) { p.setColor(0x553B82F6); rf.set(panel.left + dp(5), top + dp(2), panel.right - dp(5), top + i.h - dp(2)); c.drawRoundRect(rf, dp(6), dp(6), p); }
+                t.setColor(i.type == 2 ? 0xAAFFFFFF : 0xFFFFFFFF);
+                if (i.type == 3) {
+                    c.drawText(i.label, panel.left + dp(16), top + dp(20), t);
+                    float x0 = panel.left + dp(16), x1 = panel.right - dp(16), ty = top + dp(40);
+                    p.setColor(0x44FFFFFF); rf.set(x0, ty - dp(2.5f), x1, ty + dp(2.5f)); c.drawRoundRect(rf, dp(3), dp(3), p);
+                    float kx = x0 + (x1 - x0) * Math.max(0, Math.min(100, i.val)) / 100f;
+                    p.setColor(0xFF3B82F6); rf.set(x0, ty - dp(2.5f), kx, ty + dp(2.5f)); c.drawRoundRect(rf, dp(3), dp(3), p);
+                    p.setColor(0xFFFFFFFF); c.drawCircle(kx, ty, dp(8), p);
+                } else c.drawText(i.label, panel.left + dp(16), cy + dp(5), t);
+            }
+        }
+        private PI hitItem(float x, float y) {
+            if (!panel.contains(x, y)) return null;
+            for (PI i : items) if (y >= panel.top + i.y && y < panel.top + i.y + i.h) return i;
+            return null;
+        }
+        private void drag(PI i, float x) {
+            float x0 = panel.left + dp(16), x1 = panel.right - dp(16);
+            int v = Math.round(100f * Math.max(0, Math.min(1, (x - x0) / (x1 - x0))));
+            if (v != i.val) { i.val = v; if (i.setter != null) i.setter.set(v); invalidate(); }
+        }
+        @Override public boolean onTouchEvent(MotionEvent ev) {
+            float x = ev.getX(), y = ev.getY();
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN: {
+                    if (!panel.contains(x, y)) { dismissPop(); return true; }
+                    active = hitItem(x, y);
+                    if (active != null && active.type == 3) drag(active, x);
+                    invalidate(); return true;
+                }
+                case MotionEvent.ACTION_MOVE: if (active != null && active.type == 3) drag(active, x); return true;
+                case MotionEvent.ACTION_UP: {
+                    PI i = hitItem(x, y), a = active; active = null; invalidate();
+                    if (i != null && i == a && i.type == 0) { dismissPop(); if (i.act != null) i.act.run(); }
+                    return true;
+                }
+                case MotionEvent.ACTION_CANCEL: active = null; invalidate(); return true;
+            }
+            return true;
+        }
     }
 
     private class TopBar extends View {
@@ -550,6 +768,7 @@ public class LockService extends AccessibilityService {
                 }
             }
         }
+        RectF rect(String id) { return hit.get(id); }
         private String at(float px, float py) {
             for (java.util.Map.Entry<String, RectF> e : hit.entrySet()) if (e.getValue().contains(px, py)) return e.getKey();
             return null;
@@ -584,7 +803,7 @@ public class LockService extends AccessibilityService {
         catch (Exception e) { topBar = null; topLp = null; }
     }
     private void removeTopBar() {
-        h.removeCallbacks(topTick); topHidden = false;
+        dismissPop(); h.removeCallbacks(topTick); topHidden = false;
         if (topBar != null) { try { wm.removeView(topBar); } catch (Exception e) { } topBar = null; topLp = null; }
     }
     /** Ẩn (chỉ còn dải 1dp, không nhận chạm) khi app ngoài toàn màn hình; hiện lại đủ chiều cao khi hết. */

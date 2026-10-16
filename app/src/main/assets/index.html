@@ -4370,10 +4370,17 @@ if(window.AndroidLauncher){(function(){
   /* Thanh menu nổi (gốc Android) chạm vào đâu thì bấm đúng nút đó của thanh menu HTML */
   window.nativeMenuClick=function(id){
     try{
+      if(id==='mc'){enterMC();return} if(id==='lp'){openLP();return}
       const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',splitb:'#splitb',ramb:'#ramb',batt:'#batt',wifi:'#wifi',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
       const el=q&&document.querySelector(q); if(el)el.click();
     }catch(e){}
   };
+  /* Thanh menu nổi là thanh chính: khi nó đang chạy thì ẩn thanh menu HTML cũ (vẫn giữ bên dưới làm bộ máy mở menu) */
+  (function(){
+    const st=document.createElement('style'); st.textContent='body.nbar #menubar{visibility:hidden}'; document.head.appendChild(st);
+    const sync=()=>{try{document.body.classList.toggle('nbar',!!(A.isMenuBarActive&&A.isMenuBarActive()))}catch(e){}};
+    sync(); setInterval(sync,3000);
+  })();
   /* đẩy sang thanh nổi: tên app đang chọn, chiều cao thanh, và ẩn khi đang khóa màn hình / tắt máy */
   (function(){
     const pushName=()=>{try{A.setBarInfo&&A.setBarInfo(appname.textContent||'')}catch(e){}};
