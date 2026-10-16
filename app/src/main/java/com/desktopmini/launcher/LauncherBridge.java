@@ -630,6 +630,8 @@ public class LauncherBridge {
         @JavascriptInterface public void setDockData(String json) { LockService.saveData(act, json); }
         @JavascriptInterface public void setDockOverlay(boolean on) { LockService.saveEnabled(act, on); }
         @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(act); }
+        @JavascriptInterface public void setDockBase(int px) { LockService.setDockBase(act, px); }
+        @JavascriptInterface public boolean dockOverlayLive() { return LockService.isEnabled(act) && LockService.isRunning(); }
         @JavascriptInterface public void setBarLock(boolean on) { LockService.saveBarLock(act, on); }
         @JavascriptInterface public boolean isBarLock() { return LockService.isBarLock(act); }
         @JavascriptInterface public void setMenuBar(boolean on) { LockService.saveMenuBar(act, on); }

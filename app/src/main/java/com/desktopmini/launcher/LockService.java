@@ -848,7 +848,18 @@ public class LockService extends AccessibilityService {
     private long dockQuietUntil = 0;
     private int dockWidthDp = 0;
     private WindowManager.LayoutParams dockLp;
-    private static final int DOCK_H_DP = 64, DOCK_GAP_DP = 0;
+    private static final int DOCK_GAP_DP = 0;
+    private static volatile int dockBase = 46;
+    private int dockHDp() { return dockBase + 18; }
+    public static boolean isRunning() { return inst != null; }
+    public static void setDockBase(Context c, int base) {
+        dockBase = Math.max(18, Math.min(80, base));
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.applyDockBase(); } });
+    }
+    private void applyDockBase() {
+        if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ")", null);
+        if (dockShown && dockLp != null && dockView != null) { try { dockLp.height = dp(dockHDp()); wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
+    }
     /** Thu cửa sổ Dock vừa khít viên thuốc, căn giữa; phần còn lại của màn hình chạm xuyên xuống app bên dưới. */
     private void resizeDock() {
         if (!dockShown || dockLp == null || dockView == null || dockWidthDp <= 0) return;
@@ -861,9 +872,9 @@ public class LockService extends AccessibilityService {
     }
     private final Runnable dockTick = new Runnable() { public void run() {
         h.removeCallbacks(dockTick);
-        if (!enabled || launcherFront || wm == null) return;
+        if (!enabled || wm == null) return;
         if (android.os.SystemClock.uptimeMillis() >= dockQuietUntil) {
-            boolean hide = imeShown(); /* Dock luôn nổi, kể cả khi app toàn màn hình; chỉ nhường chỗ cho bàn phím */
+            boolean hide = imeShown() || barHide; /* Dock luôn nổi, kể cả khi app toàn màn hình; chỉ nhường chỗ cho bàn phím */
             if (hide && dockShown) hideDockBar(); else if (!hide && !dockShown) showDockBar();
         }
         h.postDelayed(dockTick, 700);
@@ -877,7 +888,7 @@ public class LockService extends AccessibilityService {
     }
     private void updateDockBar() {
         h.removeCallbacks(dockTick);
-        if (enabled && !launcherFront && wm != null) h.post(dockTick); else hideDockBar();
+        if (enabled && wm != null) h.post(dockTick); else hideDockBar();
     }
     /** Chiều cao thanh 3 phím điều hướng (0 nếu dùng cử chỉ), để Dock nằm ngay phía trên nó. */
     private int navInset() {
@@ -920,7 +931,7 @@ public class LockService extends AccessibilityService {
             dockWeb.loadUrl("file:///android_asset/dock.html");
         } else pushDockData();
         Point real = realSize();
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(DOCK_H_DP),
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(dockHDp()),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT);
@@ -937,7 +948,7 @@ public class LockService extends AccessibilityService {
         /* mở rộng cửa sổ hết cỡ trước để viên thuốc đo đúng bề rộng tự nhiên, rồi JS gọi size() để thu lại */
         if (dockShown && dockLp != null && dockView != null) { try { dockLp.width = realSize().x; wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
         String d = getSharedPreferences(PK, 0).getString("data", "[]");
-        dockWeb.evaluateJavascript("window.setDock&&setDock(" + d + ");window.setShot&&setShot(" + (Build.VERSION.SDK_INT >= 28) + ")", null);
+        dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setDock&&setDock(" + d + ");window.setShot&&setShot(" + (Build.VERSION.SDK_INT >= 28) + ")", null);
     }
     @Override public void onTrimMemory(int level) {
         super.onTrimMemory(level);

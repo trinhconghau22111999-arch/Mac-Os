@@ -6,17 +6,17 @@
 html,body{height:100%;background:transparent;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none}
 /* Dock NỔI: viên thuốc bo tròn lơ lửng phía trên thanh điều hướng, luôn nằm trên các app khác.
    Bên trong: nút AI (trái) – icon Dock (giữa) – nút chụp màn hình (phải). Vùng ngoài viên thuốc trong suốt. */
-body{background:#111113}
+body{background:#111113;--base:46px}
 /* Thanh chữ nhật dài, MỘT nền duy nhất; icon và nút chức năng nằm trực tiếp trên nền, cùng cỡ, thẳng hàng */
 .pill{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:100%;padding:0 12px;background:#111113;box-shadow:0 1px 0 rgba(255,255,255,.16) inset}
-.sb{flex:none;width:46px;height:46px;border:0;background:none;color:#fff;display:grid;place-items:center;padding:0}
+.sb{flex:none;width:var(--base);height:var(--base);border:0;background:none;color:#fff;display:grid;place-items:center;padding:0}
 .sb:active{transform:scale(.9);opacity:.7}
 .sb svg{width:72%;height:72%}
 .sep{display:none}
 .sc{flex:1 1 auto;min-width:0;height:100%;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .sc::-webkit-scrollbar{display:none}
 .apps{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto}
-.dk{flex:none;width:46px;height:46px;border:0;background:none;padding:0}
+.dk{flex:none;width:var(--base);height:var(--base);border:0;background:none;padding:0}
 .dk:active{transform:scale(.9)}
 .ic{position:relative;display:grid;place-items:center;width:100%;height:100%;border-radius:22.5%;overflow:hidden;container-type:inline-size;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.28)}
 .ic::before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,0) 46%);pointer-events:none}
@@ -53,6 +53,7 @@ window.setDock=function(list){
   report();
 };
 window.setShot=function(on){shot.style.display=on?'':'none';sep2.style.display=on?'':'none';report()};
+window.setBase=function(b){document.body.style.setProperty('--base',b+'px')};
 window.addEventListener('load',report);
 document.addEventListener('click',function(e){
   var d=e.target.closest('[data-id]'); if(d){DockApp.open(d.dataset.id);return}
