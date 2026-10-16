@@ -949,7 +949,12 @@ public class LockService extends AccessibilityService {
     }
     /** Chụp màn hình app đang dùng (hệ thống tự lưu vào Ảnh chụp màn hình); ẩn Dock một lúc để không lọt vào ảnh. */
     private void dockShot() {
-        if (Build.VERSION.SDK_INT < 28) return;
+        if (Build.VERSION.SDK_INT < 28) {
+            /* Android dưới 9 không có chụp toàn hệ thống cho dịch vụ trợ năng: ở Desktop Mini thì chụp cửa sổ Desktop như nút cũ */
+            if (launcherFront) forward("qshot");
+            else android.widget.Toast.makeText(this, "Android 7 chỉ chụp được màn hình Desktop Mini. Ở ứng dụng khác hãy dùng phím cứng: Nguồn + Giảm âm lượng.", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
         dockQuietUntil = android.os.SystemClock.uptimeMillis() + 2000;
         hideDockBar();
         h.postDelayed(new Runnable() { public void run() {
@@ -994,7 +999,7 @@ public class LockService extends AccessibilityService {
         if (dockShown && dockLp != null && dockView != null) { try { dockLp.width = realSize().x; wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
         String d = getSharedPreferences(PK, 0).getString("data", "[]");
         pushDockPrefs();
-        dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setDock&&setDock(" + d + ");window.setShot&&setShot(" + (Build.VERSION.SDK_INT >= 28) + ")", null);
+        dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setDock&&setDock(" + d + ");window.setShot&&setShot(true)", null);
     }
     @Override public void onTrimMemory(int level) {
         super.onTrimMemory(level);
