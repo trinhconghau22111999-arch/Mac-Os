@@ -149,8 +149,7 @@ public class LockService extends AccessibilityService {
 
     private void apply() {
         enabled = isEnabled(this);
-        setImmersivePolicy(enabled); /* Dock nổi bật: ẩn thanh điều hướng hệ thống cho mọi app (cần WRITE_SECURE_SETTINGS) để Dock nằm sát đáy; không có quyền thì Dock nằm ngay trên thanh điều hướng */
-        if (enabled && !policyApplied && Build.VERSION.SDK_INT <= 29 && !policyHintShown) { policyHintShown = true; android.widget.Toast.makeText(this, "Muốn Dock sát đáy che thanh điều hướng: cấp quyền bằng adb: pm grant com.desktopmini.launcher android.permission.WRITE_SECURE_SETTINGS", android.widget.Toast.LENGTH_LONG).show(); }
+        setImmersivePolicy(false); /* Dock nổi bật: ẩn thanh điều hướng hệ thống cho mọi app (cần WRITE_SECURE_SETTINGS) để Dock nằm sát đáy; không có quyền thì Dock nằm ngay trên thanh điều hướng */
         updateDockBar();
     }
     private void setLauncherFront(boolean b) {
@@ -183,7 +182,7 @@ public class LockService extends AccessibilityService {
         if (Build.VERSION.SDK_INT > 29) { policyApplied = false; return; }
         try {
             if (checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) { policyApplied = false; return; }
-            Settings.Global.putString(getContentResolver(), "policy_control", on ? "immersive.navigation=*" : null);
+            Settings.Global.putString(getContentResolver(), "policy_control", on ? "immersive.full=*" : null);
             policyApplied = on;
         } catch (Exception e) { policyApplied = false; }
     }
@@ -867,28 +866,73 @@ public class LockService extends AccessibilityService {
             dockWeb.evaluateJavascript("window.setIcs&&setIcs('" + dockIcs.replaceAll("[^a-z]", "") + "');window.setMag&&setMag(" + dockMag + ")", null);
     }
     private void peekDock() { dockPeekUntil = android.os.SystemClock.uptimeMillis() + 3500; }
-    private boolean dockFull = false;
-    /** Thanh điều hướng đã ẩn (Desktop Mini tự ẩn ở màn hình chính, hoặc policy_control ẩn cho mọi app) => Dock nằm sát đáy màn hình thật. */
-    private boolean dockUseFull() { return launcherFront || policyApplied; }
-    private int dockFlags() {
-        int f = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
-        if (dockUseFull()) f |= WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
-        return f;
-    }
-    private int navMaxPx = 0;
-    /** Chiều cao thanh điều hướng (px), lấy giá trị lớn nhất từng đo để không nhảy khi app vào/ra toàn màn hình. */
-    private int navPx() {
+    /** Chiều cao thanh điều hướng của hệ thống (đúng theo hướng màn hình), tối thiểu 40dp để chắc chắn che kín. */
+    private int navBarHeight() {
+        int h = 0;
         try {
-            Point real = realSize(), size = new Point();
-            wm.getDefaultDisplay().getSize(size);
-            navMaxPx = Math.max(navMaxPx, real.y - size.y);
+            boolean land = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            int id = getResources().getIdentifier(land ? "navigation_bar_height_landscape" : "navigation_bar_height", "dimen", "android");
+            if (id <= 0) id = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+            if (id > 0) h = getResources().getDimensionPixelSize(id);
         } catch (Exception e) { }
-        return navMaxPx;
+        return Math.max(h, dp(40));
     }
-    private int navDp() { return Math.round(navPx() / getResources().getDisplayMetrics().density); }
-    /** Chiều cao cửa sổ Dock (dp): phủ kín thanh điều hướng. Ở Desktop thì cộng thêm để chỗ Dock cũ giữ lại không bị hở. */
-    private int dockHDp() { return dockBase + 18; }
+
+    /**
+     * Chiều cao THẬT của thanh hệ thống/thanh tác vụ ở đáy (Yoga Book có thanh tác vụ cao hơn giá trị navigation_bar_height).
+     * Lấy giá trị lớn nhất trong 3 cách đo: tài nguyên hệ thống, phần chênh giữa màn hình thật và vùng app, và cửa sổ SystemUI thật ở đáy.
+     */
+    private int barMax = 0; /* chiều cao lớn nhất đã đo được: chỉ tăng, không tự thu nhỏ lại (thanh tác vụ lúc hiện lúc ẩn làm số đo nhảy) */
+    private int sysBarHeight() {
+        int best = navBarHeight(), cap = dp(150);
+        Point real = realSize();
+        if (Build.VERSION.SDK_INT >= 30) {
+            /* Cách chuẩn: phần đệm của thanh điều hướng / thanh tác vụ (taskbar) dù đang hiện hay ẩn */
+            try {
+                android.graphics.Insets in = wm.getCurrentWindowMetrics().getWindowInsets().getInsetsIgnoringVisibility(
+                    android.view.WindowInsets.Type.navigationBars() | android.view.WindowInsets.Type.tappableElement());
+                if (in.bottom > best && in.bottom < cap) best = in.bottom;
+            } catch (Throwable t) { }
+        }
+        try {
+            DisplayMetrics dm = new DisplayMetrics();
+            wm.getDefaultDisplay().getMetrics(dm);
+            int d = real.y - dm.heightPixels;
+            if (d > best && d < cap) best = d;
+        } catch (Exception e) { }
+        try {
+            List<AccessibilityWindowInfo> ws = getWindows();
+            if (ws != null) for (AccessibilityWindowInfo w : ws) {
+                if (w.getType() != AccessibilityWindowInfo.TYPE_SYSTEM) continue;
+                Rect r = new Rect(); w.getBoundsInScreen(r);
+                if (r.bottom >= real.y - dp(2) && r.top > real.y / 2 && r.width() >= real.x / 2) {
+                    int hh = real.y - r.top;
+                    if (hh > best && hh < cap) best = hh;
+                }
+            }
+        } catch (Throwable t) { }
+        if (best > barMax) barMax = best;
+        return barMax;
+    }
+    /** Chiều cao cửa sổ Dock (px): ở Desktop = đúng thanh icon; ở app khác = đủ cao để phủ kín thanh điều hướng/thanh tác vụ của ROM. */
+    private int dockBarPx() { int bar = dp(dockBase + 18); return launcherFront ? bar : Math.max(bar, sysBarHeight()); }
+    private int dockGrowPx() { return dockGrown ? dp(Math.round(dockBase * 0.7f) + 8) : 0; }
+    /** Đặt cửa sổ theo toạ độ tuyệt đối từ mép trên của màn hình THẬT (như thanh Desktop cũ) nên đè được lên thanh điều hướng. */
+    private void placeDock(WindowManager.LayoutParams lp) {
+        Point real = realSize(); int hh = dockBarPx() + dockGrowPx();
+        lp.width = real.x; lp.height = hh; lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = real.y - hh;
+    }
+    private static final int DOCK_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+    private int dockHDp() { return Math.round(dockBarPx() / getResources().getDisplayMetrics().density); }
     private int dockPadDp() { return 0; }
+    private int lastBarPx = -1;
+    private void relayoutDock() {
+        if (!dockShown || dockLp == null || dockView == null) return;
+        int y = dockLp.y, hh = dockLp.height; placeDock(dockLp);
+        int bp = dockBarPx();
+        if (bp != lastBarPx) { lastBarPx = bp; if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setLayout&&setLayout(" + dockHDp() + ",0)", null); }
+        if (y != dockLp.y || hh != dockLp.height) { try { wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
+    }
     public static boolean isRunning() { return inst != null; }
     public static void setDockBase(Context c, int base) {
         dockBase = Math.max(18, Math.min(80, base));
@@ -896,7 +940,7 @@ public class LockService extends AccessibilityService {
     }
     private void applyDockBase() {
         if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ")", null);
-        if (dockShown && dockLp != null && dockView != null) { try { dockLp.height = dp(dockHDp() + (dockGrown ? Math.round(dockBase * 0.7f) + 8 : 0)); wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
+        relayoutDock();
     }
     /** Thu cửa sổ Dock vừa khít viên thuốc, căn giữa; phần còn lại của màn hình chạm xuyên xuống app bên dưới. */
     private void resizeDock() {
@@ -911,8 +955,7 @@ public class LockService extends AccessibilityService {
     private final Runnable dockTick = new Runnable() { public void run() {
         h.removeCallbacks(dockTick);
         if (!enabled || wm == null) return;
-        if (dockShown && dockFull != dockUseFull()) hideDockBar(); /* đổi giữa Desktop/app khác hoặc ẩn xong thanh hệ thống: dựng lại cửa sổ đúng khung */
-        if (hotView != null && dockFull != dockUseFull()) hideHot();
+        relayoutDock(); /* đổi giữa Desktop/app khác, xoay màn hình, hoặc đo được thanh hệ thống cao hơn: chỉnh lại vị trí/chiều cao */
                 if (android.os.SystemClock.uptimeMillis() >= dockQuietUntil) {
             boolean peeking = android.os.SystemClock.uptimeMillis() < dockPeekUntil;
             boolean hide = imeShown() || barHide || (dockAutoHide && !peeking); /* Dock luôn nổi; chỉ nhường chỗ cho bàn phím/khóa màn hình, hoặc tự ẩn nếu bật trong Cài đặt */
@@ -936,10 +979,9 @@ public class LockService extends AccessibilityService {
         Point real = realSize();
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(10),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            dockFlags(),
+            DOCK_FLAGS,
             PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.BOTTOM | Gravity.LEFT; lp.x = 0; lp.y = 0;
-        dockFull = dockUseFull();
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = realSize().y - dp(10);
         try { wm.addView(hotView, lp); } catch (Exception e) { hotView = null; }
     }
     private void hideHot() {
@@ -1008,12 +1050,12 @@ public class LockService extends AccessibilityService {
             dockWeb.loadUrl("file:///android_asset/dock.html");
         } else pushDockData();
         Point real = realSize();
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(dockHDp()),
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dockBarPx(),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            dockFlags(),
+            DOCK_FLAGS,
             PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL; lp.x = 0; lp.y = 0;
-        dockLp = lp; dockFull = dockUseFull();
+        placeDock(lp);
+        dockLp = lp;
         try { wm.addView(dockView, lp); dockShown = true; } catch (Throwable e) { dockShown = false; }
     }
     private void hideDockBar() {
