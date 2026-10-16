@@ -251,6 +251,29 @@ public class MainActivity extends Activity {
                     return WindowInsets.CONSUMED;
                 }
             });
+        } else {
+            /* Android 10 trở xuống (vd. 7.1.1): khung nội dung mặc định của hệ thống có fitsSystemWindows=true nên tự đệm một khoảng bằng thanh trạng thái
+               mỗi khi cờ toàn màn hình bị hệ thống gỡ tạm (vuốt mép, quay lại app, đóng bàn phím...) -> giao diện giật và kẹt khoảng trống ở trên cùng.
+               Tắt đệm tự động đó, tự chừa chỗ chỉ cho bàn phím. */
+            try {
+                View content = findViewById(android.R.id.content);
+                content.setFitsSystemWindows(false);
+                if (content.getParent() instanceof View) ((View) content.getParent()).setFitsSystemWindows(false);
+            } catch (Exception e) { }
+            root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @Override public WindowInsets onApplyWindowInsets(View v, WindowInsets in) {
+                    /* Đáy lớn hơn thanh điều hướng = bàn phím đang mở */
+                    int kb = in.getSystemWindowInsetBottom() > in.getStableInsetBottom() ? in.getSystemWindowInsetBottom() : 0;
+                    if (v.getPaddingBottom() != kb) v.setPadding(0, 0, 0, kb);
+                    return in.consumeSystemWindowInsets();
+                }
+            });
+            /* Vuốt từ mép làm thanh hệ thống hiện ra: ẩn lại ngay */
+            getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+                @Override public void onSystemUiVisibilityChange(int vis) {
+                    if (!imeUp && (vis & (View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)) != (View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)) rehideBars();
+                }
+            });
         }
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
