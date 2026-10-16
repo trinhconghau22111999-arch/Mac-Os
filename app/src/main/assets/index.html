@@ -3081,13 +3081,22 @@ ql.addEventListener('pointerdown',e=>{if(!e.target.closest('.qlp'))ql.hidden=tru
 /* ---------- Menu thanh trên cùng ---------- */
 const NEWMAP={files:['Thư mục mới','.nf'],notes:['Ghi chú mới','.nn'],mail:['Thư mới','.mc']};
 function musHalt(){MUS.playing=false;clearInterval(MUS.timer);bus.emit('music')}
+function homeDefaultNow(){try{const A=window.AndroidLauncher;return !!(A&&A.isHomeDefault&&A.isHomeDefault())}catch(e){return false}}
+function homeItem(){
+  if(homeDefaultNow())return {t:'Desktop Mini là màn hình chính mặc định ✓',dis:true};
+  return {t:'Đặt làm launcher mặc định…',fn:()=>{
+    const A=window.AndroidLauncher;
+    if(A&&A.openSetup)A.openSetup('home');
+    else notify({app:'Hệ thống',title:'Đặt làm launcher mặc định',body:'Chỉ dùng được trong app Android.',icon:'settings'});
+  }};
+}
 function buildMenu(key){
   const w=activeWin(), id=w&&w.dataset.app, nm=id?APPS[id].name:'Desktop', user=userName();
   const wl=Object.keys(wins).map(i=>({t:APPS[i].name,fn:()=>{const x=wins[i];x.classList.remove('min');focusWin(x)}}));
   const ta=w&&$('textarea',w);
   const nw=id&&NEWMAP[id];
   const M={
-    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},'-',{t:'Khởi động lại…',fn:()=>restartNow()},{t:'Tắt máy…',fn:()=>shutNow()}],
+    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},'-',homeItem(),{t:'Khởi động lại…',fn:()=>restartNow()},{t:'Tắt máy…',fn:()=>shutNow()}],
     app:w?[{t:'Giới thiệu về '+nm,fn:()=>openApp('about')},'-',{t:'Ẩn '+nm,fn:()=>minWin(w)},'-',{t:'Thoát '+nm,fn:()=>{if(id==='music')musHalt();closeWin(w)}}]:[{t:'Mở Tệp',fn:()=>openApp('files')}],
     file:(nw?[{t:nw[0],fn:()=>{const x=$(nw[1],w);if(x)x.click()}},'-']:[]).concat([{t:'Mở Ghi chú',fn:()=>openApp('notes')},'-',{t:'Đóng cửa sổ',fn:()=>closeWin(w),dis:!w}]),
     edit:[{t:'Hoàn tác',dis:true},{t:'Làm lại',dis:true},'-',{t:'Cắt',fn:()=>{ta.focus();document.execCommand('cut')},dis:!ta},{t:'Sao chép',fn:()=>{ta.focus();document.execCommand('copy')},dis:!ta},{t:'Dán',dis:true},'-',{t:'Chọn tất cả',fn:()=>{ta.focus();ta.select()},dis:!ta}],
