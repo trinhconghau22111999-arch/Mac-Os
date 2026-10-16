@@ -4378,6 +4378,7 @@ if(window.AndroidLauncher){(function(){
       if(d!==_dd){_dd=d;A.setDockData(d)}
       A.setDockOverlay(!!pref('dockFloat',true));
       if(A.setBarLock)A.setBarLock(!!pref('barLock',true));
+      if(A.setMenuBar)A.setMenuBar(!!pref('menuFloat',true));
     }catch(e){}
   }
   bus.on('ui',syncDockFloat); syncDockFloat();

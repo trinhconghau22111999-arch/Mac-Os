@@ -632,6 +632,8 @@ public class LauncherBridge {
         @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(act); }
         @JavascriptInterface public void setBarLock(boolean on) { LockService.saveBarLock(act, on); }
         @JavascriptInterface public boolean isBarLock() { return LockService.isBarLock(act); }
+        @JavascriptInterface public void setMenuBar(boolean on) { LockService.saveMenuBar(act, on); }
+        @JavascriptInterface public boolean isMenuBar() { return LockService.isMenuBar(act); }
         @JavascriptInterface public boolean isHomeDefault() { return act.isDefaultHome(); }
         @JavascriptInterface public String getStatus() {
             try {

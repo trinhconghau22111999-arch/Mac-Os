@@ -76,6 +76,12 @@ public class LockService extends AccessibilityService {
         final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.apply(); } });
     }
     public static boolean isEnabled(Context c) { return c.getSharedPreferences(PK, 0).getBoolean("on", true); }
+    /* Thanh menu nổi trên cùng: bật/tắt riêng, không phụ thuộc nút Desktop */
+    public static void saveMenuBar(Context c, boolean on) {
+        c.getSharedPreferences(PK, 0).edit().putBoolean("menubar", on).apply();
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.updateTopBar(); } });
+    }
+    public static boolean isMenuBar(Context c) { return c.getSharedPreferences(PK, 0).getBoolean("menubar", true); }
 
     @Override protected void onServiceConnected() {
         inst = this; wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
@@ -83,11 +89,12 @@ public class LockService extends AccessibilityService {
         barLock = isBarLock(this);
         if (!isEnabled(this)) setImmersivePolicy(false);
         apply();
+        updateTopBar();
     }
     @Override public boolean onUnbind(Intent i) { inst = null; tearDown(); return super.onUnbind(i); }
     @Override public void onDestroy() { inst = null; tearDown(); super.onDestroy(); }
     @Override public void onConfigurationChanged(Configuration c) {
-        super.onConfigurationChanged(c); removeButton(); updateButton(); scheduleRefreshBar();
+        super.onConfigurationChanged(c); removeButton(); updateButton(); scheduleRefreshBar(); removeTopBar(); updateTopBar();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
@@ -105,6 +112,7 @@ public class LockService extends AccessibilityService {
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
         if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
+        fgLabel = labelOf(pk); if (topBar != null) topBar.invalidate();
         videoFull = false; setBarHidden(false); /* app khác lên trước: không còn video của mình ở toàn màn hình */
         setLauncherFront(false);
         scheduleRefreshBar(); /* app khác vừa lên: đo lại để phủ kín thanh đa nhiệm */
@@ -148,6 +156,7 @@ public class LockService extends AccessibilityService {
         if (launcherFront == b) return;
         launcherFront = b;
         updateButton();
+        updateTopBar();
     }
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
     private Point realSize() {
@@ -367,8 +376,127 @@ public class LockService extends AccessibilityService {
         } catch (Exception e) { policyApplied = false; }
     }
 
+
+    /* ================= Thanh menu nổi (phủ lên thanh trạng thái của hệ thống) =================
+     * Cửa sổ riêng, độc lập với nút Desktop: có cờ bật/tắt riêng, tự thêm/bỏ riêng.
+     * Chỉ hiện khi đang ở app ngoài (trong Desktop Mini đã có thanh menu HTML), tự ẩn khi app ngoài chạy toàn màn hình. */
+    private TopBar topBar;
+    private WindowManager.LayoutParams topLp;
+    private String fgLabel = "";
+    private boolean topHidden = false;
+    private final Runnable topTick = new Runnable() { public void run() {
+        h.removeCallbacks(topTick);
+        if (topBar == null) return;
+        boolean fs = videoFull || externalFullscreenTop();
+        if (fs != topHidden) setTopHidden(fs);
+        topBar.invalidate();
+        h.postDelayed(topTick, 1000);
+    } };
+
+    private String labelOf(String pk) {
+        try { return getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(pk, 0)).toString(); }
+        catch (Throwable t) { return ""; }
+    }
+    private int statusBarHeight() {
+        int hh = 0;
+        try {
+            int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (id > 0) hh = getResources().getDimensionPixelSize(id);
+        } catch (Exception e) { }
+        return Math.max(hh, dp(24));
+    }
+    /** App ngoài đang phủ tới tận mép trên (không còn thanh trạng thái) = đang toàn màn hình. */
+    private boolean externalFullscreenTop() {
+        if (launcherFront || wm == null) return false;
+        try {
+            Point real = realSize();
+            List<AccessibilityWindowInfo> ws = getWindows();
+            if (ws == null) return false;
+            for (AccessibilityWindowInfo w : ws) {
+                if (w.getType() != AccessibilityWindowInfo.TYPE_APPLICATION || !(w.isActive() || w.isFocused())) continue;
+                Rect r = new Rect(); w.getBoundsInScreen(r);
+                return r.top <= 0 && r.width() >= real.x - dp(2) && r.height() >= real.y - dp(2);
+            }
+        } catch (Throwable t) { }
+        return false;
+    }
+
+    private class TopBar extends View {
+        private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), tx = new Paint(Paint.ANTI_ALIAS_FLAG), ap = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final java.text.SimpleDateFormat tf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+        TopBar(Context c) {
+            super(c);
+            bg.setColor(0xFF111113); bg.setStyle(Paint.Style.FILL);
+            tx.setColor(0xFFFFFFFF); tx.setTextSize(dp(13)); tx.setFakeBoldText(true);
+            ap.setColor(0xFFFFFFFF); ap.setStyle(Paint.Style.FILL);
+            setContentDescription("Thanh menu");
+        }
+        private int battery() {
+            try {
+                Intent i = registerReceiver(null, new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                if (i == null) return -1;
+                int l = i.getIntExtra("level", -1), sc = i.getIntExtra("scale", 100);
+                return l < 0 ? -1 : Math.round(l * 100f / Math.max(1, sc));
+            } catch (Throwable t) { return -1; }
+        }
+        @Override protected void onDraw(Canvas c) {
+            if (topHidden) return;
+            float w = getWidth(), hh = getHeight(), cy = hh / 2;
+            c.drawRect(0, 0, w, hh, bg);
+            float pad = dp(14), x = pad, r = dp(5.5f);
+            /* quả táo: thân tròn, vết cắn bên phải, lá nhỏ phía trên */
+            c.drawCircle(x + r, cy + dp(1), r, ap);
+            bgBite(c, x + r * 2 - dp(1), cy - dp(1), dp(2.6f));
+            c.drawOval(new RectF(x + r - dp(0.5f), cy - r - dp(3.5f), x + r + dp(4), cy - r + dp(0.5f)), ap);
+            x += r * 2 + dp(10);
+            String name = fgLabel == null ? "" : fgLabel;
+            float maxW = w * 0.5f - x;
+            while (name.length() > 1 && tx.measureText(name) > maxW) name = name.substring(0, name.length() - 1);
+            c.drawText(name, x, cy + dp(4.5f), tx);
+            int b = battery();
+            String right = (b >= 0 ? b + "%   " : "") + tf.format(new java.util.Date());
+            c.drawText(right, w - pad - tx.measureText(right), cy + dp(4.5f), tx);
+        }
+        private void bgBite(Canvas c, float cx, float cy, float rr) { c.drawCircle(cx, cy, rr, bg); }
+        /* nuốt mọi chạm trong dải này để không kéo được thanh thông báo của hệ thống từ phía trên */
+        @Override public boolean onTouchEvent(MotionEvent ev) { return true; }
+    }
+
+    private void updateTopBar() {
+        boolean want = wm != null && isMenuBar(this) && !launcherFront;
+        if (want) { if (topBar == null) addTopBar(); } else removeTopBar();
+    }
+    private void addTopBar() {
+        if (wm == null) return;
+        final TopBar v = new TopBar(this);
+        Point s = realSize();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(s.x, statusBarHeight(),
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = 0;
+        if (Build.VERSION.SDK_INT >= 28) lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        try { wm.addView(v, lp); topBar = v; topLp = lp; topHidden = false; h.removeCallbacks(topTick); h.postDelayed(topTick, 400); }
+        catch (Exception e) { topBar = null; topLp = null; }
+    }
+    private void removeTopBar() {
+        h.removeCallbacks(topTick); topHidden = false;
+        if (topBar != null) { try { wm.removeView(topBar); } catch (Exception e) { } topBar = null; topLp = null; }
+    }
+    /** Ẩn (chỉ còn dải 1dp, không nhận chạm) khi app ngoài toàn màn hình; hiện lại đủ chiều cao khi hết. */
+    private void setTopHidden(boolean b) {
+        topHidden = b;
+        if (topBar == null || topLp == null || wm == null) return;
+        try {
+            topLp.height = b ? dp(1) : statusBarHeight();
+            if (b) topLp.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE; else topLp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            wm.updateViewLayout(topBar, topLp); topBar.invalidate();
+        } catch (Exception e) { }
+    }
+
     private void tearDown() {
         h.removeCallbacks(refreshBar); h.removeCallbacks(fsPoll);
-        removeButton(); freeBarPic(); setImmersivePolicy(false);
+        removeButton(); removeTopBar(); freeBarPic(); setImmersivePolicy(false);
     }
 }
