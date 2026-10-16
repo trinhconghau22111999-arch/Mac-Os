@@ -51,11 +51,18 @@ window.setDock=function(list){
   }catch(e){}
   els=[];centers=[];
 };
-/* Hình nền liền với Desktop: nền thanh Dock là lát phía dưới của chính hình nền (u = data URL, h = cao CSS px của lát) + lớp phủ tối nhẹ */
-window.setWall=function(u,h){
-  if(!u){pill.style.background='';return}
-  pill.style.background='linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url("'+u+'") left bottom/100% '+h+'px no-repeat';
-};
+/* Hình nền liền với Desktop: nền Dock là lát phía dưới của chính hình nền, vẽ theo TOẠ ĐỘ MÀN HÌNH (u = data URL, h = cao CSS px của lát, sw = bề rộng màn hình CSS px).
+   Cửa sổ Dock thu hẹp vừa viên thuốc và căn giữa nên phải dịch hình sang trái đúng bằng phần màn hình nằm ngoài cửa sổ, nếu không hình bị co/lệch so với Desktop.
+   Chỉ phủ một lớp tối rất nhẹ tăng dần về đáy (mép trên = 0) và bỏ viền sáng, để không lộ đường ranh với Desktop. */
+var wall={u:'',h:0,sw:0};
+function placeWall(){
+  if(!wall.u){pill.style.background='';pill.style.boxShadow='';return}
+  var left=Math.max(0,(wall.sw-window.innerWidth)/2);
+  pill.style.boxShadow='none';
+  pill.style.background='linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.16)),url("'+wall.u+'") '+(-left)+'px bottom/'+wall.sw+'px '+wall.h+'px no-repeat';
+}
+window.setWall=function(u,h,sw){wall.u=u||'';wall.h=h||0;wall.sw=sw||window.innerWidth;placeWall()};
+window.addEventListener('resize',placeWall);
 window.setShot=function(on){shot.style.display=on?'':'none'};
 /* Phóng đại: chuột rê qua Dock, hoặc chạm giữ rồi trượt ngón tay dọc Dock; nhả ra thì thu lại. Cửa sổ Dock được nới cao lên lúc phóng đại. */
 function calc(){els=[].slice.call(document.querySelectorAll('.dk'));centers=els.map(function(d){var r=d.getBoundingClientRect();return r.left+r.width/2})}

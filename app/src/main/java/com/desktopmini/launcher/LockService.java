@@ -703,10 +703,11 @@ public class LockService extends AccessibilityService {
         private final java.util.LinkedHashMap<String, RectF> hit = new java.util.LinkedHashMap<String, RectF>();
         private final RectF rf = new RectF();
         private String down = null;
+        private final Paint tintP = new Paint(); private float tintH = -1;
         TopBar(Context c) {
             super(c);
             bg.setColor(0xFF111113); bg.setStyle(Paint.Style.FILL);
-            tx.setColor(0xFFFFFFFF); tx.setTextSize(dp(13)); tx.setFakeBoldText(true);
+            tx.setColor(0xFFFFFFFF); tx.setTextSize(dp(13)); tx.setFakeBoldText(true); tx.setShadowLayer(dp(2), 0, dp(1), 0x66000000); /* chữ vẫn dễ đọc khi nền là hình nền sáng */
             ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.4f)); ic.setStrokeCap(Paint.Cap.ROUND); ic.setStrokeJoin(Paint.Join.ROUND);
             fl.setColor(0xFFFFFFFF); fl.setStyle(Paint.Style.FILL);
             setContentDescription("Thanh menu");
@@ -745,7 +746,9 @@ public class LockService extends AccessibilityService {
             if (wallTop != null) {
                 /* một hình liền với Desktop: lát phía trên của hình nền + lớp phủ tối nhẹ cho chữ dễ đọc */
                 c.drawBitmap(wallTop, new Rect(0, 0, wallTop.getWidth(), Math.min(wallTop.getHeight(), (int) hh)), new RectF(0, 0, w, hh), null);
-                c.drawRect(0, 0, w, hh, wallTint);
+                /* phủ tối nhẹ giảm dần về mép dưới (mép dưới = 0) để thanh menu hoà liền vào Desktop, không lộ đường ranh */
+                if (tintH != hh) { tintH = hh; tintP.setShader(new android.graphics.LinearGradient(0, 0, 0, hh, 0x38000000, 0x00000000, android.graphics.Shader.TileMode.CLAMP)); }
+                c.drawRect(0, 0, w, hh, tintP);
             } else c.drawRect(0, 0, w, hh, bg);
             /* ---- bên trái: logo + tên app ---- */
             float x = pad, r = dp(7);
@@ -1169,8 +1172,6 @@ public class LockService extends AccessibilityService {
     private volatile String wallDockUrl = "";
     private int wallGen = 0;
     private static final int WALL_TOP_DP = 120, WALL_DOCK_DP = 200;
-    private final Paint wallTint = new Paint();
-    { wallTint.setColor(0x59000000); }
     public static void setWall(String src) {
         String n = src == null ? "" : src;
         if (n.equals(wallSrc)) return;
@@ -1258,7 +1259,7 @@ public class LockService extends AccessibilityService {
         if (dockWeb == null || !dockReady) return;
         String u = wallDockUrl;
         float d = getResources().getDisplayMetrics().density;
-        dockWeb.evaluateJavascript(u.length() == 0 ? "window.setWall&&setWall('',0)" : "window.setWall&&setWall('" + u + "'," + Math.round(Math.min(dp(WALL_DOCK_DP), realSize().y / 2) / d) + ")", null);
+        dockWeb.evaluateJavascript(u.length() == 0 ? "window.setWall&&setWall('',0,0)" : "window.setWall&&setWall('" + u + "'," + Math.round(Math.min(dp(WALL_DOCK_DP), realSize().y / 2) / d) + "," + Math.round(realSize().x / d) + ")", null);
     }
     private void pushDockData() {
         if (dockWeb == null || !dockReady) return;
