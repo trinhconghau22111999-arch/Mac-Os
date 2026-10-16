@@ -220,14 +220,14 @@ public class LockService extends AccessibilityService {
                     long now = android.os.SystemClock.uptimeMillis();
                     if (up > dp(40) && up > dx) { /* vuốt lên từ thanh */
                         lastTapUp = 0;
-                        if (barHidden) setBarHidden(false); else goMultitask();
+                        if (barHidden) userShow(); else goMultitask();
                         return true;
                     }
                     int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
                     if (up > slop || up < -slop || dx > slop) { lastTapUp = 0; return true; } /* kéo lệch, không phải chạm */
                     boolean dbl = lastTapUp > 0 && now - lastTapUp <= ViewConfiguration.getDoubleTapTimeout();
                     lastTapUp = dbl ? 0 : now;
-                    if (barHidden) { if (dbl) setBarHidden(false); return true; }
+                    if (barHidden) { if (dbl) userShow(); return true; }
                     if (videoFull) { if (dbl) setBarHidden(true); return true; } /* đang xem video: chạm 1 lần không làm gì, chờ chạm đúp */
                     goDesktop();
                     return true;
@@ -307,6 +307,35 @@ public class LockService extends AccessibilityService {
         h.postDelayed(refreshBar, 150); h.postDelayed(refreshBar, 600); h.postDelayed(refreshBar, 1500);
     }
 
+    /* ---- Tự ẩn thanh Desktop khi app ngoài chạy toàn màn hình (xem video...), không cần chạm đúp ---- */
+    private boolean autoHid = false, autoSuppress = false;
+    private final Runnable fsPoll = new Runnable() { public void run() {
+        h.removeCallbacks(fsPoll);
+        if (btn == null) return;
+        boolean fs = externalFullscreen();
+        if (!fs) autoSuppress = false;
+        if (fs && !barHidden && !autoSuppress && !videoFull) { autoHid = true; setBarHidden(true); }
+        else if (!fs && barHidden && autoHid) { autoHid = false; setBarHidden(false); }
+        h.postDelayed(fsPoll, 500);
+    } };
+    /** Người dùng tự gọi thanh hiện lại: giữ nguyên cho tới khi hết toàn màn hình (không tự ẩn lại ngay). */
+    private void userShow() { autoSuppress = externalFullscreen(); autoHid = false; setBarHidden(false); }
+    /** Cửa sổ app đang dùng phủ tới tận mép dưới màn hình (không còn thanh hệ thống) = đang toàn màn hình. */
+    private boolean externalFullscreen() {
+        if (launcherFront || policyApplied || wm == null) return false; /* policy ẩn thanh hệ thống sẵn: không đo được bằng cách này */
+        try {
+            Point real = realSize();
+            List<AccessibilityWindowInfo> ws = getWindows();
+            if (ws == null) return false;
+            for (AccessibilityWindowInfo w : ws) {
+                if (w.getType() != AccessibilityWindowInfo.TYPE_APPLICATION || !(w.isActive() || w.isFocused())) continue;
+                Rect r = new Rect(); w.getBoundsInScreen(r);
+                return r.bottom >= real.y - dp(2) && r.width() >= real.x - dp(2) && r.height() >= real.y - dp(2);
+            }
+        } catch (Throwable t) { }
+        return false;
+    }
+
     private void addButton() {
         if (wm == null) return;
         final DeskButton v = new DeskButton(this);
@@ -317,10 +346,10 @@ public class LockService extends AccessibilityService {
             PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.LEFT;
         lp.x = 0; lp.y = s.y - bh; /* cố định sát cạnh dưới, không di chuyển */
-        try { wm.addView(v, lp); btn = v; btnLp = lp; scheduleRefreshBar(); } catch (Exception e) { btn = null; btnLp = null; }
+        try { wm.addView(v, lp); btn = v; btnLp = lp; scheduleRefreshBar(); h.removeCallbacks(fsPoll); h.postDelayed(fsPoll, 400); } catch (Exception e) { btn = null; btnLp = null; }
     }
     private void removeButton() {
-        barHidden = false;
+        barHidden = false; autoHid = false; autoSuppress = false; h.removeCallbacks(fsPoll);
         if (btn != null) { try { wm.removeView(btn); } catch (Exception e) { } btn = null; btnLp = null; }
     }
     /** Ẩn thanh (chỉ còn dải mỏng ở đáy) hoặc hiện lại đủ chiều cao. */
@@ -364,7 +393,7 @@ public class LockService extends AccessibilityService {
     }
 
     private void tearDown() {
-        h.removeCallbacks(refreshBar);
+        h.removeCallbacks(refreshBar); h.removeCallbacks(fsPoll);
         removeButton(); freeBarPic(); setImmersivePolicy(false);
     }
 }
