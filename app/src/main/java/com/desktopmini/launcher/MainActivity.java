@@ -227,7 +227,8 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         inst = this;
         CrashLog.install(getApplicationContext());
-        final String lastCrash = CrashLog.takeLastCrash(this);
+        final String lastExit = CrashLog.reportLastExit(this);
+        final String lastCrash = lastExit != null ? "bị tắt do " + lastExit : CrashLog.takeLastCrash(this);
         if (lastCrash != null) gkToast("Lần trước app bị lỗi: " + lastCrash + "\nChi tiết: " + CrashLog.where(this));
         new Thread(new Runnable() { public void run() { try { TrashStore.purgeOld(MainActivity.this); } catch (Exception e) { } } }).start();   /* Thùng rác: dọn mục quá 7 ngày */
         assetLoader = new WebViewAssetLoader.Builder()
@@ -1488,6 +1489,7 @@ public class MainActivity extends Activity {
     }
     void gkEnsure() {
         if (gkView != null) return;
+        CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)");
         if (gkRuntime == null) {
             gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
             /* cho phép 2 ngón zoom cả trang cấm zoom; nạp mức zoom chữ đã lưu */
@@ -1522,11 +1524,13 @@ public class MainActivity extends Activity {
         gkSession = se;
         se.setContentDelegate(new org.mozilla.geckoview.GeckoSession.ContentDelegate() {
             @Override public void onExternalResponse(org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.WebResponse response) { gkDownload(response); }
+            @Override public void onCrash(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Gecko: tiến trình trang web bị văng (onCrash)", new Exception("onCrash")); gkToast("Trang web bị văng. Chi tiết: " + CrashLog.where(MainActivity.this)); }
+            @Override public void onKill(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Gecko: tiến trình trang web bị hệ thống tắt, thường do thiếu RAM (onKill)", new Exception("onKill")); gkToast("Trang web bị tắt (có thể thiếu RAM). Chi tiết: " + CrashLog.where(MainActivity.this)); }
         });
         se.setProgressDelegate(new org.mozilla.geckoview.GeckoSession.ProgressDelegate() {
             @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) gkUrl = url; gkProg = 5; gkPush(); }
             @Override public void onProgressChange(org.mozilla.geckoview.GeckoSession s, int p) { gkProg = p; gkPush(); }
-            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) { gkProg = 0; gkPush(); }
+            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) { gkProg = 0; gkPush(); if (success) CrashLog.clearMark(MainActivity.this); }
         });
         se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
             @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { gkBackOk = can; gkPush(); }

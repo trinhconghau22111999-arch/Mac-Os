@@ -121,6 +121,71 @@ public final class CrashLog {
         });
     }
 
+
+    /* ---- Dấu vết: app đang làm gì thì bị tắt (lỗi native của Gecko không đi qua trình bắt lỗi Java) ---- */
+    static void mark(Context c, String stage) {
+        try {
+            String when = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
+            c.getSharedPreferences("dm_crash", Context.MODE_PRIVATE).edit().putString("stage", when + " " + stage).commit();
+        } catch (Throwable t) { }
+    }
+    static void clearMark(Context c) {
+        try { c.getSharedPreferences("dm_crash", Context.MODE_PRIVATE).edit().remove("stage").commit(); } catch (Throwable t) { }
+    }
+
+    /** Android 11+: hỏi hệ thống vì sao lần chạy trước bị tắt (văng native, hết RAM, treo...). Ghi vào tệp lỗi; trả tóm tắt nếu bất thường. */
+    static String reportLastExit(Context c) {
+        if (Build.VERSION.SDK_INT < 30) return null;
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) c.getSystemService(Context.ACTIVITY_SERVICE);
+            java.util.List<android.app.ApplicationExitInfo> l = am.getHistoricalProcessExitReasons(c.getPackageName(), 0, 8);
+            SharedPreferences sp = c.getSharedPreferences("dm_crash", Context.MODE_PRIVATE);
+            long seen = sp.getLong("exitSeen", 0), newest = seen;
+            String stage = sp.getString("stage", null), sum = null;
+            for (android.app.ApplicationExitInfo e : l) {
+                if (e.getTimestamp() <= seen) continue;
+                newest = Math.max(newest, e.getTimestamp());
+                int r = e.getReason();
+                if (r == android.app.ApplicationExitInfo.REASON_USER_REQUESTED || r == android.app.ApplicationExitInfo.REASON_USER_STOPPED
+                    || r == android.app.ApplicationExitInfo.REASON_EXIT_SELF || r == android.app.ApplicationExitInfo.REASON_PERMISSION_CHANGE) continue;
+                String name = exitName(r);
+                StringBuilder b = new StringBuilder();
+                b.append("==== ").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date(e.getTimestamp()))).append(" | LẦN TRƯỚC BỊ TẮT: ").append(name).append(" ====\n");
+                b.append(header(c));
+                b.append("Tiến trình: ").append(e.getProcessName()).append(" | status=").append(e.getStatus()).append(" | mô tả hệ thống: ").append(e.getDescription()).append('\n');
+                b.append("RAM lúc đó: pss=").append(e.getPss()).append("KB rss=").append(e.getRss()).append("KB\n");
+                if (stage != null) b.append("Đang làm: ").append(stage).append('\n');
+                if (r == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE || r == android.app.ApplicationExitInfo.REASON_ANR) {
+                    try {
+                        java.io.InputStream in = e.getTraceInputStream();
+                        if (in != null) {
+                            byte[] buf = new byte[6000]; int n = in.read(buf); in.close();
+                            if (n > 0) b.append("Dấu vết (đầu tệp):\n").append(new String(buf, 0, n, "ISO-8859-1").replaceAll("[^\\x20-\\x7E\\n]", ".")).append('\n');
+                        }
+                    } catch (Throwable t) { }
+                }
+                write(c, b.toString() + "\n");
+                if (sum == null) sum = name + (stage != null ? " — lúc: " + stage : "");
+            }
+            sp.edit().putLong("exitSeen", newest).remove("stage").commit();
+            return sum;
+        } catch (Throwable t) { return null; }
+    }
+
+    private static String exitName(int r) {
+        switch (r) {
+            case 4: return "APP VĂNG (lỗi Java)";
+            case 5: return "VĂNG NATIVE (lỗi mã gốc, thường là Gecko)";
+            case 6: return "TREO (ANR)";
+            case 3: return "HỆ THỐNG TẮT VÌ THIẾU RAM (LMK)";
+            case 2: return "BỊ HỆ THỐNG TẮT (tín hiệu)";
+            case 7: return "KHỞI TẠO LỖI";
+            case 9: return "DÙNG QUÁ NHIỀU TÀI NGUYÊN";
+            case 12: return "BỊ ĐÓNG BĂNG";
+            default: return "mã " + r;
+        }
+    }
+
     /** Lần mở trước app bị văng? Trả mô tả lỗi rồi xóa dấu. */
     static String takeLastCrash(Context c) {
         try {
