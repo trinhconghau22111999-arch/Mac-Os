@@ -6,15 +6,16 @@
 html,body{height:100%;background:transparent;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none}
 /* Dock NỔI: viên thuốc bo tròn lơ lửng phía trên thanh điều hướng, luôn nằm trên các app khác.
    Bên trong: nút AI (trái) – icon Dock (giữa) – nút chụp màn hình (phải). Vùng ngoài viên thuốc trong suốt. */
-body{display:flex;align-items:center;justify-content:center;padding:6px 6px 8px}
-.pill{display:inline-flex;align-items:center;gap:10px;max-width:100%;height:100%;padding:0 12px;border-radius:26px;background:rgba(32,32,36,.88);box-shadow:0 0 0 1px rgba(255,255,255,.22) inset,0 8px 24px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4)}
-.sb{flex:none;width:46px;height:46px;border:0;border-radius:22.5%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset}
-.sb:active{background:rgba(255,255,255,.34);transform:scale(.92)}
-.sb svg{width:58%;height:58%}
-.sep{flex:none;width:1px;height:30px;background:rgba(255,255,255,.2)}
-.sc{flex:0 1 auto;min-width:0;height:100%;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+body{background:#111113}
+/* Thanh chữ nhật dài, MỘT nền duy nhất; icon và nút chức năng nằm trực tiếp trên nền, cùng cỡ, thẳng hàng */
+.pill{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:100%;padding:0 12px;background:#111113;box-shadow:0 1px 0 rgba(255,255,255,.16) inset}
+.sb{flex:none;width:46px;height:46px;border:0;background:none;color:#fff;display:grid;place-items:center;padding:0}
+.sb:active{transform:scale(.9);opacity:.7}
+.sb svg{width:72%;height:72%}
+.sep{display:none}
+.sc{flex:1 1 auto;min-width:0;height:100%;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .sc::-webkit-scrollbar{display:none}
-.apps{display:flex;align-items:center;gap:8px}
+.apps{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto}
 .dk{flex:none;width:46px;height:46px;border:0;background:none;padding:0}
 .dk:active{transform:scale(.9)}
 .ic{position:relative;display:grid;place-items:center;width:100%;height:100%;border-radius:22.5%;overflow:hidden;container-type:inline-size;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.28)}

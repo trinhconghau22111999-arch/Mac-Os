@@ -848,7 +848,7 @@ public class LockService extends AccessibilityService {
     private long dockQuietUntil = 0;
     private int dockWidthDp = 0;
     private WindowManager.LayoutParams dockLp;
-    private static final int DOCK_H_DP = 70, DOCK_GAP_DP = 6;
+    private static final int DOCK_H_DP = 64, DOCK_GAP_DP = 0;
     /** Thu cửa sổ Dock vừa khít viên thuốc, căn giữa; phần còn lại của màn hình chạm xuyên xuống app bên dưới. */
     private void resizeDock() {
         if (!dockShown || dockLp == null || dockView == null || dockWidthDp <= 0) return;
@@ -891,7 +891,7 @@ public class LockService extends AccessibilityService {
         @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { openInLauncher(id); } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
-        @JavascriptInterface public void size(final int wDp) { h.post(new Runnable() { public void run() { dockWidthDp = wDp; resizeDock(); } }); }
+        @JavascriptInterface public void size(final int wDp) { h.post(new Runnable() { public void run() { /* thanh dài full chiều ngang: không cần thu cửa sổ */ } }); }
     }
     /** Chụp màn hình app đang dùng (hệ thống tự lưu vào Ảnh chụp màn hình); ẩn Dock một lúc để không lọt vào ảnh. */
     private void dockShot() {
@@ -908,8 +908,8 @@ public class LockService extends AccessibilityService {
             dockView = new android.widget.FrameLayout(this);
             dockWeb = new android.webkit.WebView(new android.view.ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault));
             dockWeb.getSettings().setJavaScriptEnabled(true);
-            dockWeb.setBackgroundColor(0x00000000);
-            dockWeb.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null);
+            dockWeb.setBackgroundColor(0xFF111113);
+            
             dockWeb.setVerticalScrollBarEnabled(false); dockWeb.setHorizontalScrollBarEnabled(false);
             dockWeb.addJavascriptInterface(new DockJs(), "DockApp");
             dockWeb.setWebViewClient(new android.webkit.WebViewClient() {
@@ -920,7 +920,7 @@ public class LockService extends AccessibilityService {
             dockWeb.loadUrl("file:///android_asset/dock.html");
         } else pushDockData();
         Point real = realSize();
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(dockWidthDp > 0 ? Math.min(real.x, dp(dockWidthDp)) : real.x, dp(DOCK_H_DP),
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(DOCK_H_DP),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT);
