@@ -273,6 +273,14 @@ public class LockService extends AccessibilityService {
     }
 
     /** Đưa Desktop Mini lên trước và bấm nút tương ứng của thanh menu HTML (khi đang ở Desktop Mini thì bấm thẳng, không chuyển màn hình). */
+    /** Chạm 2 lần chỗ trống trên Dock nổi: đưa Desktop Mini lên trước và mở đa nhiệm (giống chạm 2 lần chỗ trống Desktop). */
+    private void openMultitask() {
+        try {
+            startActivity(new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                .putExtra("openMS", true));
+        } catch (Exception e) { }
+    }
     private void forward(String id) {
         try {
             startActivity(new Intent(this, MainActivity.class)
@@ -1094,6 +1102,7 @@ public class LockService extends AccessibilityService {
     }
     private class DockJs {
         @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { openInLauncher(id); } }); }
+        @JavascriptInterface public void multitask() { h.post(new Runnable() { public void run() { openMultitask(); } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
         @JavascriptInterface public void touch() { peekDock(); }

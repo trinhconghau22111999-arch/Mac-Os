@@ -86,6 +86,15 @@ pill.addEventListener('pointermove',function(){lastMv=Date.now();if(leaveT){clea
 pill.addEventListener('pointerenter',function(e){if(e.pointerType!=='touch'){lastMv=Date.now();mag(e)}});
 pill.addEventListener('pointerleave',function(e){if(e.pointerType==='touch'){unmag();return}
   var t0=Date.now();clearTimeout(leaveT);leaveT=setTimeout(function(){leaveT=0;if(lastMv<t0)unmag()},160)});
+/* Chạm 2 lần vào chỗ trống trên Dock (không trúng icon/nút) = mở đa nhiệm, giống chạm 2 lần chỗ trống trên Desktop */
+var tapDn=null,lastTap=null;
+pill.addEventListener('pointerdown',function(e){tapDn=e.target.closest('.dk,.sb')?null:{x:e.clientX,y:e.clientY,t:Date.now()}});
+pill.addEventListener('pointerup',function(e){
+  var d=tapDn;tapDn=null;if(!d)return;var now=Date.now();
+  if(now-d.t>350||Math.abs(e.clientX-d.x)>14||Math.abs(e.clientY-d.y)>14){lastTap=null;return}
+  if(lastTap&&now-lastTap.t<450&&Math.abs(e.clientX-lastTap.x)<48&&Math.abs(e.clientY-lastTap.y)<48){lastTap=null;try{DockApp.multitask()}catch(x){}return}
+  lastTap={x:e.clientX,y:e.clientY,t:now};
+});
 document.addEventListener('click',function(e){
   var d=e.target.closest('[data-id]'); if(d){DockApp.open(d.dataset.id);return}
   if(e.target.closest('#ai')){DockApp.ai();return}
