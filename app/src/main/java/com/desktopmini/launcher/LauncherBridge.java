@@ -911,6 +911,8 @@ public class LauncherBridge {
                 if (aud) proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.Audio.Media.DURATION};
                 else if (vid) proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.Video.Media.DURATION};
                 else proj = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED};
+                /* thêm cột đường dẫn ở cuối để kéo tệp ra màn hình desktop được (mở/đổi tên theo đường dẫn) */
+                proj = java.util.Arrays.copyOf(proj, proj.length + 1); proj[proj.length - 1] = MediaStore.MediaColumns.DATA;
                 Cursor c = act.getContentResolver().query(act.mediaUri(kind), proj, null, null, order);
                 if (c == null) { res.put("error", "Không đọc được thư viện"); }
                 else {
@@ -920,7 +922,8 @@ public class LauncherBridge {
                         o.put("id", c.getLong(0));
                         String nm = c.getString(1); o.put("n", nm == null ? "" : nm);
                         o.put("s", c.getLong(2)); o.put("m", c.getLong(3) * 1000L);
-                        if (c.getColumnCount() > 4) o.put("d", c.getLong(4));
+                        if (c.getColumnCount() > 5) o.put("d", c.getLong(4));
+                        try { String pth = c.getString(c.getColumnCount() - 1); if (pth != null) o.put("p", pth); } catch (Exception ex) { }
                         arr.put(o);
                     }
                     c.close();

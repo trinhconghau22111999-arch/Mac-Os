@@ -151,6 +151,11 @@ ul,ol{margin:0;padding:0;list-style:none}
 .desk::-webkit-scrollbar{display:none}
 .da{width:76px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border-radius:12px;color:#fff;text-align:center;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .da .ic{width:52px;height:52px}
+.da .fic{--u:11px;margin-top:2px}
+.dthumb{position:relative;display:block;width:52px;height:52px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.22);box-shadow:0 0 0 1px rgba(255,255,255,.35) inset,0 2px 8px rgba(0,0,0,.3)}
+.dthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.dthumb[data-k=vid]::after{content:'▶';position:absolute;right:4px;bottom:3px;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+#desk.dropdesk{outline:2px dashed rgba(255,255,255,.65);outline-offset:-8px}
 .da .dl{max-width:100%;padding:1px 4px;border-radius:5px;font-size:11.5px;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.6);word-break:break-word}
 .da:hover,.da:focus-visible{background:rgba(255,255,255,.16);outline:0}
 /* Lưới ô cố định: mọi icon cùng cỡ ô nên cột và hàng luôn thẳng; tên dài tối đa 2 dòng */
@@ -1396,6 +1401,12 @@ let DESKAPPS=jget('dm-deskapps',null);
 if(Array.isArray(DESKAPPS)&&!lsGet('dm-trashdesk1')){lsSet('dm-trashdesk1','1');if(DESKAPPS.indexOf('trash')<0){DESKAPPS=DESKAPPS.concat('trash');jset('dm-deskapps',DESKAPPS)}}
 const deskApps=()=>(Array.isArray(DESKAPPS)?DESKAPPS:LP_APPS).filter(id=>APPS[id]);
 const saveDeskApps=l=>{DESKAPPS=l;jset('dm-deskapps',l)};
+/* Tệp / ảnh / video / thư mục kéo từ app Tệp ra màn hình desktop: mỗi mục là một lối tắt (không sao chép tệp), đổi tên nhãn được */
+let DESKFILES=jget('dm-deskfiles',[]); if(!Array.isArray(DESKFILES))DESKFILES=[];
+const saveDeskFiles=()=>jset('dm-deskfiles',DESKFILES);
+const deskFile=id=>DESKFILES.find(f=>f.id===id);
+const isDeskFile=id=>!!deskFile(id);
+const deskAll=()=>deskApps().concat(DESKFILES.map(f=>f.id));
 /* Vị trí ô (cột,hàng) của từng icon desktop: thả vào ô nào thì nằm yên ở ô đó, không dồn các icon khác */
 let DESKPOS=jget('dm-deskpos',null); if(!DESKPOS||typeof DESKPOS!=='object'||Array.isArray(DESKPOS))DESKPOS={};
 const saveDeskPos=()=>jset('dm-deskpos',DESKPOS);
@@ -1413,7 +1424,7 @@ const deskRows=()=>{
   return n;
 };
 function deskLayout(rows){
-  const ids=deskApps(), pos={}, used=new Set(), key=(c,r)=>c+','+r;
+  const ids=deskAll(), pos={}, used=new Set(), key=(c,r)=>c+','+r;
   ids.forEach(id=>{const p=DESKPOS[id]; if(Array.isArray(p)&&p[0]>=0&&p[1]>=0&&p[1]<rows&&!used.has(key(p[0],p[1]))){pos[id]=[p[0],p[1]];used.add(key(p[0],p[1]))}});
   let c=0,r=0;
   ids.forEach(id=>{
@@ -1529,6 +1540,7 @@ function addToDesk(id){
   renderDesk();
 }
 function removeFromDesk(id,noTrash){
+  if(isDeskFile(id)){DESKFILES=DESKFILES.filter(f=>f.id!==id); saveDeskFiles(); delete DESKPOS[id]; saveDeskPos(); try{DSEL.delete(id)}catch(e){} renderDesk(); return}
   if(!noTrash&&id!=='trash'&&APPS[id]&&deskApps().indexOf(id)>=0){ FS.trash.push({n:APPS[id].name,d:tstamp(),s:'Biểu tượng',x:'app',appId:id,td:Date.now()}); saveFS() }
   saveDeskApps(deskApps().filter(x=>x!==id)); delete DESKPOS[id]; saveDeskPos(); renderDesk();
 }
@@ -2422,18 +2434,18 @@ function buildRealFiles(b,w,arg,mode){
       };
       addChunk();
       list.onscroll=()=>{if(shown<items.length&&list.scrollTop+list.clientHeight>list.scrollHeight-700)addChunk()};
-      let lp=null, lpd=false, lx=0, ly=0;
+      /* Ảnh / video / nhạc: nhấn giữ (chuột: kéo ngay) rồi kéo ra màn hình desktop để tạo lối tắt; nhấn giữ rồi thả tại chỗ = chọn */
       wrap.addEventListener('pointerdown',e=>{
-        const x=e.target.closest('[data-i]'); if(!x)return;
-        lpd=false; lx=e.clientX; ly=e.clientY; clearTimeout(lp);
-        lp=setTimeout(()=>{lp=null;lpd=true;try{if(navigator.vibrate)navigator.vibrate(15)}catch(_){}toggleSel(x.dataset.full)},400);
+        const x=e.target.closest('[data-i]'); if(!x||e.button!==0||D)return;
+        const f=items[+x.dataset.i]; if(!f)return;
+        const nm=f.n||'(không tên)', touch=e.pointerType!=='mouse';
+        D={x:x,full:x.dataset.full,nm:nm,isDir:false,m:true,entry:{n:nm,k:kind,mid:f.id,p:f.p||''},menu:null,sx:e.clientX,sy:e.clientY,cx:e.clientX,cy:e.clientY,active:false,touch:touch,hot:null,g:null,t:null,sc:null};
+        if(touch)D.t=setTimeout(dBegin,350);
+        window.addEventListener('pointermove',dMove); window.addEventListener('pointerup',dUp); window.addEventListener('pointercancel',dEnd);
       });
-      wrap.addEventListener('pointermove',e=>{if(lp&&Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>10){clearTimeout(lp);lp=null}});
-      ['pointerup','pointercancel','pointerleave'].forEach(t=>wrap.addEventListener(t,()=>{clearTimeout(lp);lp=null}));
       wrap.addEventListener('contextmenu',e=>e.preventDefault());
       wrap.addEventListener('click',e=>{
         const x=e.target.closest('[data-i]'); if(!x)return;
-        if(lpd){lpd=false;return}
         if(SEL.size){toggleSel(x.dataset.full);return}
         const f=items[+x.dataset.i];
         if(kind==='img'){openApp('photos',{pid:f.id,name:f.n});return}
@@ -2558,7 +2570,7 @@ function buildRealFiles(b,w,arg,mode){
     window.removeEventListener('pointermove',dMove); window.removeEventListener('pointerup',dUp); window.removeEventListener('pointercancel',dEnd);
     if(D.g)D.g.remove();
     if(D.hot)D.hot.classList.remove('dzh');
-    D.x.classList.remove('dgs');
+    D.x.classList.remove('dgs'); desk.classList.remove('dropdesk');
     D=null;
   }
   function dBegin(){
@@ -2582,8 +2594,11 @@ function buildRealFiles(b,w,arg,mode){
       return;
     }
     ghostMove();
-    const z=dzAt(D.cx,D.cy);
-    setHot(z&&okDest(D,z.__dz)?z:null);
+    /* con trỏ đang ở trên màn hình desktop (không bị cửa sổ che) -> thả để tạo lối tắt */
+    const ue=document.elementFromPoint(D.cx,D.cy), onD=!!(ue&&ue.closest&&ue.closest('#desk'));
+    if(D.desk!==onD){D.desk=onD; desk.classList.toggle('dropdesk',onD)}
+    const z=onD?null:dzAt(D.cx,D.cy);
+    setHot(z&&!D.m&&okDest(D,z.__dz)?z:null);
   }
   function dUp(e){
     if(!D)return;
@@ -2593,6 +2608,8 @@ function buildRealFiles(b,w,arg,mode){
     if(!was)return;
     noClick=Date.now()+500;
     if(Math.hypot(d.cx-d.sx,d.cy-d.sy)<10){toggleSel(d.full);return}
+    if(d.desk&&d.entry){addFileToDesk(d.entry,d.cx,d.cy);return}
+    if(d.m)return;
     if(z&&okDest(d,z.__dz)){
       const r=A.moveFile(d.full,z.__dz);
       if(r)notify({app:'Tệp',title:'Không chuyển được',body:d.nm+': '+r,icon:'files'});
@@ -2603,7 +2620,7 @@ function buildRealFiles(b,w,arg,mode){
     x.addEventListener('pointerdown',e=>{
       if(e.button!==0||D||!A.moveFile)return;
       const touch=e.pointerType!=='mouse';
-      D={x:x,full:full,nm:nm,isDir:!!isDir,menu:menu,sx:e.clientX,sy:e.clientY,cx:e.clientX,cy:e.clientY,active:false,touch:touch,hot:null,g:null,t:null,sc:null};
+      D={x:x,full:full,nm:nm,isDir:!!isDir,entry:{n:nm,k:isDir?'dir':'file',p:full},menu:menu,sx:e.clientX,sy:e.clientY,cx:e.clientX,cy:e.clientY,active:false,touch:touch,hot:null,g:null,t:null,sc:null};
       if(touch)D.t=setTimeout(dBegin,350);
       window.addEventListener('pointermove',dMove); window.addEventListener('pointerup',dUp); window.addEventListener('pointercancel',dEnd);
     });
@@ -3706,7 +3723,7 @@ document.addEventListener('keydown',e=>{
   if(fw&&!fw._selectAll)return;
   e.preventDefault();
   if(fw){fw._selectAll();return}
-  DSEL=new Set(deskApps()); deskSelApply();
+  DSEL=new Set(deskAll()); deskSelApply();
 },true);
 document.addEventListener('keyup',e=>{
   if(e.key==='Alt'&&swOn){
@@ -3878,10 +3895,78 @@ function greet(){
 /* ---------- Màn hình nền (biểu tượng) ---------- */
 let dsel=-2, dren=-1;
 const diskIcon='<span class="fic disk"><svg viewBox="0 0 48 40"><rect x="3" y="8" width="42" height="26" rx="6" fill="#aab0bd"/><rect x="3" y="8" width="42" height="14" rx="6" fill="#d5d9e2"/><circle cx="38" cy="28" r="2.2" fill="#6b7280"/></svg></span>';
+
+/* ---- Lối tắt tệp trên màn hình desktop ---- */
+const DTH={};
+function deskFileIcon(f){
+  if(f.k==='img'||f.k==='vid')return '<span class="dthumb" data-k="'+f.k+'" data-mid="'+f.mid+'"></span>';
+  if(f.k==='dir')return fileIcon('folder');
+  return fileIcon(f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):(f.k==='aud'?'âm':'tệp'));
+}
+function deskFileHTML(id,lay){
+  const f=deskFile(id), p=lay[id]||[0,0];
+  return '<div class="da dfile" data-app="'+id+'" style="grid-column:'+(p[0]+1)+';grid-row:'+(p[1]+1)+'" tabindex="0" role="button" aria-label="'+esc(f.n)+'">'+deskFileIcon(f)+'<span class="dl">'+esc(f.n)+'</span></div>';
+}
+function deskThumbs(){
+  const A=window.AndroidLauncher; if(!A||!A.getMediaThumb)return;
+  $$('.dthumb',desk).forEach(el=>{
+    const key=el.dataset.k+el.dataset.mid; let d=DTH[key];
+    if(!d){try{d=A.getMediaThumb(el.dataset.k,+el.dataset.mid,200)}catch(e){d=''} if(d)DTH[key]=d}
+    if(d)el.innerHTML='<img alt="" src="'+d+'">';
+  });
+}
+function openDeskFile(f){
+  const A=window.AndroidLauncher;
+  try{
+    if(f.k==='dir'&&f.p){openApp('files',{path:f.p});return}
+    if(f.k==='img'&&f.mid){openApp('photos',{pid:f.mid,name:f.n});return}
+    if((f.k==='vid'||f.k==='aud')&&f.mid&&A&&A.openMedia&&A.openMedia(f.k,f.mid))return;
+    if(f.p&&A){
+      const m=A.openFileMsg?A.openFileMsg(f.p):(A.openFile(f.p)?'':'Không mở được tệp');
+      if(!m)return;
+      notify({app:'Tệp',title:'Không mở được tệp',body:f.n+': '+m,icon:'files'}); return;
+    }
+  }catch(e){}
+  notify({app:'Tệp',title:'Không mở được tệp',body:f.n+' (tệp có thể đã bị xóa hoặc di chuyển)',icon:'files'});
+}
+const openDeskItem=id=>{const f=deskFile(id); if(f)openDeskFile(f); else openApp(id)};
+/* Đổi tên nhãn của lối tắt trên desktop (không đổi tên tệp thật; muốn đổi tên tệp thật dùng menu của app Tệp) */
+function deskRename(id){
+  const f=deskFile(id); if(!f)return;
+  const o=document.createElement('div'); o.className='bpk';
+  o.innerHTML='<div class="bps"><b>Đổi tên</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn rc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
+  stage.appendChild(o);
+  const inp=$('input',o); inp.value=f.n; inp.focus();
+  const dot=f.n.lastIndexOf('.'); try{inp.setSelectionRange(0,dot>0?dot:f.n.length)}catch(e){}
+  inp.addEventListener('keydown',ev=>ev.stopPropagation());
+  $('.rc',o).addEventListener('click',()=>o.remove());
+  o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
+  $('form',o).addEventListener('submit',e=>{
+    e.preventDefault(); const v=inp.value.trim().slice(0,120);
+    o.remove(); if(!v||v===f.n)return;
+    f.n=v; saveDeskFiles(); renderDesk();
+  });
+}
+/* Thả tệp từ app Tệp lên màn hình desktop: tạo lối tắt ở ô dưới con trỏ */
+function addFileToDesk(e,cx,cy){
+  if(DESKFILES.some(f=>(e.mid&&f.k===e.k&&f.mid===e.mid)||(e.p&&f.p===e.p))){notify({app:'Tệp',title:'Đã có trên màn hình desktop',body:e.n,icon:'files'});return}
+  const id='F'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  DESKFILES.push({id:id,n:e.n,k:e.k,mid:e.mid||0,p:e.p||''}); saveDeskFiles();
+  try{
+    const cs=getComputedStyle(desk), r=desk.getBoundingClientRect(), rows=deskRows();
+    const cw=(parseFloat(cs.gridAutoColumns)||84)+(parseFloat(cs.columnGap)||0), ch=98+(parseFloat(cs.rowGap)||0);
+    let col=Math.floor((cx-(r.left+parseFloat(cs.paddingLeft)-desk.scrollLeft))/cw), row=Math.floor((cy-(r.top+parseFloat(cs.paddingTop)))/ch);
+    col=Math.max(0,col); row=Math.max(0,Math.min(rows-1,row));
+    const lay=deskLayout(rows), taken=Object.keys(lay).some(k=>k!==id&&lay[k][0]===col&&lay[k][1]===row);
+    DESKPOS[id]=taken?lay[id]:[col,row]; saveDeskPos();
+  }catch(x){}
+  renderDesk();
+  notify({app:'Tệp',title:'Đã thêm lên màn hình desktop',body:e.n,icon:'files'});
+}
 function renderDesk(){
   const lay=deskLayout(deskRows());
-  desk.innerHTML=deskApps().map(id=>'<div class="da" data-app="'+id+'" style="grid-column:'+(lay[id][0]+1)+';grid-row:'+(lay[id][1]+1)+'"'+(id==='trash'?' data-drop="trash"':'')+' tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
-  deskSelApply();
+  desk.innerHTML=deskAll().map(id=>deskFile(id)?deskFileHTML(id,lay):'<div class="da" data-app="'+id+'" style="grid-column:'+(lay[id][0]+1)+';grid-row:'+(lay[id][1]+1)+'"'+(id==='trash'?' data-drop="trash"':'')+' tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
+  deskSelApply(); deskThumbs();
   return;
   let h='<div class="di" data-i="-1" aria-selected="'+(dsel===-1)+'" tabindex="0">'+diskIcon+'<span class="dl">Ổ đĩa</span></div>';
   FS.desk.forEach((it,i)=>{
@@ -4019,14 +4104,15 @@ desk.addEventListener('click',e=>{
   const a=e.target.closest('.da'); if(!a)return;
   if(a._lp){a._lp=false;return}
   if(Date.now()-deskDragEnd<400)return;
-  openApp(a.dataset.app);
+  openDeskItem(a.dataset.app);
 });
 desk.addEventListener('keydown',e=>{
   const a=e.target.closest&&e.target.closest('.da'); if(!a)return;
-  if(e.key==='Enter'||e.key===' '){e.preventDefault();openApp(a.dataset.app)}
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();openDeskItem(a.dataset.app)}
 });
 bindHold(desk,'.da',(el,cx,cy,r)=>{
   const id=el.dataset.app;
+  if(isDeskFile(id)){popAt(cx,cy,[{t:'Mở',fn:()=>openDeskItem(id)},{t:'Đổi tên…',fn:()=>deskRename(id)},'-',{t:'Xóa khỏi màn hình desktop',fn:()=>removeFromDesk(id)}],r);return}
   popAt(cx,cy,[{t:'Mở',fn:()=>openApp(id)},'-',{t:'Xóa khỏi màn hình desktop',fn:()=>removeFromDesk(id)}],r);
 });
 desk.addEventListener('pointerdown',e=>{
