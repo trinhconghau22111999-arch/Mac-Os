@@ -23,6 +23,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.util.DisplayMetrics;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityWindowInfo;
@@ -64,8 +65,11 @@ public class LockService extends AccessibilityService {
     }
     public static boolean isBarLock(Context c) { return c.getSharedPreferences(PK, 0).getBoolean("barlock", true); }
 
-    /** Giữ lại để MainActivity gọi (không còn dùng dữ liệu Dock). */
-    public static void saveData(Context c, String json) { }
+    /** Giao diện Desktop Mini đẩy danh sách icon Dock (JSON: id, name, bg, g) sang để vẽ ở Dock nổi. */
+    public static void saveData(Context c, String json) {
+        c.getSharedPreferences(PK, 0).edit().putString("data", json == null || json.length() == 0 ? "[]" : json).apply();
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.pushDockData(); } });
+    }
     public static void saveEnabled(Context c, boolean on) {
         c.getSharedPreferences(PK, 0).edit().putBoolean("on", on).apply();
         final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.apply(); } });
@@ -89,7 +93,7 @@ public class LockService extends AccessibilityService {
     @Override public boolean onUnbind(Intent i) { inst = null; tearDown(); return super.onUnbind(i); }
     @Override public void onDestroy() { inst = null; tearDown(); super.onDestroy(); }
     @Override public void onConfigurationChanged(Configuration c) {
-        super.onConfigurationChanged(c); removeTopBar(); updateTopBar();
+        super.onConfigurationChanged(c); removeTopBar(); updateTopBar(); hideDockBar(); updateDockBar();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
@@ -144,13 +148,15 @@ public class LockService extends AccessibilityService {
 
     private void apply() {
         enabled = isEnabled(this);
-        setImmersivePolicy(false); /* không còn thanh Desktop ở đáy: trả lại thanh điều hướng của hệ thống */
+        setImmersivePolicy(false); /* thanh điều hướng của hệ thống luôn hiện; Dock nổi nằm ngay phía trên nó */
+        updateDockBar();
     }
     private void setLauncherFront(boolean b) {
         if (launcherFront == b) return;
         launcherFront = b;
         dismissPop();
         updateTopBar();
+        updateDockBar();
     }
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
     private Point realSize() {
@@ -826,6 +832,101 @@ public class LockService extends AccessibilityService {
     }
 
     private void tearDown() {
-        removeTopBar(); setImmersivePolicy(false);
+        removeTopBar(); hideDockBar(); h.removeCallbacks(dockTick);
+        if (dockWeb != null) { try { dockWeb.destroy(); } catch (Exception e) { } }
+        dockWeb = null; dockView = null; dockReady = false;
+        setImmersivePolicy(false);
+    }
+
+    /* ================= Dock nổi trên các app khác =================
+     * Một thanh sát cạnh dưới (ngay trên thanh điều hướng của hệ thống), giống thanh menu trên cùng:
+     * nút AI (trái) – icon Dock (giữa) – nút chụp màn hình (phải). Chỉ hiện khi đang ở app ngoài;
+     * tự ẩn khi app chạy toàn màn hình, khi bàn phím mở hoặc lúc đang chụp. Icon vẽ bằng một WebView nhỏ (assets/dock.html). */
+    private android.widget.FrameLayout dockView;
+    private android.webkit.WebView dockWeb;
+    private boolean dockReady, dockShown;
+    private long dockQuietUntil = 0;
+    private final Runnable dockTick = new Runnable() { public void run() {
+        h.removeCallbacks(dockTick);
+        if (!enabled || launcherFront || wm == null) return;
+        if (android.os.SystemClock.uptimeMillis() >= dockQuietUntil) {
+            boolean hide = videoFull || externalFullscreenTop() || imeShown();
+            if (hide && dockShown) hideDockBar(); else if (!hide && !dockShown) showDockBar();
+        }
+        h.postDelayed(dockTick, 700);
+    } };
+    private boolean imeShown() {
+        try {
+            List<AccessibilityWindowInfo> ws = getWindows();
+            if (ws != null) for (AccessibilityWindowInfo w : ws) if (w.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) return true;
+        } catch (Throwable t) { }
+        return false;
+    }
+    private void updateDockBar() {
+        h.removeCallbacks(dockTick);
+        if (enabled && !launcherFront && wm != null) h.post(dockTick); else hideDockBar();
+    }
+    /** Chiều cao thanh 3 phím điều hướng (0 nếu dùng cử chỉ), để Dock nằm ngay phía trên nó. */
+    private int navInset() {
+        try {
+            Point real = realSize(), size = new Point();
+            wm.getDefaultDisplay().getSize(size);
+            return Math.max(0, real.y - size.y);
+        } catch (Exception e) { return 0; }
+    }
+    private class DockJs {
+        @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { openInLauncher(id); } }); }
+        @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
+        @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
+    }
+    /** Chụp màn hình app đang dùng (hệ thống tự lưu vào Ảnh chụp màn hình); ẩn Dock một lúc để không lọt vào ảnh. */
+    private void dockShot() {
+        if (Build.VERSION.SDK_INT < 28) return;
+        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 2000;
+        hideDockBar();
+        h.postDelayed(new Runnable() { public void run() {
+            try { performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT); } catch (Throwable t) { }
+        } }, 350);
+    }
+    private void showDockBar() {
+        if (wm == null || dockShown) return;
+        if (dockView == null) {
+            dockView = new android.widget.FrameLayout(this);
+            dockWeb = new android.webkit.WebView(new android.view.ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault));
+            dockWeb.getSettings().setJavaScriptEnabled(true);
+            dockWeb.setBackgroundColor(0xFF111113);
+            dockWeb.setVerticalScrollBarEnabled(false); dockWeb.setHorizontalScrollBarEnabled(false);
+            dockWeb.addJavascriptInterface(new DockJs(), "DockApp");
+            dockWeb.setWebViewClient(new android.webkit.WebViewClient() {
+                @Override public void onPageFinished(android.webkit.WebView v, String url) { dockReady = true; pushDockData(); }
+            });
+            dockView.addView(dockWeb, new android.widget.FrameLayout.LayoutParams(-1, -1));
+            dockReady = false;
+            dockWeb.loadUrl("file:///android_asset/dock.html");
+        } else pushDockData();
+        Point real = realSize();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(68),
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.BOTTOM | Gravity.LEFT; lp.x = 0; lp.y = navInset();
+        try { wm.addView(dockView, lp); dockShown = true; } catch (Exception e) { dockShown = false; }
+    }
+    private void hideDockBar() {
+        if (dockView != null && dockShown) { try { wm.removeView(dockView); } catch (Exception e) { } }
+        dockShown = false;
+    }
+    private void pushDockData() {
+        if (dockWeb == null || !dockReady) return;
+        String d = getSharedPreferences(PK, 0).getString("data", "[]");
+        dockWeb.evaluateJavascript("window.setDock&&setDock(" + d + ");window.setShot&&setShot(" + (Build.VERSION.SDK_INT >= 28) + ")", null);
+    }
+    @Override public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        /* thiếu RAM: giải phóng WebView của Dock khi nó đang ẩn (lần hiện sau tự tạo lại) */
+        if ((level >= TRIM_MEMORY_BACKGROUND || level >= TRIM_MEMORY_RUNNING_CRITICAL) && !dockShown && dockWeb != null) {
+            try { dockWeb.destroy(); } catch (Exception e) { }
+            dockWeb = null; dockView = null; dockReady = false;
+        }
     }
 }

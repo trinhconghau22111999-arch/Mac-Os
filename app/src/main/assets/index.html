@@ -4489,7 +4489,7 @@ if(window.AndroidLauncher){(function(){
   window.nativeMenuClick=function(id){
     try{
       if(id==='mc'){enterMC();return} if(id==='lp'){openLP();return}
-      const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',splitb:'#splitb',ramb:'#ramb',batt:'#batt',wifi:'#wifi',bt:'#bt',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
+      const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',splitb:'#splitb',ramb:'#ramb',batt:'#batt',wifi:'#wifi',bt:'#bt',aib:'#aib',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
       const el=q&&document.querySelector(q); if(el)el.click();
     }catch(e){}
   };
