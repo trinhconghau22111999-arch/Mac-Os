@@ -832,7 +832,7 @@ public class LockService extends AccessibilityService {
     }
 
     private void tearDown() {
-        removeTopBar(); hideDockBar(); h.removeCallbacks(dockTick);
+        removeTopBar(); hideDockBar(); hideHot(); h.removeCallbacks(dockTick);
         if (dockWeb != null) { try { dockWeb.destroy(); } catch (Exception e) { } }
         dockWeb = null; dockView = null; dockReady = false; dockLp = null;
         setImmersivePolicy(false);
@@ -850,6 +850,21 @@ public class LockService extends AccessibilityService {
     private WindowManager.LayoutParams dockLp;
     private static final int DOCK_GAP_DP = 0;
     private static volatile int dockBase = 46;
+    private static volatile String dockIcs = "round";
+    private static volatile boolean dockMag = true, dockAutoHide = false;
+    private long dockPeekUntil = 0;
+    private boolean dockGrown = false;
+    private android.view.View hotView;
+    /** Cài đặt Dock trong giao diện (kiểu icon, phóng đại, tự ẩn) áp thẳng lên Dock nổi. */
+    public static void setDockPrefs(Context c, String ics, boolean mag, boolean autoHide) {
+        dockIcs = ics == null || ics.length() == 0 ? "round" : ics; dockMag = mag; dockAutoHide = autoHide;
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.pushDockPrefs(); s.updateDockBar(); } });
+    }
+    private void pushDockPrefs() {
+        if (dockWeb != null && dockReady)
+            dockWeb.evaluateJavascript("window.setIcs&&setIcs('" + dockIcs.replaceAll("[^a-z]", "") + "');window.setMag&&setMag(" + dockMag + ")", null);
+    }
+    private void peekDock() { dockPeekUntil = android.os.SystemClock.uptimeMillis() + 3500; }
     private int dockHDp() { return dockBase + 18; }
     public static boolean isRunning() { return inst != null; }
     public static void setDockBase(Context c, int base) {
@@ -858,7 +873,7 @@ public class LockService extends AccessibilityService {
     }
     private void applyDockBase() {
         if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ")", null);
-        if (dockShown && dockLp != null && dockView != null) { try { dockLp.height = dp(dockHDp()); wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
+        if (dockShown && dockLp != null && dockView != null) { try { dockLp.height = dp(dockHDp() + (dockGrown ? Math.round(dockBase * 0.7f) + 8 : 0)); wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
     }
     /** Thu cửa sổ Dock vừa khít viên thuốc, căn giữa; phần còn lại của màn hình chạm xuyên xuống app bên dưới. */
     private void resizeDock() {
@@ -874,11 +889,37 @@ public class LockService extends AccessibilityService {
         h.removeCallbacks(dockTick);
         if (!enabled || wm == null) return;
         if (android.os.SystemClock.uptimeMillis() >= dockQuietUntil) {
-            boolean hide = imeShown() || barHide; /* Dock luôn nổi, kể cả khi app toàn màn hình; chỉ nhường chỗ cho bàn phím */
+            boolean peeking = android.os.SystemClock.uptimeMillis() < dockPeekUntil;
+            boolean hide = imeShown() || barHide || (dockAutoHide && !peeking); /* Dock luôn nổi; chỉ nhường chỗ cho bàn phím/khóa màn hình, hoặc tự ẩn nếu bật trong Cài đặt */
             if (hide && dockShown) hideDockBar(); else if (!hide && !dockShown) showDockBar();
+            if (dockAutoHide && !dockShown && !(imeShown() || barHide)) showHot(); else hideHot();
         }
         h.postDelayed(dockTick, 700);
     } };
+    /** Nới cao cửa sổ Dock lúc phóng đại icon (nền thanh vẫn nằm sát đáy, phần nới ra trong suốt). */
+    private void growDock(boolean on) {
+        dockGrown = on && dockMag; applyDockBase();
+    }
+    private void showHot() {
+        if (hotView != null || wm == null) return;
+        hotView = new android.view.View(this);
+        android.view.View.OnTouchListener tl = new android.view.View.OnTouchListener() { public boolean onTouch(android.view.View v, MotionEvent e) {
+            peekDock(); h.post(dockTick); return false; } };
+        hotView.setOnTouchListener(tl);
+        hotView.setOnHoverListener(new android.view.View.OnHoverListener() { public boolean onHover(android.view.View v, MotionEvent e) {
+            peekDock(); h.post(dockTick); return false; } });
+        Point real = realSize();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(10),
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.BOTTOM | Gravity.LEFT; lp.x = 0; lp.y = navInset();
+        try { wm.addView(hotView, lp); } catch (Exception e) { hotView = null; }
+    }
+    private void hideHot() {
+        if (hotView != null) { try { wm.removeView(hotView); } catch (Exception e) { } }
+        hotView = null;
+    }
     private boolean imeShown() {
         try {
             List<AccessibilityWindowInfo> ws = getWindows();
@@ -888,7 +929,7 @@ public class LockService extends AccessibilityService {
     }
     private void updateDockBar() {
         h.removeCallbacks(dockTick);
-        if (enabled && wm != null) h.post(dockTick); else hideDockBar();
+        if (enabled && wm != null) h.post(dockTick); else { hideDockBar(); hideHot(); }
     }
     /** Chiều cao thanh 3 phím điều hướng (0 nếu dùng cử chỉ), để Dock nằm ngay phía trên nó. */
     private int navInset() {
@@ -902,6 +943,8 @@ public class LockService extends AccessibilityService {
         @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { openInLauncher(id); } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
+        @JavascriptInterface public void touch() { peekDock(); }
+        @JavascriptInterface public void grow(final boolean on) { h.post(new Runnable() { public void run() { growDock(on); } }); }
         @JavascriptInterface public void size(final int wDp) { h.post(new Runnable() { public void run() { /* thanh dài full chiều ngang: không cần thu cửa sổ */ } }); }
     }
     /** Chụp màn hình app đang dùng (hệ thống tự lưu vào Ảnh chụp màn hình); ẩn Dock một lúc để không lọt vào ảnh. */
@@ -915,11 +958,13 @@ public class LockService extends AccessibilityService {
     }
     private void showDockBar() {
         if (wm == null || dockShown) return;
+        dockGrown = false;
         if (dockView == null) {
             dockView = new android.widget.FrameLayout(this);
             dockWeb = new android.webkit.WebView(new android.view.ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault));
             dockWeb.getSettings().setJavaScriptEnabled(true);
-            dockWeb.setBackgroundColor(0xFF111113);
+            dockWeb.setBackgroundColor(0x00000000); /* nền thanh do dock.html vẽ; phần nới lúc phóng đại phải trong suốt */
+            dockWeb.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null);
             
             dockWeb.setVerticalScrollBarEnabled(false); dockWeb.setHorizontalScrollBarEnabled(false);
             dockWeb.addJavascriptInterface(new DockJs(), "DockApp");
@@ -948,6 +993,7 @@ public class LockService extends AccessibilityService {
         /* mở rộng cửa sổ hết cỡ trước để viên thuốc đo đúng bề rộng tự nhiên, rồi JS gọi size() để thu lại */
         if (dockShown && dockLp != null && dockView != null) { try { dockLp.width = realSize().x; wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
         String d = getSharedPreferences(PK, 0).getString("data", "[]");
+        pushDockPrefs();
         dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setDock&&setDock(" + d + ");window.setShot&&setShot(" + (Build.VERSION.SDK_INT >= 28) + ")", null);
     }
     @Override public void onTrimMemory(int level) {

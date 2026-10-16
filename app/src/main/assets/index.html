@@ -4302,7 +4302,7 @@ const DSI={
   st:['Cài đặt','<circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>']
 };
 const NA=()=>window.AndroidLauncher;
-function setIcs(v){lsSet('dm-ics',v);stage.dataset.ics=v}
+function setIcs(v){lsSet('dm-ics',v);stage.dataset.ics=v;try{window.__syncDock&&window.__syncDock()}catch(e){}}
 stage.dataset.ics=lsGet('dm-ics')||'round';
 function applySysWall(){
   const n=NA(); if(!n||!n.getWallpaper)return;
@@ -4517,6 +4517,7 @@ if(window.AndroidLauncher){(function(){
   let _dd='';
   function markND(){try{const A=window.AndroidLauncher;document.body.classList.toggle('nd',!!(A&&A.dockOverlayLive&&A.dockOverlayLive()&&pref('dockFloat',true)))}catch(e){}}
   setInterval(markND,2500);
+  window.__syncDock=function(){try{syncDockFloat()}catch(e){}};
   function syncDockFloat(){
     const A=window.AndroidLauncher; if(!A||!A.setDockData)return;
     try{
@@ -4524,6 +4525,7 @@ if(window.AndroidLauncher){(function(){
       if(d!==_dd){_dd=d;A.setDockData(d)}
       A.setDockOverlay(!!pref('dockFloat',true));
       markND();
+      if(A.setDockPrefs)A.setDockPrefs(lsGet('dm-ics')||'round',!!pref('magnify',true),!!pref('hideDock',false));
       if(A.setBarLock)A.setBarLock(!!pref('barLock',true));
       if(A.setMenuBar)A.setMenuBar(!!pref('menuFloat',true));
     }catch(e){}
