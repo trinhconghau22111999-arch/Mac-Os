@@ -4023,7 +4023,7 @@ const st0=lsGet('dm-theme'); if(st0==='light'||st0==='dark')root.setAttribute('d
 applyPrefs(); renderDesk(); battUpdate(); tick(); dmEvery(tick,15000); syncCC();
 bus.emit('fs');
 setBadge('mail',MAIL.filter(m=>m.box==='in'&&!m.read).length);
-if(hasLock()||pref('lockOnStart',false)){lockUI()}else{greet()}
+if(hasLock()){lockUI()}else{greet()}
 /* ---------- Cầu nối Android: chỉ chạy khi mở trong app launcher ---------- */
 if(window.AndroidLauncher){(function(){
   const A=window.AndroidLauncher;
