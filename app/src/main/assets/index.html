@@ -3855,7 +3855,7 @@ function killAll(){Object.keys(wins).forEach(id=>{const w=wins[id];if(w._api&&w.
 function showOff(mode){
   lock.hidden=true; off.hidden=false; off.dataset.mode=mode;
   off.innerHTML=mode==='sleep'?'<div class="offs">Nhấn hoặc chạm để đánh thức</div>':'<button class="pwr" aria-label="Bật máy"><svg viewBox="0 0 16 16"><path d="M8 1.5v6M4.3 3.8a5.5 5.5 0 1 0 7.4 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button><div class="offs">Nhấn để bật máy</div>';
-  off.onclick=()=>{if(mode==='sleep'){off.hidden=true;lockNow()}else boot()};
+  off.onclick=()=>{if(mode==='sleep'){off.hidden=true;if(hasLock())lockNow();else greet()}else boot()};
 }
 function sleepNow(){closeAllPopups();showOff('sleep')}
 function shutNow(){closeAllPopups();musHalt();killAll();showOff('off')}
@@ -3864,7 +3864,7 @@ function boot(){
   lock.hidden=true; off.hidden=false; off.onclick=null; off.dataset.mode='boot';
   off.innerHTML='<div class="blogo"><svg viewBox="0 0 16 16"><path d="M8 .8l1.7 4.6 4.6 1.7-4.6 1.7L8 13.4 6.3 8.8 1.7 7.1l4.6-1.7z"/></svg></div><div class="bbar2"><i></i></div>';
   const bar=$('.bbar2 i',off); requestAnimationFrame(()=>requestAnimationFrame(()=>{bar.style.width='100%'}));
-  setTimeout(()=>{off.hidden=true;lockNow()},reduce?150:2500);
+  setTimeout(()=>{off.hidden=true;if(hasLock())lockNow();else greet()},reduce?150:2500);
 }
 let greeted=false;
 function greet(){
