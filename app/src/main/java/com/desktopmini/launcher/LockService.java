@@ -920,7 +920,33 @@ public class LockService extends AccessibilityService {
     /** Đặt cửa sổ theo toạ độ tuyệt đối từ mép trên của màn hình THẬT (như thanh Desktop cũ) nên đè được lên thanh điều hướng. */
     private void placeDock(WindowManager.LayoutParams lp) {
         Point real = realSize(); int hh = dockBarPx() + dockGrowPx();
-        lp.width = real.x; lp.height = hh; lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = real.y - hh;
+        lp.width = real.x; lp.height = hh; lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = real.y - hh + dockYAdj;
+    }
+    /* Hệ thống có thể tính toạ độ y từ mép trên VÙNG NỘI DUNG (dưới thanh trạng thái) chứ không phải mép trên màn hình thật => cửa sổ bị đẩy xuống.
+     * Đo vị trí thật của cửa sổ Dock trên màn hình rồi bù đúng phần lệch (tối đa vài lần mỗi lần hiện, không dao động). */
+    private int dockYAdj = 0, calTries = 0;
+    private final Runnable calibrateTick = new Runnable() { public void run() { calibrateDock(); } };
+    private void calibrateDock() {
+        android.view.View v = dockShown ? dockView : hotView; WindowManager.LayoutParams lp = dockShown ? dockLp : null;
+        if (v == null || wm == null) return;
+        if (lp == null) { /* chỉ có vạch cảm ứng (đang tự ẩn): đo bằng nó */
+            try {
+                int[] loc = new int[2]; v.getLocationOnScreen(loc);
+                int want = realSize().y - dp(10), err = loc[1] - want;
+                if (Math.abs(err) > dp(2) && calTries < 6) { calTries++; dockYAdj = Math.max(-dp(120), Math.min(dp(120), dockYAdj - err)); }
+            } catch (Throwable t) { }
+            return;
+        }
+        try {
+            int[] loc = new int[2]; v.getLocationOnScreen(loc);
+            int want = realSize().y - lp.height, err = loc[1] - want;   /* >0: cửa sổ đang thấp hơn mong muốn */
+            if (Math.abs(err) > dp(2) && calTries < 6) {
+                calTries++;
+                dockYAdj = Math.max(-dp(120), Math.min(dp(120), dockYAdj - err));
+                placeDock(lp); wm.updateViewLayout(v, lp);
+                h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 250);
+            }
+        } catch (Throwable t) { }
     }
     private static final int DOCK_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
     private int dockHDp() { return Math.round(dockBarPx() / getResources().getDisplayMetrics().density); }
@@ -930,7 +956,7 @@ public class LockService extends AccessibilityService {
         if (!dockShown || dockLp == null || dockView == null) return;
         int y = dockLp.y, hh = dockLp.height; placeDock(dockLp);
         int bp = dockBarPx();
-        if (bp != lastBarPx) { lastBarPx = bp; if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setLayout&&setLayout(" + dockHDp() + ",0)", null); }
+        if (bp != lastBarPx) { lastBarPx = bp; calTries = 0; h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setLayout&&setLayout(" + dockHDp() + ",0)", null); }
         if (y != dockLp.y || hh != dockLp.height) { try { wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
     }
     public static boolean isRunning() { return inst != null; }
@@ -981,7 +1007,7 @@ public class LockService extends AccessibilityService {
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             DOCK_FLAGS,
             PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = realSize().y - dp(10);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = realSize().y - dp(10) + dockYAdj;
         try { wm.addView(hotView, lp); } catch (Exception e) { hotView = null; }
     }
     private void hideHot() {
@@ -1056,7 +1082,7 @@ public class LockService extends AccessibilityService {
             PixelFormat.TRANSLUCENT);
         placeDock(lp);
         dockLp = lp;
-        try { wm.addView(dockView, lp); dockShown = true; } catch (Throwable e) { dockShown = false; }
+        try { wm.addView(dockView, lp); dockShown = true; calTries = 0; h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); } catch (Throwable e) { dockShown = false; }
     }
     private void hideDockBar() {
         if (dockView != null && dockShown) { try { wm.removeView(dockView); } catch (Exception e) { } }
