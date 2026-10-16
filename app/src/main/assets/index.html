@@ -4367,6 +4367,22 @@ if(window.AndroidLauncher){(function(){
   window.nativeMS=function(){ /* vuốt lên từ thanh Desktop: mở đa nhiệm */
     try{overlaysOpen();tryOpenMS()}catch(e){}
   };
+  /* Thanh menu nổi (gốc Android) chạm vào đâu thì bấm đúng nút đó của thanh menu HTML */
+  window.nativeMenuClick=function(id){
+    try{
+      const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',batt:'#batt',wifi:'#wifi',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
+      const el=q&&document.querySelector(q); if(el)el.click();
+    }catch(e){}
+  };
+  /* đẩy sang thanh nổi: tên app đang chọn, chiều cao thanh, và ẩn khi đang khóa màn hình / tắt máy */
+  (function(){
+    const pushName=()=>{try{A.setBarInfo&&A.setBarInfo(appname.textContent||'')}catch(e){}};
+    const pushHide=()=>{try{A.setBarHide&&A.setBarHide(!lock.hidden||!off.hidden)}catch(e){}};
+    const pushGeom=()=>{try{const mb=$('#menubar');A.setBarGeom&&mb&&A.setBarGeom(Math.round(mb.getBoundingClientRect().height))}catch(e){}};
+    try{new MutationObserver(pushName).observe(appname,{childList:true,characterData:true,subtree:true})}catch(e){}
+    try{const mo=new MutationObserver(pushHide);mo.observe(lock,{attributes:true,attributeFilter:['hidden']});mo.observe(off,{attributes:true,attributeFilter:['hidden']})}catch(e){}
+    pushName();pushHide();pushGeom();window.addEventListener('resize',pushGeom);
+  })();
   window.nativeOpenApp=function(id){
     try{overlaysOpen();openApp(id)}catch(e){}
   };

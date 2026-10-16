@@ -786,10 +786,17 @@ public class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
         if (i != null && i.getBooleanExtra("openMS", false)) { web.evaluateJavascript("window.nativeMS&&window.nativeMS()", null); return; } /* vuốt lên từ thanh Desktop */
+        String mc = i == null ? null : i.getStringExtra("mbClick");
+        if (mc != null) {   /* chạm vào thanh menu nổi: bấm nút tương ứng của thanh menu HTML */
+            final String id = mc;
+            web.postDelayed(new Runnable() { public void run() { runMenuClick(id); } }, i.getBooleanExtra("mbFront", false) ? 0 : 300);
+            return;
+        }
         String oa = i == null ? null : i.getStringExtra("openApp");
         if (oa != null) web.evaluateJavascript("window.nativeOpenApp&&window.nativeOpenApp(" + JSONObject.quote(oa) + ")", null);
         else web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null);
     }
+    void runMenuClick(String id) { web.evaluateJavascript("window.nativeMenuClick&&window.nativeMenuClick(" + JSONObject.quote(id) + ")", null); }
     @Override public void onBackPressed() { if (extFullView != null) { extHideFull(); return; } web.evaluateJavascript("window.nativeBack&&window.nativeBack()", null); }
 
     /** Mở trình duyệt mặc định của app ("Duyệt web"); có url thì mở thẳng trang đó trong thẻ mới. */

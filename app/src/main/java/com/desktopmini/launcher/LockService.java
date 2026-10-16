@@ -403,7 +403,7 @@ public class LockService extends AccessibilityService {
             int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
             if (id > 0) hh = getResources().getDimensionPixelSize(id);
         } catch (Exception e) { }
-        return Math.max(hh, dp(24));
+        return Math.max(Math.max(hh, dp(24)), dp(barGeomDp));
     }
     /** App ngoài đang phủ tới tận mép trên (không còn thanh trạng thái) = đang toàn màn hình. */
     private boolean externalFullscreenTop() {
@@ -421,14 +421,44 @@ public class LockService extends AccessibilityService {
         return false;
     }
 
+    /* Trạng thái do giao diện Desktop Mini đẩy sang (tên app đang chọn, chiều cao thanh, đang khóa màn hình...) */
+    private static volatile String barApp = "";
+    private static volatile boolean barHide = false;
+    private static volatile int barGeomDp = 0;
+    public static void setBarInfo(String app) {
+        barApp = app == null ? "" : app;
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { if (s.topBar != null) s.topBar.invalidate(); } });
+    }
+    public static void setBarHide(boolean hide) {
+        barHide = hide;
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.setTopHidden(barHide || videoFull || s.externalFullscreenTop()); } });
+    }
+    public static void setBarGeom(int dp) {
+        barGeomDp = dp;
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.removeTopBar(); s.updateTopBar(); } });
+    }
+
+    /** Chạm vào thanh: đang ở Desktop Mini thì bấm thẳng nút tương ứng của thanh menu HTML; đang ở app ngoài thì đưa Desktop Mini lên trước rồi bấm. */
+    private void menuTap(String id) {
+        try {
+            startActivity(new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                .putExtra("mbClick", id).putExtra("mbFront", launcherFront));
+        } catch (Exception e) { }
+    }
+
     private class TopBar extends View {
-        private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), tx = new Paint(Paint.ANTI_ALIAS_FLAG), ap = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), tx = new Paint(Paint.ANTI_ALIAS_FLAG), ic = new Paint(Paint.ANTI_ALIAS_FLAG), fl = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final java.text.SimpleDateFormat tf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+        private final java.util.LinkedHashMap<String, RectF> hit = new java.util.LinkedHashMap<String, RectF>();
+        private final RectF rf = new RectF();
+        private String down = null;
         TopBar(Context c) {
             super(c);
             bg.setColor(0xFF111113); bg.setStyle(Paint.Style.FILL);
             tx.setColor(0xFFFFFFFF); tx.setTextSize(dp(13)); tx.setFakeBoldText(true);
-            ap.setColor(0xFFFFFFFF); ap.setStyle(Paint.Style.FILL);
+            ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.4f)); ic.setStrokeCap(Paint.Cap.ROUND);
+            fl.setColor(0xFFFFFFFF); fl.setStyle(Paint.Style.FILL);
             setContentDescription("Thanh menu");
         }
         private int battery() {
@@ -439,31 +469,74 @@ public class LockService extends AccessibilityService {
                 return l < 0 ? -1 : Math.round(l * 100f / Math.max(1, sc));
             } catch (Throwable t) { return -1; }
         }
+        private String ontime() {
+            long m = ScreenTime.todayMs(getContext()) / 60000, hh = m / 60;
+            return "OnTime " + (hh > 0 ? hh + "h" + (m % 60 < 10 ? "0" : "") + (m % 60) : m + "m");
+        }
         @Override protected void onDraw(Canvas c) {
             if (topHidden) return;
-            float w = getWidth(), hh = getHeight(), cy = hh / 2;
+            float w = getWidth(), hh = getHeight(), cy = hh / 2, pad = dp(12), slot = dp(34);
+            hit.clear();
             c.drawRect(0, 0, w, hh, bg);
-            float pad = dp(14), x = pad, r = dp(5.5f);
-            /* quả táo: thân tròn, vết cắn bên phải, lá nhỏ phía trên */
-            c.drawCircle(x + r, cy + dp(1), r, ap);
-            bgBite(c, x + r * 2 - dp(1), cy - dp(1), dp(2.6f));
-            c.drawOval(new RectF(x + r - dp(0.5f), cy - r - dp(3.5f), x + r + dp(4), cy - r + dp(0.5f)), ap);
-            x += r * 2 + dp(10);
-            String name = fgLabel == null ? "" : fgLabel;
-            float maxW = w * 0.5f - x;
+            /* ---- bên trái: logo + tên app ---- */
+            float x = pad, r = dp(7);
+            android.graphics.Path st = new android.graphics.Path();   /* ngôi sao 4 cánh như logo của thanh menu HTML */
+            float cx = x + r, k = r * 0.28f;
+            st.moveTo(cx, cy - r); st.lineTo(cx + k, cy - k); st.lineTo(cx + r, cy); st.lineTo(cx + k, cy + k);
+            st.lineTo(cx, cy + r); st.lineTo(cx - k, cy + k); st.lineTo(cx - r, cy); st.lineTo(cx - k, cy - k); st.close();
+            c.drawPath(st, fl);
+            hit.put("logo", new RectF(0, 0, x + r * 2 + dp(8), hh));
+            x += r * 2 + dp(12);
+            String name = launcherFront ? (barApp.length() > 0 ? barApp : "Desktop") : (fgLabel == null || fgLabel.length() == 0 ? "Desktop" : fgLabel);
+            float maxW = w * 0.4f - x;
             while (name.length() > 1 && tx.measureText(name) > maxW) name = name.substring(0, name.length() - 1);
+            float nw = tx.measureText(name);
             c.drawText(name, x, cy + dp(4.5f), tx);
-            int b = battery();
-            String right = (b >= 0 ? b + "%   " : "") + tf.format(new java.util.Date());
-            c.drawText(right, w - pad - tx.measureText(right), cy + dp(4.5f), tx);
+            hit.put("app", new RectF(x - dp(6), 0, x + nw + dp(10), hh));
+            /* ---- bên phải, từ phải sang trái: giờ, trung tâm điều khiển, tìm kiếm, Wi-Fi, pin, OnTime ---- */
+            float rx = w - pad;
+            String clock = tf.format(new java.util.Date()); float cw = tx.measureText(clock);
+            c.drawText(clock, rx - cw, cy + dp(4.5f), tx); hit.put("clk", new RectF(rx - cw - dp(8), 0, rx + dp(8), hh)); rx -= cw + dp(14);
+            /* trung tâm điều khiển: 2 thanh bo tròn */
+            rf.set(rx - dp(15), cy - dp(5.5f), rx, cy - dp(1)); c.drawRoundRect(rf, dp(2.3f), dp(2.3f), ic);
+            rf.set(rx - dp(15), cy + dp(1), rx, cy + dp(5.5f)); c.drawRoundRect(rf, dp(2.3f), dp(2.3f), ic);
+            hit.put("ccb", new RectF(rx - slot + dp(8), 0, rx + dp(8), hh)); rx -= slot;
+            /* tìm kiếm: kính lúp */
+            c.drawCircle(rx - dp(9), cy - dp(1.5f), dp(4.8f), ic); c.drawLine(rx - dp(5.6f), cy + dp(1.9f), rx - dp(2), cy + dp(5.5f), ic);
+            hit.put("srch", new RectF(rx - slot + dp(8), 0, rx + dp(8), hh)); rx -= slot;
+            /* Wi-Fi: 3 cung + chấm */
+            float wx = rx - dp(8), wy = cy + dp(5);
+            fl.setStyle(Paint.Style.FILL); c.drawCircle(wx, wy, dp(1.3f), fl);
+            for (int i = 1; i <= 3; i++) { float rr = dp(3.6f) * i; rf.set(wx - rr, wy - rr, wx + rr, wy + rr); c.drawArc(rf, 225, 90, false, ic); }
+            hit.put("wifi", new RectF(rx - slot + dp(6), 0, rx + dp(10), hh)); rx -= slot + dp(2);
+            /* pin: icon + % */
+            int b = battery(); String bt = b >= 0 ? b + "%" : ""; float bw = tx.measureText(bt);
+            if (bt.length() > 0) { c.drawText(bt, rx - bw, cy + dp(4.5f), tx); rx -= bw + dp(5); }
+            rf.set(rx - dp(20), cy - dp(5), rx - dp(2), cy + dp(5)); c.drawRoundRect(rf, dp(2.5f), dp(2.5f), ic);
+            if (b > 0) { rf.set(rx - dp(18), cy - dp(3), rx - dp(18) + dp(14) * Math.min(100, b) / 100f, cy + dp(3)); c.drawRoundRect(rf, dp(1.2f), dp(1.2f), fl); }
+            c.drawRect(rx - dp(1.5f), cy - dp(2), rx, cy + dp(2), fl);
+            hit.put("batt", new RectF(rx - dp(24), 0, rx + bw + dp(14), hh)); rx -= dp(30) + bw * 0 + dp(6);
+            /* OnTime */
+            String ot = ontime(); float ow = tx.measureText(ot);
+            if (rx - ow > w * 0.45f) { c.drawText(ot, rx - ow, cy + dp(4.5f), tx); hit.put("ontime", new RectF(rx - ow - dp(8), 0, rx + dp(8), hh)); }
         }
-        private void bgBite(Canvas c, float cx, float cy, float rr) { c.drawCircle(cx, cy, rr, bg); }
-        /* nuốt mọi chạm trong dải này để không kéo được thanh thông báo của hệ thống từ phía trên */
-        @Override public boolean onTouchEvent(MotionEvent ev) { return true; }
+        private String at(float px, float py) {
+            for (java.util.Map.Entry<String, RectF> e : hit.entrySet()) if (e.getValue().contains(px, py)) return e.getKey();
+            return null;
+        }
+        /* nuốt mọi chạm trong dải này (không kéo được thanh thông báo hệ thống); chạm đúng nút thì mở menu tương ứng */
+        @Override public boolean onTouchEvent(MotionEvent ev) {
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN: down = at(ev.getX(), ev.getY()); return true;
+                case MotionEvent.ACTION_UP: { String id = at(ev.getX(), ev.getY()); if (id != null && id.equals(down)) menuTap(id); down = null; return true; }
+                case MotionEvent.ACTION_CANCEL: down = null; return true;
+            }
+            return true;
+        }
     }
 
     private void updateTopBar() {
-        boolean want = wm != null && isMenuBar(this) && !launcherFront;
+        boolean want = wm != null && isMenuBar(this);
         if (want) { if (topBar == null) addTopBar(); } else removeTopBar();
     }
     private void addTopBar() {
