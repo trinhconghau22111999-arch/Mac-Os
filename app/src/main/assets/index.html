@@ -2455,10 +2455,14 @@ function buildRealFiles(b,w,arg,mode){
   }
   /* ---------- Mở mọi loại tệp + giải nén ZIP ---------- */
   const isZip=n=>/\.zip$/i.test(n||'');
+  const ZBUSY=window.__zbusy||(window.__zbusy={});
   function unzip(full,nm){
+    if(ZBUSY[full]&&Date.now()-ZBUSY[full]<600000)return;   /* đang giải nén tệp này rồi: bỏ lần bấm thứ hai */
     if(!A.extractZipAsync){notify({app:'Tệp',title:'Chưa hỗ trợ giải nén',body:'Hãy cập nhật ứng dụng',icon:'files'});return}
     const tok='z'+Date.now()+Math.random().toString(36).slice(2,6);
+    ZBUSY[full]=Date.now();
     ZIPCB[tok]=r=>{
+      delete ZBUSY[full];
       if(r.error){notify({app:'Tệp',title:'Không giải nén được',body:nm+': '+r.error,icon:'files'});return}
       notify({app:'Tệp',title:'Đã giải nén',body:nm+' → '+r.n+' tệp',icon:'files'});
       M={}; bus.emit('files'); go(r.dir);
@@ -3054,7 +3058,12 @@ function closeAllPopups(){
 /* ---------- Thông báo ---------- */
 const NOTIFS=[];
 const nIcon=n=>n.img?'<span class="ic" style="background:#fff"><img src="'+n.img+'" alt="" style="width:100%;height:100%;object-fit:cover"></span>':iconHTML(n.icon&&ICONS[n.icon]?n.icon:'about');
+let LASTN={k:'',t:0};
 function notify(n){
+  /* cùng một thông báo (app + tiêu đề + nội dung) lặp lại trong vòng 1,5 giây thì chỉ hiện một lần */
+  const nk=(n.app||'')+'|'+(n.title||'')+'|'+(n.body||''), nt=Date.now();
+  if(nk===LASTN.k&&nt-LASTN.t<1500)return;
+  LASTN={k:nk,t:nt};
   n.t=Date.now(); NOTIFS.unshift(n); if(NOTIFS.length>20)NOTIFS.pop(); bus.emit('notif');
   if(pref('dnd',false))return;
   const el=document.createElement('button'); el.className='bn';
@@ -3899,7 +3908,7 @@ const diskIcon='<span class="fic disk"><svg viewBox="0 0 48 40"><rect x="3" y="8
 /* ---- Lối tắt tệp trên màn hình desktop ---- */
 const DTH={};
 function deskFileIcon(f){
-  if(f.k==='img'||f.k==='vid')return '<span class="dthumb" data-k="'+f.k+'" data-mid="'+f.mid+'"></span>';
+  if((f.k==='img'||f.k==='vid')&&f.mid)return '<span class="dthumb" data-k="'+f.k+'" data-mid="'+f.mid+'"></span>';
   if(f.k==='dir')return fileIcon('folder');
   return fileIcon(f.n.indexOf('.')>0?f.n.split('.').pop().toLowerCase().slice(0,4):(f.k==='aud'?'âm':'tệp'));
 }
@@ -3934,7 +3943,7 @@ const openDeskItem=id=>{const f=deskFile(id); if(f)openDeskFile(f); else openApp
 function deskRename(id){
   const f=deskFile(id); if(!f)return;
   const o=document.createElement('div'); o.className='bpk';
-  o.innerHTML='<div class="bps"><b>Đổi tên</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn rc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
+  o.innerHTML='<div class="bps"><b>Đổi tên tệp</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn rc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
   stage.appendChild(o);
   const inp=$('input',o); inp.value=f.n; inp.focus();
   const dot=f.n.lastIndexOf('.'); try{inp.setSelectionRange(0,dot>0?dot:f.n.length)}catch(e){}
@@ -3944,7 +3953,19 @@ function deskRename(id){
   $('form',o).addEventListener('submit',e=>{
     e.preventDefault(); const v=inp.value.trim().slice(0,120);
     o.remove(); if(!v||v===f.n)return;
+    const A=window.AndroidLauncher;
+    if(f.p&&A&&A.renameFile){
+      /* đổi tên tệp thật trong máy; các lối tắt trỏ cùng tệp cũng cập nhật theo */
+      let ok=false; try{ok=A.renameFile(f.p,v)}catch(x){}
+      if(!ok){notify({app:'Tệp',title:'Không đổi tên được',body:'Tên trống, đã tồn tại hoặc không hợp lệ',icon:'files'});return}
+      const old=f.p, np=old.slice(0,old.lastIndexOf('/')+1)+v;
+      DESKFILES.forEach(q=>{if(q.p===old){q.p=np;q.n=v;if(q.k==='img'||q.k==='vid'||q.k==='aud')q.mid=0}});
+      saveDeskFiles(); renderDesk(); bus.emit('files');
+      notify({app:'Tệp',title:'Đã đổi tên tệp',body:v,icon:'files'});
+      return;
+    }
     f.n=v; saveDeskFiles(); renderDesk();
+    notify({app:'Tệp',title:'Chỉ đổi tên hiển thị',body:'Không tìm thấy đường dẫn tệp thật',icon:'files'});
   });
 }
 /* Thả tệp từ app Tệp lên màn hình desktop: tạo lối tắt ở ô dưới con trỏ */
