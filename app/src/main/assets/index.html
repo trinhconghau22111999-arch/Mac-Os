@@ -1594,7 +1594,9 @@ function fitDock(){
   stage.style.setProperty('--base',base+'px');
   try{if(window.AndroidLauncher&&AndroidLauncher.setDockBase)AndroidLauncher.setDockBase(Math.round(base))}catch(e){}
   try{$$('.win.max',layer).forEach(fitMax)}catch(e){}   /* cửa sổ phóng to theo kịp chiều cao Dock mới */
-  try{$$('.win',layer).forEach(w=>{if(w._snap&&w._snap.side&&!w.classList.contains('max'))snapHalf(w,w._snap.side)})}catch(e){}   /* cửa sổ chia đôi cũng theo kịp, khỏi hở với Dock */
+  try{$$('.win',layer).forEach(w=>{if(w._snap&&w._snap.side&&!w.classList.contains('max'))snapHalf(w,w._snap.side)})}catch(e){}
+  /* cửa sổ thường đang cao hết cỡ (không phóng to/chia đôi): kéo đáy xuống sát Dock mới, hết hở khi Dock thu nhỏ */
+  try{const sh=stage.getBoundingClientRect().height; $$('.win',layer).forEach(w=>{if(w._fill&&!w._snap&&!w.classList.contains('max')&&!w.classList.contains('min')){const t=w.offsetTop; w.style.height=Math.max(160,sh-t-dockRes())+'px'}})}catch(e){}   /* cửa sổ chia đôi cũng theo kịp, khỏi hở với Dock */
   /* Nếu vẫn chưa vừa chiều ngang thì chuyển sang chế độ vuốt ngang (Dock vẫn nằm giữa, icon dư bị ẩn) */
   dock.classList.remove('scroll');
   /* tính theo bề rộng cuối cùng của các ô (không đo DOM: ô đang mở rộng/thu lại có bề rộng giữa chừng); mỗi vạch ngăn rộng 1px + lề 2×2px */
@@ -1804,15 +1806,18 @@ function openApp(id,arg){
   if(dk&&!reduce)dk.classList.add('bounce');
   setTimeout(()=>{if(dk)dk.classList.remove('bounce');delete opening[id];createWin(id,arg)},(dk&&!reduce)?540:0);
 }
+/* Chiều cao Dock hiện tại (cỡ icon + 18px): cửa sổ chừa đúng chừng này ở đáy, Dock thu nhỏ thì cửa sổ mở rộng theo */
+const dockRes=()=>(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||27)+18;
 function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
   w.className='win'+(a.dark?' dark-win':''); w.dataset.app=id; w.setAttribute('aria-label',a.name);
   w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl m" aria-label="Thu nhỏ">−</button><button class="tl z" aria-label="Phóng to">+</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
-  const wideC=id==='calc'&&sr.width>sr.height*1.25, bw=Math.min(wideC?Math.max(a.w,460):a.w,sr.width-24), bh=Math.min(a.h,sr.height-28-110), n=count++%5;
+  const wideC=id==='calc'&&sr.width>sr.height*1.25, bw=Math.min(wideC?Math.max(a.w,460):a.w,sr.width-24), n=count++%5, fillH=sr.height-40-dockRes(), fill=a.h>=fillH, bh=fill?fillH:a.h;
   w.style.width=bw+'px'; w.style.height=bh+'px';
   w.style.left=Math.max(12,Math.min(30+n*32,sr.width-bw-12))+'px';
-  w.style.top=Math.max(40,Math.min(46+n*28,sr.height-bh-110))+'px';
+  w.style.top=fill?'40px':Math.max(40,Math.min(46+n*28,sr.height-bh-dockRes()))+'px';
+  w._fill=fill; /* cửa sổ đã cao hết cỡ: sẽ theo kịp khi Dock đổi cỡ */
   addTempDock(id);
   layer.appendChild(w); wins[id]=w;
   w._api=a.build($('.body',w),w,arg)||{};
@@ -1879,7 +1884,7 @@ function wire(w,id,a){
   w.addEventListener('pointerdown',e=>{
     if(stage.classList.contains('mc'))return;
     focusWin(w); closeAllPopups();
-    if(e.target.closest('.rz')){w._snap=null;return}
+    if(e.target.closest('.rz')){w._snap=null;w._fill=false;return}
     if(!topArea(e))return;
     const wasMax=w.classList.contains('max'), wasSnap=!!w._snap;
     const sx=e.clientX, sy=e.clientY; let ox=w.offsetLeft, oy=w.offsetTop, started=!(wasMax||wasSnap), zone='';
