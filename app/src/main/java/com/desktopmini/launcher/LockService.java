@@ -94,7 +94,7 @@ public class LockService extends AccessibilityService {
     @Override public boolean onUnbind(Intent i) { inst = null; tearDown(); return super.onUnbind(i); }
     @Override public void onDestroy() { inst = null; tearDown(); super.onDestroy(); }
     @Override public void onConfigurationChanged(Configuration c) {
-        super.onConfigurationChanged(c); removeButton(); updateButton(); scheduleRefreshBar(); removeTopBar(); updateTopBar();
+        super.onConfigurationChanged(c); barMax = 0; removeButton(); updateButton(); scheduleRefreshBar(); removeTopBar(); updateTopBar();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
@@ -263,9 +263,18 @@ public class LockService extends AccessibilityService {
      * Chiều cao THẬT của thanh hệ thống/thanh tác vụ ở đáy (Yoga Book có thanh tác vụ cao hơn giá trị navigation_bar_height).
      * Lấy giá trị lớn nhất trong 3 cách đo: tài nguyên hệ thống, phần chênh giữa màn hình thật và vùng app, và cửa sổ SystemUI thật ở đáy.
      */
+    private int barMax = 0; /* chiều cao lớn nhất đã đo được: chỉ tăng, không tự thu nhỏ lại (thanh tác vụ lúc hiện lúc ẩn làm số đo nhảy) */
     private int sysBarHeight() {
         int best = navBarHeight(), cap = dp(150);
         Point real = realSize();
+        if (Build.VERSION.SDK_INT >= 30) {
+            /* Cách chuẩn: phần đệm của thanh điều hướng / thanh tác vụ (taskbar) dù đang hiện hay ẩn */
+            try {
+                android.graphics.Insets in = wm.getCurrentWindowMetrics().getWindowInsets().getInsetsIgnoringVisibility(
+                    android.view.WindowInsets.Type.navigationBars() | android.view.WindowInsets.Type.tappableElement());
+                if (in.bottom > best && in.bottom < cap) best = in.bottom;
+            } catch (Throwable t) { }
+        }
         try {
             DisplayMetrics dm = new DisplayMetrics();
             wm.getDefaultDisplay().getMetrics(dm);
@@ -283,7 +292,8 @@ public class LockService extends AccessibilityService {
                 }
             }
         } catch (Throwable t) { }
-        return best;
+        if (best > barMax) barMax = best;
+        return barMax;
     }
     /** Đo lại và chỉnh chiều cao thanh Desktop cho phủ kín thanh hệ thống (gọi sau khi app khác vừa mở / xoay màn hình). */
     private final Runnable refreshBar = new Runnable() { public void run() {
