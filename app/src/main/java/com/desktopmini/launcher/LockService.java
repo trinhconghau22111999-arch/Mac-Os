@@ -85,6 +85,7 @@ public class LockService extends AccessibilityService {
 
     @Override protected void onServiceConnected() {
         inst = this; wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        userDockBase = getSharedPreferences(PK, 0).getInt("base", userDockBase);
         ScreenTime.start(this); /* đo thời gian sáng màn hình ngay cả khi Desktop Mini không hiện */
         barLock = isBarLock(this);
         if (!isEnabled(this)) setImmersivePolicy(false);
@@ -152,13 +153,28 @@ public class LockService extends AccessibilityService {
         setImmersivePolicy(false); /* Dock nổi bật: ẩn thanh điều hướng hệ thống cho mọi app (cần WRITE_SECURE_SETTINGS) để Dock nằm sát đáy; không có quyền thì Dock nằm ngay trên thanh điều hướng */
         updateDockBar();
     }
+    private boolean frontWant;
+    private final Runnable frontCommit = new Runnable() { public void run() { commitLauncherFront(frontWant); } };
+    /** Sự kiện cửa sổ dồn dập khi vuốt về Home/đa nhiệm (Desktop -> launcher hệ thống -> Desktop...): chờ ổn định rồi mới đổi, để Dock không giật. */
     private void setLauncherFront(boolean b) {
+        frontWant = b;
+        h.removeCallbacks(frontCommit);
+        if (launcherFront == b) return;
+        h.postDelayed(frontCommit, 220);
+    }
+    private void commitLauncherFront(boolean b) {
         if (launcherFront == b) return;
         launcherFront = b;
+        dockYAdj = 0; calTries = 0;
         dismissPop();
         updateTopBar();
         updateDockBar();
         applyDockBase(); /* ở app ngoài: Dock cố định 53%; ở Desktop Mini: theo cỡ người dùng chỉnh */
+    }
+    /** MainActivity báo đã lên trước: chắc chắn hơn chờ sự kiện trợ năng (lúc mới mở app launcherFront còn mặc định false làm Dock đo sai cỡ). */
+    public static void launcherResumed() {
+        final LockService s = inst; if (s == null) return;
+        s.h.post(new Runnable() { public void run() { s.frontWant = true; s.h.removeCallbacks(s.frontCommit); s.commitLauncherFront(true); } });
     }
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
     private Point realSize() {
@@ -954,7 +970,7 @@ public class LockService extends AccessibilityService {
             }
         } catch (Throwable t) { }
     }
-    private static final int DOCK_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+    private static final int DOCK_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
     private int dockHDp() { return Math.round(dockBarPx() / getResources().getDisplayMetrics().density); }
     private int dockPadDp() { return 0; }
     private int lastBarPx = -1;
@@ -967,13 +983,17 @@ public class LockService extends AccessibilityService {
     }
     public static boolean isRunning() { return inst != null; }
     public static void setDockBase(Context c, int base) {
-        userDockBase = Math.max(18, Math.min(80, base));
-        dockBase = userDockBase;
+        int nb = Math.max(18, Math.min(80, base));
+        if (nb == userDockBase && inst != null) return; /* không đổi: khỏi đo/vẽ lại Dock */
+        userDockBase = nb;
+        try { c.getSharedPreferences(PK, 0).edit().putInt("base", nb).apply(); } catch (Exception e) { }
         final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.applyDockBase(); } });
     }
+    private int pushedBase = -1, pushedH = -1;
     private void applyDockBase() {
         dockBase = effectiveDockBase();
-        if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ")", null);
+        int hdp = dockHDp();
+        if (dockWeb != null && dockReady && (dockBase != pushedBase || hdp != pushedH)) { pushedBase = dockBase; pushedH = hdp; dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ")", null); }
         relayoutDock();
     }
     /** Thu cửa sổ Dock vừa khít viên thuốc, căn giữa; phần còn lại của màn hình chạm xuyên xuống app bên dưới. */
@@ -1066,7 +1086,7 @@ public class LockService extends AccessibilityService {
     }
     private void showDockBar() {
         if (wm == null || dockShown) return;
-        dockGrown = false;
+        dockGrown = false; dockYAdj = 0; dockBase = effectiveDockBase();
         if (dockView == null) {
             dockView = new android.widget.FrameLayout(this);
             dockWeb = new android.webkit.WebView(new android.view.ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault));
@@ -1098,7 +1118,7 @@ public class LockService extends AccessibilityService {
     }
     private void pushDockData() {
         if (dockWeb == null || !dockReady) return;
-        dockBase = effectiveDockBase();
+        dockBase = effectiveDockBase(); pushedBase = dockBase; pushedH = dockHDp();
         /* mở rộng cửa sổ hết cỡ trước để viên thuốc đo đúng bề rộng tự nhiên, rồi JS gọi size() để thu lại */
         if (dockShown && dockLp != null && dockView != null) { try { dockLp.width = realSize().x; wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
         String d = getSharedPreferences(PK, 0).getString("data", "[]");

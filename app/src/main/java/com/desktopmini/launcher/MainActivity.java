@@ -652,7 +652,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         inFg = true; lastTouchAt = android.os.SystemClock.elapsedRealtime();
-        imeUp = false; hideBars(); prefetchApps(); scanNewMedia(); startMediaWatch();
+        imeUp = false; hideBars(); LockService.launcherResumed(); prefetchApps(); scanNewMedia(); startMediaWatch();
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) { try { if (e.getValue().getVisibility() == View.VISIBLE) { e.getValue().onResume(); extHiddenAt.remove(e.getKey()); } } catch (Exception x) { } }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });
