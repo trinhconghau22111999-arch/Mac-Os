@@ -1820,17 +1820,18 @@ function minWin(w){
   const id=w.dataset.app; w._leaving=true; w.classList.remove('focus'); focusTop();
   flyOut(w,id,()=>{w.classList.add('min');w._leaving=false;bus.emit('wins')});
 }
+/* Cửa sổ phóng to / chia đôi kết thúc đúng mép trên của Dock (Dock cao base+18px và sát đáy màn hình), không chừa khe hở */
 function fitMax(w){
   const sr=stage.getBoundingClientRect();
   w.style.left='0px'; w.style.top='28px'; w.style.width=sr.width+'px';
-  w.style.height=(sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+26))+'px';
+  w.style.height=(sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+18))+'px';
 }
 const MAXK='dm-maxwins';
 const maxMem=()=>{try{return JSON.parse(lsGet(MAXK)||'{}')||{}}catch(e){return {}}};
 /* Chia đôi: kéo thanh tiêu đề tới mép trái / phải = nửa màn hình (vẫn chừa Dock), tới mép trên = phóng to */
 function snapHalf(w,side){
   const sr=stage.getBoundingClientRect(), hw=Math.floor(sr.width/2);
-  const H=sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+26);
+  const H=sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+18);
   if(!w._snap)w._snap={prev:[w.style.left,w.style.top,w.style.width,w.style.height]};
   w._snap.side=side;
   w.style.left=(side==='l'?0:hw)+'px'; w.style.top='28px'; w.style.width=hw+'px'; w.style.height=H+'px'; kickSync();
@@ -1849,7 +1850,7 @@ let snapEl=null;
 function showSnap(zone){
   if(!zone){ if(snapEl)snapEl.style.display='none'; return }
   if(!snapEl){ snapEl=document.createElement('div'); snapEl.className='snapprev'; stage.appendChild(snapEl) }
-  const sr=stage.getBoundingClientRect(), hw=Math.floor(sr.width/2), H=sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+26);
+  const sr=stage.getBoundingClientRect(), hw=Math.floor(sr.width/2), H=sr.height-28-(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))+18);
   snapEl.style.display='block'; snapEl.style.top='28px'; snapEl.style.height=H+'px';
   snapEl.style.left=(zone==='r'?hw:0)+'px'; snapEl.style.width=(zone==='t'?sr.width:hw)+'px';
 }
