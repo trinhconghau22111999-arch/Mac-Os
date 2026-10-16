@@ -4370,7 +4370,7 @@ if(window.AndroidLauncher){(function(){
   /* Thanh menu nổi (gốc Android) chạm vào đâu thì bấm đúng nút đó của thanh menu HTML */
   window.nativeMenuClick=function(id){
     try{
-      const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',batt:'#batt',wifi:'#wifi',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
+      const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',splitb:'#splitb',ramb:'#ramb',batt:'#batt',wifi:'#wifi',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
       const el=q&&document.querySelector(q); if(el)el.click();
     }catch(e){}
   };

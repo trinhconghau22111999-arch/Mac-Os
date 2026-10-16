@@ -479,6 +479,15 @@ public class LockService extends AccessibilityService {
                 return l < 0 ? -1 : Math.round(l * 100f / Math.max(1, sc));
             } catch (Throwable t) { return -1; }
         }
+        private String ram() {
+            try {
+                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                ((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
+                if (mi.totalMem <= 0) return "";
+                double g = 1073741824.0;
+                return String.format(java.util.Locale.US, "RAM %.1f/%.1f GB", (mi.totalMem - mi.availMem) / g, mi.totalMem / g).replace('.', ',');
+            } catch (Throwable t) { return ""; }
+        }
         private String ontime() {
             long m = ScreenTime.todayMs(getContext()) / 60000, hh = m / 60;
             return "OnTime " + (hh > 0 ? hh + "h" + (m % 60 < 10 ? "0" : "") + (m % 60) : m + "m");
@@ -527,8 +536,19 @@ public class LockService extends AccessibilityService {
             c.drawRect(rx - dp(1.5f), cy - dp(2), rx, cy + dp(2), fl);
             hit.put("batt", new RectF(rx - dp(24), 0, rx + bw + dp(14), hh)); rx -= dp(30) + bw * 0 + dp(6);
             /* OnTime */
-            String ot = ontime(); float ow = tx.measureText(ot);
-            if (rx - ow > w * 0.45f) { c.drawText(ot, rx - ow, cy + dp(4.5f), tx); hit.put("ontime", new RectF(rx - ow - dp(8), 0, rx + dp(8), hh)); }
+            String ot = ontime(); float ow = tx.measureText(ot), minX = w * 0.42f;
+            if (rx - ow > minX) {
+                c.drawText(ot, rx - ow, cy + dp(4.5f), tx); hit.put("ontime", new RectF(rx - ow - dp(8), 0, rx + dp(8), hh)); rx -= ow + dp(16);
+                /* chia đôi màn hình: 2 hình chữ nhật sát nhau, bên trái OnTime */
+                if (rx - slot > minX) {
+                    rf.set(rx - dp(15), cy - dp(5), rx - dp(8.5f), cy + dp(5)); c.drawRoundRect(rf, dp(1.6f), dp(1.6f), ic);
+                    rf.set(rx - dp(7.5f), cy - dp(5), rx, cy + dp(5)); c.drawRoundRect(rf, dp(1.6f), dp(1.6f), ic);
+                    hit.put("splitb", new RectF(rx - slot + dp(8), 0, rx + dp(8), hh)); rx -= slot + dp(2);
+                    /* RAM đang dùng / tổng, bên trái nút chia đôi */
+                    String ram = ram(); float rw = tx.measureText(ram);
+                    if (ram.length() > 0 && rx - rw > minX) { c.drawText(ram, rx - rw, cy + dp(4.5f), tx); hit.put("ramb", new RectF(rx - rw - dp(8), 0, rx + dp(8), hh)); }
+                }
+            }
         }
         private String at(float px, float py) {
             for (java.util.Map.Entry<String, RectF> e : hit.entrySet()) if (e.getValue().contains(px, py)) return e.getKey();
