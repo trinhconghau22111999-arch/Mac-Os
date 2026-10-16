@@ -597,6 +597,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 .rw small{display:block;color:var(--muted)}
 .rc2{display:flex;align-items:center}
 .rg{width:150px;accent-color:var(--accent)}
+.stp{flex:none;width:28px;height:28px;margin:0 6px;border:0;border-radius:50%;background:var(--field);color:inherit;font-size:18px;line-height:1;display:grid;place-items:center;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stp:active{background:var(--accent);color:#fff}
 .txt{border:0;border-radius:8px;padding:5px 9px;background:var(--win);color:var(--fg);outline:0;width:150px}
 .tiles{display:flex;gap:14px;flex-wrap:wrap}
 .ap{display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -1576,12 +1578,14 @@ function fitDock(){
   const sw=stage.clientWidth, n=DOCK.filter(x=>x!=='|').length+TEMP.length, seps=DOCK.filter(x=>x==='|').length, tot=DOCK.length+TEMP.length;
   /* chừa chỗ hai bên cho nút tìm kiếm và nút chụp màn hình (mỗi bên rộng bằng 1 icon + 24px) */
   let base=Math.floor((sw-100-(tot-1)*6-seps*8)/(n+2));
-  const ps=Math.max(18,Math.min(45,pref('dockSize',27))); /* thanh trượt 18–45px */
+  let pc=pref('dockPct',null); if(pc==null){const o=pref('dockSize',null); pc=o==null?60:Math.round(o/45*100)}
+  const ps=Math.round(Math.max(40,Math.min(100,pc))*0.45*100)/100; /* 40–100% của 45px = 18–45px, chỉnh từng 1% */
   /* màn rộng (>560px): cho icon nhỏ tới 30px để Dock vẫn vừa, không chuyển sang chế độ cuộn (chế độ cuộn tắt hiệu ứng phóng đại) */
   const flo=window.matchMedia('(max-width:560px)').matches?44:30;
   base=Math.max(Math.min(flo,ps),Math.min(ps,base));
   try{unmagnify()}catch(e){} /* kích thước đổi thì toạ độ tâm icon cũ không còn đúng */
   stage.style.setProperty('--base',base+'px');
+  try{$$('.win.max',layer).forEach(fitMax)}catch(e){}   /* cửa sổ phóng to theo kịp chiều cao Dock mới */
   /* Nếu vẫn chưa vừa chiều ngang thì chuyển sang chế độ vuốt ngang (Dock vẫn nằm giữa, icon dư bị ẩn) */
   dock.classList.remove('scroll');
   /* tính theo bề rộng cuối cùng của các ô (không đo DOM: ô đang mở rộng/thu lại có bề rộng giữa chừng); mỗi vạch ngăn rộng 1px + lề 2×2px */
