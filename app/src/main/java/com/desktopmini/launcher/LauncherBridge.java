@@ -1436,6 +1436,10 @@ public class LauncherBridge {
                     if (act.browserHost == null || !act.browserHost.back()) act.web.evaluateJavascript("window.nativeCloseApp&&window.nativeCloseApp('webbrowser')", null);
                     return;
                 }
-                WebView v = act.ext.get(key); if (v != null && v.canGoBack()) v.goBack(); } });
+                WebView v = act.ext.get(key); if (v == null) return;
+                if (v.canGoBack()) { v.goBack(); return; }
+                /* Trang một-trang (vd Zalo web) không có lịch sử để lùi: gửi phím Esc để đóng cuộc trò chuyện/bảng đang mở */
+                v.evaluateJavascript("(function(){try{var e={key:'Escape',code:'Escape',keyCode:27,which:27,bubbles:true,cancelable:true};var t=document.activeElement||document.body;t.dispatchEvent(new KeyboardEvent('keydown',e));document.dispatchEvent(new KeyboardEvent('keydown',e));t.dispatchEvent(new KeyboardEvent('keyup',e));}catch(x){}})()", null);
+            } });
         }
 }

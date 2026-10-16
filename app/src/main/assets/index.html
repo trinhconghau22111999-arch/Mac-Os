@@ -1363,7 +1363,7 @@ const APPS={
   settings:{name:'Cài đặt hệ thống',w:680,h:440,minW:420,minH:300,build:buildSettings},
   omem:{name:'Ổ mềm',w:880,h:540,minW:360,minH:300,build:buildDrive3Stub},
   drive:{name:'Drive web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'drive','https://drive.google.com/drive/my-drive','Drive web')},
-  zalo:{name:'Zalo web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'zalo','https://chat.zalo.me/','Zalo web')},
+  zalo:{name:'Zalo web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'zalo','https://chat.zalo.me/','Zalo web',{compact:true})},
   facebook:{name:'Facebook web',w:880,h:540,minW:360,minH:300,build:(b,w)=>buildWebApp(b,w,'facebook','https://www.facebook.com/','Facebook web')},
   trash:{name:'Thùng rác',w:520,h:340,minW:320,minH:240,build:buildTrash},
   about:{name:'Giới thiệu',w:340,h:400,minW:340,minH:400,build:buildAbout,hidden:true},
