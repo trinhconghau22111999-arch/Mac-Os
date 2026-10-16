@@ -1289,10 +1289,10 @@ function restoreItem(idx){
 }
 function emptyTrash(){FS.trash=[];try{const A=window.AndroidLauncher; if(A&&A.trashPurge)A.trashPurge('*')}catch(e){} saveFS()}
 function updTrashIcon(){
-  const b=dockBtn('trash'); if(!b)return;
-  const n=trashCount();
-  $('.ic',b).innerHTML=trashGlyph(n>0);
-  b.dataset.full=n?'1':'';
+  const n=trashCount(), g=trashGlyph(n>0);
+  ICONS.trash.g=g; /* các nơi dựng icon sau này (Desktop, Launchpad) cũng lấy hình thùng đầy/trống */
+  const b=dockBtn('trash'); if(b){$('.ic',b).innerHTML=g; b.dataset.full=n?'1':''}
+  $$('.da[data-app="trash"] .ic, .lpi[data-app="trash"] .ic').forEach(e=>{e.innerHTML=g});
 }
 bus.on('fs',updTrashIcon); bus.on('trash',updTrashIcon);
 /* Mỗi giờ dọn mục quá 7 ngày (ảo + thật) */
@@ -1380,13 +1380,15 @@ function extReg(pkg,label,icon,save){
   return id;
 }
 Object.keys(EXTINFO).forEach(k=>{const o=EXTINFO[k];if(o)extReg(k,o.label,o.icon)});
-const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings'];
+const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings','trash'];
 const DOCK_DEF=['launchpad','files','webbrowser','youtube','mail','photos','camera','notes','omem','zalo','facebook','settings'];
 /* Dock và màn hình desktop do người dùng tự sắp xếp (lưu lại để mở app lần sau vẫn giữ) */
 const DOCK_GONE=['browser','calendar','music','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','drive','downloads'];
 const DOCK=(()=>{let s=jget('dm-dock',null);if(Array.isArray(s)&&!jget('dm-dock-v2',false)){s=s.filter(id=>DOCK_GONE.indexOf(id)<0);jset('dm-dock',s);jset('dm-dock-v2',true)}if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||APPS[id]);if(l.indexOf('launchpad')<0)l.unshift('launchpad');return l})();
 const saveDock=()=>jset('dm-dock',DOCK);
 let DESKAPPS=jget('dm-deskapps',null);
+/* Thùng rác lên màn hình Desktop: máy đã có danh sách icon lưu sẵn thì thêm một lần (sau đó xóa icon đi thì không tự thêm lại) */
+if(Array.isArray(DESKAPPS)&&!lsGet('dm-trashdesk1')){lsSet('dm-trashdesk1','1');if(DESKAPPS.indexOf('trash')<0){DESKAPPS=DESKAPPS.concat('trash');jset('dm-deskapps',DESKAPPS)}}
 const deskApps=()=>(Array.isArray(DESKAPPS)?DESKAPPS:LP_APPS).filter(id=>APPS[id]);
 const saveDeskApps=l=>{DESKAPPS=l;jset('dm-deskapps',l)};
 /* Vị trí ô (cột,hàng) của từng icon desktop: thả vào ô nào thì nằm yên ở ô đó, không dồn các icon khác */
@@ -1522,7 +1524,7 @@ function addToDesk(id){
   renderDesk();
 }
 function removeFromDesk(id,noTrash){
-  if(!noTrash&&APPS[id]&&deskApps().indexOf(id)>=0){ FS.trash.push({n:APPS[id].name,d:tstamp(),s:'Biểu tượng',x:'app',appId:id,td:Date.now()}); saveFS() }
+  if(!noTrash&&id!=='trash'&&APPS[id]&&deskApps().indexOf(id)>=0){ FS.trash.push({n:APPS[id].name,d:tstamp(),s:'Biểu tượng',x:'app',appId:id,td:Date.now()}); saveFS() }
   saveDeskApps(deskApps().filter(x=>x!==id)); delete DESKPOS[id]; saveDeskPos(); renderDesk();
 }
 /* Menu chuột phải / nhấn giữ dùng chung cho Launchpad, Dock, Desktop */
@@ -3568,7 +3570,7 @@ let dsel=-2, dren=-1;
 const diskIcon='<span class="fic disk"><svg viewBox="0 0 48 40"><rect x="3" y="8" width="42" height="26" rx="6" fill="#aab0bd"/><rect x="3" y="8" width="42" height="14" rx="6" fill="#d5d9e2"/><circle cx="38" cy="28" r="2.2" fill="#6b7280"/></svg></span>';
 function renderDesk(){
   const lay=deskLayout(deskRows());
-  desk.innerHTML=deskApps().map(id=>'<div class="da" data-app="'+id+'" style="grid-column:'+(lay[id][0]+1)+';grid-row:'+(lay[id][1]+1)+'" tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
+  desk.innerHTML=deskApps().map(id=>'<div class="da" data-app="'+id+'" style="grid-column:'+(lay[id][0]+1)+';grid-row:'+(lay[id][1]+1)+'"'+(id==='trash'?' data-drop="trash"':'')+' tabindex="0" role="button" aria-label="'+esc(APPS[id].name)+'">'+iconHTML(id)+'<span class="dl">'+esc(APPS[id].name)+'</span></div>').join('');
   deskSelApply();
   return;
   let h='<div class="di" data-i="-1" aria-selected="'+(dsel===-1)+'" tabindex="0">'+diskIcon+'<span class="dl">Ổ đĩa</span></div>';
