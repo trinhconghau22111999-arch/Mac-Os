@@ -239,6 +239,8 @@ window.__loadLib = (function(){
     .workspace { padding: 0; background: #fff; overflow: visible; height: auto; }
     .page-wrap { box-shadow: none !important; margin: 0; }
     .page-break-marker { border: none !important; }
+    .page-break-marker.pgb { height: 0 !important; min-height: 0 !important; margin: 0 !important; }
+    .page-break-marker.pgb span { display: none; }
     .page-break-marker::before, .page-break-marker::after { display: none; }
     .page-overlay { display: none !important; }
     html, body { background: #fff; overflow: visible; height: auto; }
@@ -545,6 +547,18 @@ window.__loadLib = (function(){
   }
   .page-break-marker::before, .page-break-marker::after {
     content: ""; flex: 1; border-top: 1px dashed #a9a9a9;
+  }
+
+  /* Ngắt trang (Ctrl+Enter / nút Page Break): vạch đôi đậm ở cuối trang cũ, phần sau bắt đầu ở đầu trang mới */
+  .page-break-marker.pgb {
+    display: block; position: relative; margin: 14px 0 0; min-height: 22px; height: auto;
+    border: 0; border-top: 3px double #4b5563; color: #374151; font-size: 11px; font-weight: 700;
+    text-align: center; user-select: none; -webkit-user-select: none; page-break-after: always;
+  }
+  .page-break-marker.pgb::before, .page-break-marker.pgb::after { display: none; }
+  .page-break-marker.pgb span {
+    position: absolute; left: 50%; top: -10px; transform: translateX(-50%);
+    background: #fff; padding: 0 10px; letter-spacing: .06em; white-space: nowrap;
   }
 
   /* ---------- WORKSPACE ---------- */
@@ -2576,13 +2590,39 @@ document.querySelector('[data-action="symbol"]').addEventListener('click', () =>
 document.getElementById('closeSymbolModal').addEventListener('click', () => symbolModal.hidden = true);
 document.getElementById('btnCloseSymbolModal').addEventListener('click', () => symbolModal.hidden = true);
 
-/* ---------- Page break ---------- */
-document.querySelector('[data-action="pageBreak"]').addEventListener('click', () => {
+/* ---------- Ngắt trang: Ctrl+Enter ----------
+   Chèn vạch ngắt trang rõ ràng rồi đẩy phần sau xuống ĐẦU TRANG MỚI (khoảng trống được tính lại mỗi khi bố cục đổi). */
+const PAGE_BREAK_HTML = '<div class="page-break-marker pgb" contenteditable="false"><span>NGẮT TRANG</span></div><p><br></p>';
+function fixPageBreaks() {
+  const marks = doc.querySelectorAll('.page-break-marker.pgb');
+  if (!marks.length) return;
+  const C = getPageContentHeightPx() + PAGE_GAP_PX;   // chu kỳ 1 trang = tờ giấy + khoảng hở
+  marks.forEach(m => m.style.height = '');
+  marks.forEach(m => {
+    const y = m.offsetTop;                              // tính theo khung giấy (pageWrap), cùng hệ toạ độ với dải phân trang
+    let target = (Math.floor(y / C) + 1) * C;           // đầu trang kế tiếp
+    if (target - y < 30) target += C;                   // còn quá ít chỗ ở cuối trang -> xuống hẳn trang sau nữa
+    m.style.height = Math.round(target - y) + 'px';
+  });
+}
+function insertPageBreak() {
   focusDoc();
-  const html = '<div class="page-break-marker" contenteditable="false">NGẮT TRANG</div><p><br></p>';
-  document.execCommand('insertHTML', false, html);
+  document.execCommand('insertHTML', false, PAGE_BREAK_HTML);
+  fixPageBreaks();
   scheduleSave();
+  schedulePagination();
+  const sel = window.getSelection();
+  if (sel.rangeCount) { const el = sel.getRangeAt(0).startContainer; (el.nodeType === 3 ? el.parentElement : el).scrollIntoView({ block: 'center' }); }
+}
+doc.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'Enter' || e.code === 'NumpadEnter')) {
+    e.preventDefault();
+    insertPageBreak();
+  }
 });
+
+/* ---------- Page break ---------- */
+document.querySelector('[data-action="pageBreak"]').addEventListener('click', insertPageBreak);
 
 /* ---------- Cover Page (trang bìa) ---------- */
 document.getElementById('btnCoverPage').addEventListener('click', () => {
@@ -2595,7 +2635,7 @@ document.getElementById('btnCoverPage').addEventListener('click', () => {
       '<p style="margin-top:80px; color:#777;">' + new Date().toLocaleDateString('vi-VN') + '</p>' +
       '<p style="color:#777;">[Tên tác giả]</p>' +
     '</div>' +
-    '<div class="page-break-marker" contenteditable="false">NGẮT TRANG</div><p><br></p>';
+    '<div class="page-break-marker pgb" contenteditable="false"><span>NGẮT TRANG</span></div><p><br></p>';
   const range = document.createRange();
   range.selectNodeContents(doc);
   range.collapse(true);
@@ -2608,7 +2648,7 @@ document.getElementById('btnCoverPage').addEventListener('click', () => {
 /* ---------- Blank Page (trang trống) ---------- */
 document.getElementById('btnBlankPage').addEventListener('click', () => {
   focusDoc();
-  const html = '<div class="page-break-marker" contenteditable="false">NGẮT TRANG</div><p><br></p><div class="page-break-marker" contenteditable="false">NGẮT TRANG</div><p><br></p>';
+  const html = '<div class="page-break-marker pgb" contenteditable="false"><span>NGẮT TRANG</span></div><p><br></p><div class="page-break-marker pgb" contenteditable="false"><span>NGẮT TRANG</span></div><p><br></p>';
   document.execCommand('insertHTML', false, html);
   scheduleSave();
 });
@@ -2786,7 +2826,7 @@ document.getElementById('breaksMenu').addEventListener('click', (e) => {
   focusDoc();
   let html;
   switch (item.dataset.break) {
-    case 'page': html = '<div class="page-break-marker" contenteditable="false">NGẮT TRANG</div><p><br></p>'; break;
+    case 'page': document.getElementById('breaksMenu').hidden = true; insertPageBreak(); return;
     case 'column': html = '<div class="page-break-marker" contenteditable="false" style="border-top-style:dotted;">NGẮT CỘT</div><p><br></p>'; break;
     case 'section-next': html = '<div class="page-break-marker" contenteditable="false" style="border-top-color:#c00;">NGẮT PHẦN (Trang mới)</div><p><br></p>'; break;
     case 'section-continuous': html = '<div class="page-break-marker" contenteditable="false" style="border-top-style:dashed; border-top-color:#c00;">NGẮT PHẦN (Liên tục)</div>'; break;
@@ -4186,6 +4226,7 @@ let lastTotalPages = 1;
 const PAGE_GAP_PX = 60; // khoảng hở giữa các "tờ giấy" - dùng thống nhất cho cả dải xám lẫn tính vị trí
 
 function renderPagination() {
+  fixPageBreaks();
   const contentHeight = doc.scrollHeight
     + (document.getElementById('pageHeader').classList.contains('shown') ? document.getElementById('pageHeader').offsetHeight + 8 : 0)
     + (document.getElementById('pageFooter').classList.contains('shown') ? document.getElementById('pageFooter').offsetHeight + 8 : 0);
