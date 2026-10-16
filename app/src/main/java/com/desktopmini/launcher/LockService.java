@@ -551,6 +551,10 @@ public class LockService extends AccessibilityService {
             L.add(pText(st));
             L.add(pSep());
             L.add(pItem("Cài đặt Wi-Fi…", new Runnable() { public void run() { startSafe(new Intent(Settings.ACTION_WIFI_SETTINGS)); } }));
+        } else if ("bt".equals(id)) {
+            L.add(pText("Bluetooth: Đang bật"));
+            L.add(pSep());
+            L.add(pItem("Cài đặt Bluetooth…", new Runnable() { public void run() { startSafe(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)); } }));
         } else if ("ccb".equals(id)) {
             int br = 100;
             try { int v = Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS); br = Math.max(1, Math.min(100, (int) Math.round(Math.sqrt(v / 255.0) * 100))); } catch (Throwable t) { }
@@ -870,9 +874,15 @@ public class LockService extends AccessibilityService {
             super(c);
             bg.setColor(0xFF111113); bg.setStyle(Paint.Style.FILL);
             tx.setColor(0xFFFFFFFF); tx.setTextSize(dp(13)); tx.setFakeBoldText(true);
-            ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.4f)); ic.setStrokeCap(Paint.Cap.ROUND);
+            ic.setColor(0xFFFFFFFF); ic.setStyle(Paint.Style.STROKE); ic.setStrokeWidth(dp(1.4f)); ic.setStrokeCap(Paint.Cap.ROUND); ic.setStrokeJoin(Paint.Join.ROUND);
             fl.setColor(0xFFFFFFFF); fl.setStyle(Paint.Style.FILL);
             setContentDescription("Thanh menu");
+        }
+        private boolean btOn() {
+            try {
+                android.bluetooth.BluetoothAdapter a = ((android.bluetooth.BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
+                return a != null && a.isEnabled();
+            } catch (Throwable t) { return false; }
         }
         private int battery() {
             try {
@@ -918,16 +928,17 @@ public class LockService extends AccessibilityService {
             /* ---- bên phải, từ phải sang trái: giờ, trung tâm điều khiển, tìm kiếm, Wi-Fi, pin, OnTime ---- */
             float rx = w - pad;
             String clock = tf.format(new java.util.Date()); float cw = tx.measureText(clock);
-            c.drawText(clock, rx - cw, cy + dp(4.5f), tx);
-            /* ngày tháng bên trái giờ, cùng dạng với thanh cũ: "T6 16 thg 10" (màn hình hẹp thì bỏ) */
+            /* giờ đứng trước (bên trái) ngày tháng: "11:22  T6 16 thg 10" (màn hình hẹp thì bỏ ngày tháng) */
             float dw = 0;
             if (w >= dp(480)) {
                 java.util.Calendar cal = java.util.Calendar.getInstance();
                 String[] dn = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
                 String dt = dn[cal.get(java.util.Calendar.DAY_OF_WEEK) - 1] + " " + cal.get(java.util.Calendar.DAY_OF_MONTH) + " thg " + (cal.get(java.util.Calendar.MONTH) + 1);
-                dw = tx.measureText(dt) + dp(10);
-                c.drawText(dt, rx - cw - dw, cy + dp(4.5f), tx);
+                float dtw = tx.measureText(dt);
+                dw = dtw + dp(10);
+                c.drawText(dt, rx - dtw, cy + dp(4.5f), tx);
             }
+            c.drawText(clock, rx - dw - cw, cy + dp(4.5f), tx);
             hit.put("clk", new RectF(rx - cw - dw - dp(8), 0, rx + dp(8), hh)); rx -= cw + dw + dp(14);
             /* trung tâm điều khiển: 2 thanh bo tròn */
             rf.set(rx - dp(15), cy - dp(5.5f), rx, cy - dp(1)); c.drawRoundRect(rf, dp(2.3f), dp(2.3f), ic);
@@ -936,6 +947,15 @@ public class LockService extends AccessibilityService {
             /* tìm kiếm: kính lúp */
             c.drawCircle(rx - dp(9), cy - dp(1.5f), dp(4.8f), ic); c.drawLine(rx - dp(5.6f), cy + dp(1.9f), rx - dp(2), cy + dp(5.5f), ic);
             hit.put("srch", new RectF(rx - slot + dp(8), 0, rx + dp(8), hh)); rx -= slot;
+            /* Bluetooth: chỉ hiện khi đang bật, nằm bên phải nút Wi-Fi */
+            if (btOn()) {
+                float s = dp(0.75f), ox = rx - dp(8) - 8 * s, oy = cy - 8 * s;
+                android.graphics.Path bp = new android.graphics.Path();
+                bp.moveTo(ox + 4 * s, oy + 4.5f * s); bp.lineTo(ox + 12 * s, oy + 11.5f * s); bp.lineTo(ox + 8 * s, oy + 15 * s);
+                bp.lineTo(ox + 8 * s, oy + 1 * s); bp.lineTo(ox + 12 * s, oy + 4.5f * s); bp.lineTo(ox + 4 * s, oy + 11.5f * s);
+                c.drawPath(bp, ic);
+                hit.put("bt", new RectF(rx - dp(22), 0, rx + dp(8), hh)); rx -= dp(26);
+            }
             /* Wi-Fi: 3 cung + chấm */
             float wx = rx - dp(8), wy = cy + dp(5);
             fl.setStyle(Paint.Style.FILL); c.drawCircle(wx, wy, dp(1.3f), fl);

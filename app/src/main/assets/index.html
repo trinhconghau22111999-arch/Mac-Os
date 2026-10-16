@@ -1067,9 +1067,10 @@ body.native .stage{border-radius:0;min-height:0}
     <button class="sb opt" id="ontime" aria-label="OnTime: thời gian sử dụng màn hình hôm nay"><span class="bram" id="ontimetx">OnTime 0m</span></button>
     <button class="sb opt" id="batt" data-m="battery" aria-label="Pin" aria-haspopup="true"><svg viewBox="0 0 24 16" style="width:22px"><rect x="1" y="3" width="19" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.3"/><rect id="battfill" x="2.8" y="4.8" width="12.5" height="6.4" rx="1.6"/><rect x="21" y="6" width="2" height="4" rx="1"/></svg><span class="bpct" id="battpct"></span></button>
     <button class="sb opt" id="wifi" data-m="wifi" aria-label="Wi-Fi" aria-haspopup="true"><svg viewBox="0 0 16 16"><path d="M8 12.6a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6zM3.9 9.3l1.3 1.4a4 4 0 0 1 5.6 0l1.3-1.4a6 6 0 0 0-8.2 0zM.9 6l1.3 1.4a8.3 8.3 0 0 1 11.6 0L15.1 6A10.2 10.2 0 0 0 .9 6z" transform="translate(0 -1.2)"/></svg></button>
+    <button class="sb opt" id="bt" data-m="bt" aria-label="Bluetooth" aria-haspopup="true" hidden><svg viewBox="0 0 16 16"><path d="M4 4.5l8 7-4 3.5V1l4 3.5-8 7" style="fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round"/></svg></button>
     <button class="sb" id="srch" aria-label="Spotlight"><svg viewBox="0 0 16 16"><path d="M6.7 1a5.7 5.7 0 1 0 3.4 10.3l3.3 3.3 1.2-1.2-3.3-3.3A5.7 5.7 0 0 0 6.7 1zm0 1.7a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg></button>
     <button class="sb" id="ccb" aria-label="Trung tâm điều khiển" aria-haspopup="true"><svg viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="4.4" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="4.4" cy="5.2" r="1.5"/><rect x="1" y="8.8" width="14" height="4.4" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="11.6" cy="11" r="1.5"/></svg></button>
-    <button class="sb clk" id="clk" aria-label="Thông báo và widget"><span class="opt" id="cdate"></span><span id="ctime"></span></button>
+    <button class="sb clk" id="clk" aria-label="Thông báo và widget"><span id="ctime"></span><span class="opt" id="cdate"></span></button>
   </div>
 
   <div class="pop" id="dd" hidden></div>
@@ -1991,6 +1992,7 @@ const themeMode=()=>lsGet('dm-theme')||'auto';
 function setWall(n){lsSet('dm-photowall','');stage.style.backgroundImage='';stage.style.backgroundSize='';stage.style.backgroundPosition='';lsSet('dm-syswall','');stage.dataset.wall=n;lsSet('dm-wall',n);bus.emit('ui')}
 function applyPrefs(){
   $('#wifi').classList.toggle('off',!pref('wifi',true));
+  $('#bt').hidden=!pref('bt',true); /* chỉ hiện nút Bluetooth khi đang bật */
   $('#dim').style.opacity=((100-pref('bright',100))/100*.75).toFixed(2);
   dock.classList.toggle('hide',!!pref('hideDock',false));
   {const gb=!!pref('gbar',true), was=stage.classList.contains('gbon'); stage.classList.toggle('gbon',gb); $('#gbar').hidden=!gb; if(gb!==was&&typeof renderDesk==='function')try{renderDesk()}catch(e){}}
@@ -3136,6 +3138,7 @@ function buildMenu(key){
     help:[{t:'Tìm kiếm với Spotlight',k:'Ctrl Space',fn:openSpot}],
     battery:[{t:'Pin: '+Math.round(BAT.level*100)+'%',dis:true},{t:BAT.charging?'Đang sạc':(BAT.real?'Đang dùng pin':'Giá trị mẫu'),dis:true},'-',{t:'Cài đặt Pin…',fn:()=>openApp('settings',{pane:'bt2'})}],
     wifi:[{t:pref('wifi',true)?'Tắt Wi-Fi':'Bật Wi-Fi',fn:()=>setPref('wifi',!pref('wifi',true))},{t:!pref('wifi',true)?'Wi-Fi đã tắt':(navigator.onLine?'Đã kết nối':'Không có kết nối'),dis:true},'-',{t:'Cài đặt Wi-Fi…',fn:()=>openApp('settings',{pane:'wifi'})}],
+    bt:[{t:'Tắt Bluetooth',fn:()=>$('#t-bt').click()},{t:'Bluetooth đang bật',dis:true},'-',{t:'Cài đặt Bluetooth…',fn:()=>openApp('settings',{pane:'bt'})}],
     music:[{t:MUS.idx>=0?TRK[MUS.idx].t:'Chưa phát',dis:true},{t:MUS.playing?'Tạm dừng':'Phát',fn:musToggle},{t:'Bài sau',fn:musNext,dis:MUS.idx<0},{t:'Bài trước',fn:musPrev,dis:MUS.idx<0},'-',{t:'Mở Nhạc',fn:()=>openApp('music')}]
   };
   return M[key]||[];
@@ -4483,7 +4486,7 @@ if(window.AndroidLauncher){(function(){
   window.nativeMenuClick=function(id){
     try{
       if(id==='mc'){enterMC();return} if(id==='lp'){openLP();return}
-      const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',splitb:'#splitb',ramb:'#ramb',batt:'#batt',wifi:'#wifi',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
+      const q={logo:'#menubar [data-m="apple"]',app:'#appname',ontime:'#ontime',splitb:'#splitb',ramb:'#ramb',batt:'#batt',wifi:'#wifi',bt:'#bt',srch:'#srch',ccb:'#ccb',clk:'#clk'}[id];
       const el=q&&document.querySelector(q); if(el)el.click();
     }catch(e){}
   };
