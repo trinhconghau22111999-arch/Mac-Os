@@ -133,6 +133,14 @@ public class MainActivity extends Activity {
     private final Runnable reapTask = new Runnable() { public void run() { reapIdleExt(); reaper.postDelayed(this, 60000); } };
     /** Gmail / Drive / Zalo / Facebook web: giao diện máy tính. */
     private static final String UA_DESK = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+    /** UA máy tính nhưng mang đúng số phiên bản Chrome thật của WebView trên máy (không khai man phiên bản, bỏ "; wv"), để Google chấp nhận đăng nhập. */
+    private String cleanDeskUa() {
+        try {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("Chrome/[\\d.]+").matcher(WebSettings.getDefaultUserAgent(this));
+            if (m.find()) return "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " + m.group() + " Safari/537.36";
+        } catch (Exception e) { }
+        return UA_DESK;
+    }
     private static final String UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
 
     /** Đẩy sự kiện từ service nền vào giao diện HTML. */
@@ -1201,9 +1209,9 @@ public class MainActivity extends Activity {
                     }
                 } catch (Exception e) { }
             } else {
-                s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms || om) ? UA_DESK : UA);
-                if (ms) {
-                    s.setJavaScriptCanOpenWindowsAutomatically(true);   // đăng nhập Microsoft có thể mở cửa sổ phụ
+                s.setUserAgentString(om ? cleanDeskUa() : ("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms) ? UA_DESK : UA);
+                if (ms || om) { /* Microsoft / Ổ mềm (Google): bỏ X-Requested-With để trang đăng nhập không coi là "ứng dụng không an toàn" */
+                    s.setJavaScriptCanOpenWindowsAutomatically(true);   // đăng nhập Microsoft/Google có thể mở cửa sổ phụ
                     try {
                         if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST))
                             androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, new java.util.HashSet<String>());
