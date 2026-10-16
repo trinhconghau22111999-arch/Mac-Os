@@ -7,7 +7,25 @@ import org.json.JSONObject;
 
 /** Chuyển thông báo của các ứng dụng khác vào Trung tâm thông báo. */
 public class NotifService extends NotificationListenerService {
-    @Override public void onNotificationPosted(StatusBarNotification sbn) {
+    /* Thông báo gần đây, để menu gốc "Thông báo" trên thanh menu nổi hiện được mà không cần mở Desktop Mini */
+    private static final java.util.ArrayList<String[]> RECENT = new java.util.ArrayList<String[]>();
+    static synchronized void addRecent(String app, String pkg, String t, String b) {
+        for (int i = RECENT.size() - 1; i >= 0; i--) { String[] r = RECENT.get(i); if (r[1].equals(pkg) && r[2].equals(t) && r[3].equals(b)) RECENT.remove(i); }
+        RECENT.add(0, new String[]{app, pkg, t, b});
+        while (RECENT.size() > 20) RECENT.remove(RECENT.size() - 1);
+    }
+    public static synchronized java.util.List<String[]> recent() { return new java.util.ArrayList<String[]>(RECENT); }
+    public static synchronized void clearRecent() { RECENT.clear(); }
+
+    @Override public void onListenerConnected() {
+        try {
+            StatusBarNotification[] a = getActiveNotifications();
+            if (a != null) for (StatusBarNotification s : a) record(s, false);
+        } catch (Exception e) { }
+    }
+    @Override public void onNotificationPosted(StatusBarNotification sbn) { record(sbn, true); }
+
+    private void record(StatusBarNotification sbn, boolean push) {
         try {
             String pkg = sbn.getPackageName();
             if (pkg.equals(getPackageName())) return;
@@ -19,7 +37,8 @@ public class NotifService extends NotificationListenerService {
             o.put("app", getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(pkg, 0)).toString());
             o.put("pkg", pkg); o.put("title", t == null ? "" : t.toString()); o.put("body", b == null ? "" : b.toString());
             o.put("icon", MainActivity.iconOf(this, pkg));
-            MainActivity.push("nativeNotif", o.toString());
+            addRecent(o.getString("app"), pkg, o.getString("title"), o.getString("body"));
+            if (push) MainActivity.push("nativeNotif", o.toString());
         } catch (Exception e) { }
     }
 }

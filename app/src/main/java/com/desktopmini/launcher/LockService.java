@@ -581,9 +581,40 @@ public class LockService extends AccessibilityService {
             } }));
             L.add(pItem("Khóa màn hình", new Runnable() { public void run() { lockPhone(); } }));
         } else if ("clk".equals(id)) {
+            /* Thông báo + widget làm thẳng bằng menu gốc, không nhảy về Desktop Mini */
             L.add(pText(new java.text.SimpleDateFormat("EEEE, dd/MM/yyyy", new java.util.Locale("vi", "VN")).format(new java.util.Date())));
+            int b = topBar == null ? -1 : topBar.battery();
+            L.add(pText("Pin: " + (b >= 0 ? b + "%" : "không rõ") + "   ·   " + (topBar == null ? "" : topBar.ram())));
+            long om = ScreenTime.todayMs(this) / 60000;
+            L.add(pText("Màn hình đã bật: " + (om / 60 > 0 ? om / 60 + " giờ " : "") + (om % 60) + " phút"));
             L.add(pSep());
-            L.add(pItem("Mở thông báo và widget…", new Runnable() { public void run() { forward("clk"); } }));
+            L.add(pText("Thông báo"));
+            if (!notifAccessOn()) {
+                L.add(pItem("Cấp quyền đọc thông báo…", new Runnable() { public void run() { startSafe(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")); } }));
+            } else {
+                java.util.List<String[]> rc = NotifService.recent();
+                if (rc.isEmpty()) L.add(pText("Không có thông báo mới"));
+                int n = 0;
+                for (final String[] r : rc) {
+                    if (n++ >= 7) break;
+                    String body = r[2].length() > 0 ? r[2] : r[3];
+                    String lb = r[0] + ": " + body;
+                    if (lb.length() > 40) lb = lb.substring(0, 39) + "…";
+                    L.add(pItem(lb, new Runnable() { public void run() {
+                        Intent li = getPackageManager().getLaunchIntentForPackage(r[1]);
+                        if (li != null) startSafe(li);
+                    } }));
+                }
+                if (!rc.isEmpty()) {
+                    L.add(pSep());
+                    L.add(pItem("Xóa danh sách thông báo", new Runnable() { public void run() { NotifService.clearRecent(); } }));
+                }
+            }
+            L.add(pSep());
+            L.add(pItem("Cài đặt thông báo…", new Runnable() { public void run() { startSafe(new Intent("android.settings.NOTIFICATION_SETTINGS")); } }));
+        } else if ("srch".equals(id)) {
+            showSpot();
+            return true;
         } else if ("splitb".equals(id)) {
             dismissPop();
             try { performGlobalAction(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN); } catch (Throwable t) { }
@@ -612,6 +643,160 @@ public class LockService extends AccessibilityService {
         lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = topLp.height;
         try { wm.addView(pv, lp); pop = pv; popId = id; } catch (Exception e) { pop = null; popId = ""; return false; }
         return true;
+    }
+
+
+    private boolean notifAccessOn() {
+        try {
+            String f = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+            return f != null && f.contains(getPackageName());
+        } catch (Throwable t) { return false; }
+    }
+
+    /* ---------------- Tìm kiếm (Spotlight) gốc: ô nhập + kết quả ứng dụng/tệp, mở thẳng trên app đang dùng ---------------- */
+    private android.widget.FrameLayout spot;
+    private int spotSeq = 0;
+    private void dismissSpot() {
+        spotSeq++;
+        if (spot != null) {
+            try { InputMethodManager im = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE); im.hideSoftInputFromWindow(spot.getWindowToken(), 0); } catch (Throwable t) { }
+            try { wm.removeView(spot); } catch (Exception e) { }
+            spot = null;
+        }
+    }
+    private android.graphics.drawable.GradientDrawable round(int color, float rdp) {
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setColor(color); g.setCornerRadius(dp(rdp)); return g;
+    }
+    private void spotRow(android.widget.LinearLayout list, String title, String sub, final Runnable act) {
+        android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+        row.setOrientation(android.widget.LinearLayout.VERTICAL);
+        row.setPadding(dp(14), dp(7), dp(14), dp(7));
+        android.widget.TextView a = new android.widget.TextView(this);
+        a.setText(title); a.setTextColor(0xFFFFFFFF); a.setTextSize(14); a.setSingleLine(true); a.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        row.addView(a);
+        if (sub != null && sub.length() > 0) {
+            android.widget.TextView b = new android.widget.TextView(this);
+            b.setText(sub); b.setTextColor(0x99FFFFFF); b.setTextSize(11); b.setSingleLine(true); b.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+            row.addView(b);
+        }
+        row.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { dismissSpot(); try { act.run(); } catch (Throwable t) { } } });
+        list.addView(row, new android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
+    }
+    private void spotHint(android.widget.LinearLayout list, String m) {
+        android.widget.TextView t = new android.widget.TextView(this);
+        t.setText(m); t.setTextColor(0x88FFFFFF); t.setTextSize(13); t.setPadding(dp(14), dp(10), dp(14), dp(10));
+        list.addView(t);
+    }
+    private void openFileNative(String path) {
+        try {
+            java.io.File f = new java.io.File(path);
+            android.net.Uri u = androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".files", f);
+            String ext = android.webkit.MimeTypeMap.getFileExtensionFromUrl(f.getName().replace(" ", "_"));
+            String mt = ext == null ? null : android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase(java.util.Locale.ROOT));
+            Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mt == null ? "*/*" : mt).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startSafe(i);
+        } catch (Throwable t) { }
+    }
+    /** Chạy ở luồng nền: tên ứng dụng khớp + tệp khớp trong MediaStore. */
+    private void spotSearch(final String q, final android.widget.LinearLayout list, final int seq) {
+        new Thread(new Runnable() { public void run() {
+            final java.util.ArrayList<String[]> apps = new java.util.ArrayList<String[]>();
+            final java.util.ArrayList<String[]> files = new java.util.ArrayList<String[]>();
+            String lq = q.toLowerCase(java.util.Locale.ROOT);
+            try {
+                PackageManager pm = getPackageManager();
+                Intent mi = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+                for (android.content.pm.ResolveInfo ri : pm.queryIntentActivities(mi, 0)) {
+                    String lb = ri.loadLabel(pm).toString();
+                    if (lb.toLowerCase(java.util.Locale.ROOT).contains(lq) && apps.size() < 6) apps.add(new String[]{lb, ri.activityInfo.packageName});
+                }
+            } catch (Throwable t) { }
+            if (q.length() >= 2) {
+                try {
+                    String like = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+                    android.database.Cursor c = getContentResolver().query(android.provider.MediaStore.Files.getContentUri("external"),
+                        new String[]{android.provider.MediaStore.MediaColumns.DISPLAY_NAME, android.provider.MediaStore.MediaColumns.DATA},
+                        android.provider.MediaStore.MediaColumns.DISPLAY_NAME + " LIKE ? ESCAPE '\\' AND " + android.provider.MediaStore.MediaColumns.MIME_TYPE + " IS NOT NULL",
+                        new String[]{like}, android.provider.MediaStore.MediaColumns.DATE_MODIFIED + " DESC");
+                    if (c != null) {
+                        try {
+                            while (c.moveToNext() && files.size() < 15) {
+                                String path = c.getString(1);
+                                if (path == null || path.contains("/.") || path.contains("/Android/data/") || path.contains("/Android/obb/")) continue;
+                                if (new java.io.File(path).isFile()) files.add(new String[]{c.getString(0), path});
+                            }
+                        } finally { c.close(); }
+                    }
+                } catch (Throwable t) { }
+            }
+            h.post(new Runnable() { public void run() {
+                if (seq != spotSeq || spot == null) return;
+                list.removeAllViews();
+                for (final String[] a : apps) spotRow(list, a[0], "Ứng dụng", new Runnable() { public void run() {
+                    Intent li = getPackageManager().getLaunchIntentForPackage(a[1]); if (li != null) startSafe(li);
+                } });
+                for (final String[] f : files) spotRow(list, f[0], f[1], new Runnable() { public void run() { openFileNative(f[1]); } });
+                if (apps.isEmpty() && files.isEmpty()) spotHint(list, "Không tìm thấy kết quả");
+            } });
+        } }).start();
+    }
+    private void showSpot() {
+        if (wm == null) return;
+        dismissPop(); dismissSpot();
+        final Point sz = realSize();
+        final android.widget.FrameLayout root = new android.widget.FrameLayout(this) {
+            @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+                if (e.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK) { if (e.getAction() == android.view.KeyEvent.ACTION_UP) dismissSpot(); return true; }
+                return super.dispatchKeyEvent(e);
+            }
+        };
+        root.setBackgroundColor(0x66000000);
+        root.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { dismissSpot(); } });
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        box.setBackground(round(0xF2232326, 14));
+        box.setPadding(dp(10), dp(10), dp(10), dp(8));
+        box.setClickable(true);
+        final android.widget.EditText et = new android.widget.EditText(this);
+        et.setHint("Tìm ứng dụng, tệp…"); et.setHintTextColor(0x88FFFFFF); et.setTextColor(0xFFFFFFFF); et.setTextSize(16);
+        et.setSingleLine(true); et.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        et.setBackground(round(0x22FFFFFF, 10)); et.setPadding(dp(12), dp(10), dp(12), dp(10));
+        box.addView(et, new android.widget.LinearLayout.LayoutParams(-1, -2));
+        final android.widget.LinearLayout list = new android.widget.LinearLayout(this);
+        list.setOrientation(android.widget.LinearLayout.VERTICAL);
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        sv.addView(list);
+        int svh = Math.min(dp(320), Math.round(sz.y * 0.38f));
+        android.widget.LinearLayout.LayoutParams slp = new android.widget.LinearLayout.LayoutParams(-1, svh);
+        slp.topMargin = dp(6);
+        box.addView(sv, slp);
+        spotHint(list, "Gõ để tìm ứng dụng và tệp trong máy");
+        int bw = Math.min(sz.x - dp(20), dp(560));
+        android.widget.FrameLayout.LayoutParams blp = new android.widget.FrameLayout.LayoutParams(bw, -2);
+        blp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        blp.topMargin = (topLp == null ? statusBarHeight() : topLp.height) + dp(8);
+        root.addView(box, blp);
+        et.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+            public void onTextChanged(CharSequence s, int a, int b, int c) { }
+            public void afterTextChanged(android.text.Editable e) {
+                final String q = e.toString().trim();
+                final int seq = ++spotSeq;
+                if (q.length() == 0) { list.removeAllViews(); spotHint(list, "Gõ để tìm ứng dụng và tệp trong máy"); return; }
+                h.postDelayed(new Runnable() { public void run() { if (seq == spotSeq && spot != null) spotSearch(q, list, seq); } }, 250);
+            }
+        });
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(sz.x, sz.y,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = 0;
+        lp.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING | WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE;
+        try { wm.addView(root, lp); spot = root; } catch (Exception e) { spot = null; return; }
+        h.postDelayed(new Runnable() { public void run() {
+            try { et.requestFocus(); ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).showSoftInput(et, InputMethodManager.SHOW_IMPLICIT); } catch (Throwable t) { }
+        } }, 150);
     }
 
     private class PopView extends View {
@@ -813,7 +998,7 @@ public class LockService extends AccessibilityService {
         catch (Exception e) { topBar = null; topLp = null; }
     }
     private void removeTopBar() {
-        dismissPop(); h.removeCallbacks(topTick); topHidden = false;
+        dismissPop(); dismissSpot(); h.removeCallbacks(topTick); topHidden = false;
         if (topBar != null) { try { wm.removeView(topBar); } catch (Exception e) { } topBar = null; topLp = null; }
     }
     /** Ẩn (chỉ còn dải 1dp, không nhận chạm) khi app ngoài toàn màn hình; hiện lại đủ chiều cao khi hết. */
