@@ -158,6 +158,7 @@ public class LockService extends AccessibilityService {
         dismissPop();
         updateTopBar();
         updateDockBar();
+        applyDockBase(); /* ở app ngoài: Dock cố định 53%; ở Desktop Mini: theo cỡ người dùng chỉnh */
     }
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
     private Point realSize() {
@@ -851,6 +852,11 @@ public class LockService extends AccessibilityService {
     private WindowManager.LayoutParams dockLp;
     private static final int DOCK_GAP_DP = 0;
     private static volatile int dockBase = 46;
+    /** Cỡ người dùng chỉnh (chỉ áp dụng khi đang ở Desktop Mini). */
+    private static volatile int userDockBase = 46;
+    /** Khi đang mở app khác, Dock nổi bắt buộc cố định 53% (53% của 45px ≈ 24px), không theo cỡ người dùng. */
+    private static final int EXT_DOCK_BASE = 24;
+    private int effectiveDockBase() { return launcherFront ? userDockBase : EXT_DOCK_BASE; }
     private static volatile String dockIcs = "round";
     private static volatile boolean dockMag = true, dockAutoHide = false;
     private long dockPeekUntil = 0;
@@ -961,10 +967,12 @@ public class LockService extends AccessibilityService {
     }
     public static boolean isRunning() { return inst != null; }
     public static void setDockBase(Context c, int base) {
-        dockBase = Math.max(18, Math.min(80, base));
+        userDockBase = Math.max(18, Math.min(80, base));
+        dockBase = userDockBase;
         final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.applyDockBase(); } });
     }
     private void applyDockBase() {
+        dockBase = effectiveDockBase();
         if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setBase&&setBase(" + dockBase + ");window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ")", null);
         relayoutDock();
     }
@@ -1090,6 +1098,7 @@ public class LockService extends AccessibilityService {
     }
     private void pushDockData() {
         if (dockWeb == null || !dockReady) return;
+        dockBase = effectiveDockBase();
         /* mở rộng cửa sổ hết cỡ trước để viên thuốc đo đúng bề rộng tự nhiên, rồi JS gọi size() để thu lại */
         if (dockShown && dockLp != null && dockView != null) { try { dockLp.width = realSize().x; wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
         String d = getSharedPreferences(PK, 0).getString("data", "[]");
