@@ -143,6 +143,30 @@ public class LauncherBridge {
                 WindowManager.LayoutParams lp = act.getWindow().getAttributes(); lp.screenBrightness = Math.max(0.004f, v / 255f); act.getWindow().setAttributes(lp);
             }});
         }
+        /** Có bàn phím thật (USB/Bluetooth/bàn phím rời) đang nối không? Dùng để không bật bàn phím ảo khi đã có bàn phím thật. */
+        @JavascriptInterface public boolean hasHardKeyboard() {
+            try {
+                int[] ids = android.view.InputDevice.getDeviceIds();
+                for (int id : ids) {
+                    android.view.InputDevice d = android.view.InputDevice.getDevice(id);
+                    if (d == null || d.isVirtual()) continue;
+                    if ((d.getSources() & android.view.InputDevice.SOURCE_KEYBOARD) == android.view.InputDevice.SOURCE_KEYBOARD
+                        && d.getKeyboardType() == android.view.InputDevice.KEYBOARD_TYPE_ALPHABETIC) return true;
+                }
+            } catch (Throwable t) { }
+            try { return act.getResources().getConfiguration().keyboard != android.content.res.Configuration.KEYBOARD_NOKEYS
+                && act.getResources().getConfiguration().hardKeyboardHidden == android.content.res.Configuration.HARDKEYBOARDHIDDEN_NO; }
+            catch (Throwable t) { return false; }
+        }
+        /** Ẩn bàn phím ảo ngay (khi đã có bàn phím thật). */
+        @JavascriptInterface public void hideKeyboard() {
+            act.runOnUiThread(new Runnable() { public void run() {
+                try {
+                    android.view.inputmethod.InputMethodManager m = (android.view.inputmethod.InputMethodManager) act.getSystemService(Context.INPUT_METHOD_SERVICE);
+                    m.hideSoftInputFromWindow(act.getWindow().getDecorView().getWindowToken(), 0);
+                } catch (Throwable t) { }
+            }});
+        }
         @JavascriptInterface public void openWallpaper() {
             act.go(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Hình nền"));
         }
