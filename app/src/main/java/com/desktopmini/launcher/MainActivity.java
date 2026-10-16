@@ -238,6 +238,20 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
+        if (Build.VERSION.SDK_INT >= 30) {
+            /* Không để hệ thống tự chừa chỗ cho thanh trạng thái/điều hướng: nếu không, mỗi lần thanh hiện thoáng qua (vuốt mép, quay lại app...)
+               giao diện bị đẩy xuống ("giật"), có lúc kẹt lại một khoảng trống bằng thanh menu ở trên cùng. Chỉ chừa chỗ cho bàn phím. */
+            getWindow().setDecorFitsSystemWindows(false);
+            root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @Override public WindowInsets onApplyWindowInsets(View v, WindowInsets in) {
+                    int ime = in.getInsets(WindowInsets.Type.ime()).bottom;
+                    if (v.getPaddingBottom() != ime) v.setPadding(0, 0, 0, ime);
+                    /* Vuốt từ mép trên/dưới làm thanh hệ thống hiện ra: ẩn lại ngay để không kéo được thanh hệ thống */
+                    if (!imeUp && (in.isVisible(WindowInsets.Type.statusBars()) || in.isVisible(WindowInsets.Type.navigationBars()))) rehideBars();
+                    return WindowInsets.CONSUMED;
+                }
+            });
+        }
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -407,6 +421,14 @@ public class MainActivity extends Activity {
                 if (up != imeUp) { imeUp = up; if (!up) immersive(); }
             }
         });
+    }
+
+    private boolean rehidePending = false;
+    /** Thanh hệ thống vừa hiện (do vuốt từ mép): ẩn lại ngay ở vòng lặp giao diện kế tiếp. */
+    private void rehideBars() {
+        if (rehidePending) return;
+        rehidePending = true;
+        root.post(new Runnable() { public void run() { rehidePending = false; if (inFg) immersive(); } });
     }
 
     private void immersive() {
