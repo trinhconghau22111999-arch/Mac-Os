@@ -364,6 +364,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         if (browserHost != null) { try { browserHost.destroy(); } catch (Exception e) { } browserHost = null; }
+        aiCancel();
         stopMediaWatch();
         reaper.removeCallbacks(reapTask); reaper.removeCallbacks(idleTask); reaper.removeCallbacks(appsRefresh);
         try { unregisterReceiver(pkgRx); } catch (Exception e) { }
@@ -542,6 +543,11 @@ public class MainActivity extends Activity {
         if (c == PERM_VOICE) {
             if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) launchVoiceSearch();
             else android.widget.Toast.makeText(this, "Cần cấp quyền micro để dùng tìm kiếm bằng giọng nói", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (c == PERM_AI) {
+            if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) aiListen();
+            else android.widget.Toast.makeText(this, "Cần cấp quyền micro để ra lệnh bằng giọng nói", android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
         if (c == 77) {
@@ -836,6 +842,25 @@ public class MainActivity extends Activity {
         catch (Exception e) { android.widget.Toast.makeText(this, "Máy chưa có ứng dụng nhận dạng giọng nói (cần ứng dụng Google). Hãy cài hoặc cập nhật Google từ CH Play", android.widget.Toast.LENGTH_LONG).show(); }
     }
 
+    /* ================= Nút AI giọng nói (góc trái dưới) ================= */
+    private VoiceAi aiVoice;
+    private static final int PERM_AI = 79;
+    boolean aiAvailable() { if (aiVoice == null) aiVoice = new VoiceAi(this); return aiVoice.available(); }
+    /** Bắt đầu nghe lệnh: xin quyền micro nếu chưa có; kết quả đẩy về giao diện qua window.aiVoice(...). */
+    void aiListen() {
+        if (android.os.Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            askingRuntime = true;
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERM_AI);
+            push("aiVoice", "{\"t\":\"error\",\"code\":" + android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS + ",\"ask\":true}");
+            return;
+        }
+        if (aiVoice == null) aiVoice = new VoiceAi(this);
+        if (!aiVoice.available()) { push("aiVoice", "{\"t\":\"error\",\"code\":-1}"); return; }
+        aiVoice.start();
+    }
+    void aiStop() { if (aiVoice != null) aiVoice.stop(); }
+    void aiCancel() { if (aiVoice != null) aiVoice.cancel(); }
+
     /** Mở app con "YouTube". */
     void openYt() {
         Intent i = new Intent(this, YouTubeActivity.class);
@@ -913,63 +938,6 @@ public class MainActivity extends Activity {
             getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v2);
         } catch (Exception e) { sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f))); }
         return true;
-    }
-
-    /* ================= Tìm tệp trong máy (thanh tìm kiếm vuông) ================= */
-    JSONArray findFiles(String q) {
-        JSONArray arr = new JSONArray();
-        q = q == null ? "" : q.trim();
-        if (q.length() < 2) return arr;
-        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-            && !(Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager())
-            && !(Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED)) return arr;
-        java.util.HashSet<String> seen = new java.util.HashSet<String>();
-        try {
-            String like = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
-            Cursor c = getContentResolver().query(MediaStore.Files.getContentUri("external"),
-                new String[]{MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED},
-                MediaStore.MediaColumns.DISPLAY_NAME + " LIKE ? ESCAPE '\\' AND " + MediaStore.MediaColumns.MIME_TYPE + " IS NOT NULL",
-                new String[]{like}, MediaStore.MediaColumns.DATE_MODIFIED + " DESC");
-            if (c != null) {
-                try {
-                    while (c.moveToNext() && arr.length() < 30) {
-                        String path = c.getString(1);
-                        if (path == null || path.contains("/.") || path.contains("/Android/data/") || path.contains("/Android/obb/") || !seen.add(path)) continue;
-                        File f = new File(path);
-                        if (!f.isFile()) continue;
-                        JSONObject o = new JSONObject();
-                        o.put("n", c.getString(0)); o.put("p", path); o.put("s", c.getLong(2)); o.put("t", c.getLong(3));
-                        arr.put(o);
-                    }
-                } finally { c.close(); }
-            }
-        } catch (Exception e) { }
-        /* MediaStore chưa lập chỉ mục tệp nào khớp: duyệt thư mục (chỉ khi được cấp quyền mọi tệp) */
-        if (arr.length() == 0 && (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager())) {
-            try {
-                final String lq = q.toLowerCase(java.util.Locale.ROOT);
-                java.util.ArrayDeque<File> dq = new java.util.ArrayDeque<File>();
-                java.util.ArrayDeque<Integer> dp = new java.util.ArrayDeque<Integer>();
-                dq.add(Environment.getExternalStorageDirectory()); dp.add(0);
-                int visited = 0; long end = System.currentTimeMillis() + 3500;
-                while (!dq.isEmpty() && arr.length() < 30 && visited < 15000 && System.currentTimeMillis() < end) {
-                    File d = dq.poll(); int depth = dp.poll();
-                    File[] l = d.listFiles(); if (l == null) continue;
-                    for (File f : l) {
-                        visited++;
-                        String nm = f.getName();
-                        if (nm.startsWith(".")) continue;
-                        if (f.isDirectory()) { if (depth < 6 && !nm.equals("Android")) { dq.add(f); dp.add(depth + 1); } }
-                        else if (nm.toLowerCase(java.util.Locale.ROOT).contains(lq) && arr.length() < 30) {
-                            JSONObject o = new JSONObject();
-                            o.put("n", nm); o.put("p", f.getAbsolutePath()); o.put("s", f.length()); o.put("t", f.lastModified() / 1000);
-                            arr.put(o);
-                        }
-                    }
-                }
-            } catch (Exception e) { }
-        }
-        return arr;
     }
 
     /** Mở app "Ổ mềm" = Drive 3 hồ sơ (màn hình chọn Ảnh / Video / Tệp). */

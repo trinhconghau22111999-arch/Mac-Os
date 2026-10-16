@@ -702,15 +702,14 @@ public class LauncherBridge {
         }
         /** Nút chụp ảnh màn hình: chụp xong gọi window.shotDone(true/false). */
         @JavascriptInterface public void takeScreenshot() { act.runOnUiThread(new Runnable() { public void run() { act.captureScreen(); } }); }
-        /** Tìm tệp theo tên trong máy; kết quả (JSON) trả về qua window.fsCb(id, json). */
-        @JavascriptInterface public void searchFiles(final String q, final int cb) {
-            new Thread(new Runnable() { public void run() {
-                final String json = act.findFiles(q).toString();
-                act.runOnUiThread(new Runnable() { public void run() {
-                    if (act.web != null) act.web.evaluateJavascript("window.fsCb&&window.fsCb(" + cb + "," + JSONObject.quote(json) + ")", null);
-                } });
-            } }).start();
-        }
+        /** Nút AI: có dịch vụ nhận dạng giọng nói trên máy không. */
+        @JavascriptInterface public boolean aiAvailable() { return act.aiAvailable(); }
+        /** Nút AI: bắt đầu nghe lệnh; kết quả / mức âm / lỗi trả về qua window.aiVoice(obj). */
+        @JavascriptInterface public void aiListen() { act.runOnUiThread(new Runnable() { public void run() { act.aiListen(); } }); }
+        /** Nút AI: nói xong sớm (nhận dạng luôn phần đã nói). */
+        @JavascriptInterface public void aiStop() { act.runOnUiThread(new Runnable() { public void run() { act.aiStop(); } }); }
+        /** Nút AI: hủy nghe, không trả kết quả. */
+        @JavascriptInterface public void aiCancel() { act.runOnUiThread(new Runnable() { public void run() { act.aiCancel(); } }); }
         /** Mở app "Ổ mềm" (Drive 3 hồ sơ: Ảnh / Video / Tệp) ở màn hình riêng; thoát thì quay về Desktop Mini. */
         @JavascriptInterface public void openDrive3() { act.runOnUiThread(new Runnable() { public void run() { act.openDriveHome(); } }); }
         /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */

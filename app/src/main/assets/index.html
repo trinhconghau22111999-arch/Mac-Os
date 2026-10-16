@@ -802,30 +802,29 @@ a.btn.pri{color:#fff}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
 /* Nút tìm kiếm (trái) và nút chụp ảnh màn hình (phải): vuông, cùng cỡ và cùng hàng với icon Dock; Dock chừa chỗ hai bên nên không bao giờ che chúng */
-.qs,.qshot{position:absolute;bottom:17px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
+.aib,.qshot{position:absolute;bottom:17px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
 .qshot{right:12px;width:var(--base);border:0;padding:0;display:grid;place-items:center;transition:transform .12s ease-out}
 .qshot:active{transform:scale(.92)}
 .qshot svg{width:58%;height:58%}
-.qs{left:12px;width:var(--base);display:flex;align-items:center;transition:width .22s ease}
-.qs.open{width:min(380px,calc(100% - 24px));z-index:9;border-radius:calc(var(--base)*.3);background:var(--win)}
-.qsb{flex:none;width:var(--base);height:100%;border:0;padding:0;background:none;color:inherit;display:grid;place-items:center;border-radius:inherit}
-.qsb svg{width:56%;height:56%}
-.qsi,.qsx{display:none}
-.qs.open .qsi{display:block;flex:1;min-width:0;height:100%;border:0;outline:0;background:none;color:inherit;font:inherit;font-size:15px;padding:0 4px 0 0}
-.qs.open .qsx{display:grid;place-items:center;flex:none;width:calc(var(--base)*.7);height:100%;border:0;background:none;color:inherit;font-size:22px;opacity:.7}
-.qsres{position:absolute;left:0;right:0;bottom:calc(100% + 8px);max-height:min(52vh,420px);overflow-y:auto;padding:6px;border-radius:18px;background:var(--win);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);-webkit-overflow-scrolling:touch}
-.qsres[hidden]{display:none}
-.qsh{padding:6px 10px 3px;font-size:11px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.04em}
-.qsr{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:12px;background:none;color:inherit;text-align:left;font:inherit}
-.qsr:hover,.qsr:active{background:var(--field)}
-.qsr .ic,.qsr .qsa,.qsr .qsf{flex:none;width:34px;height:34px;border-radius:22.5%}
-.qsr .qsa{object-fit:cover}
-.qsr .qsf{display:grid;place-items:center;background:#6b7280;color:#fff;font-size:10px;font-weight:700;overflow:hidden}
-.qsr span.qst{flex:1;min-width:0;display:flex;flex-direction:column}
-.qsr b{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.qsr small{font-size:11px;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.qsn{padding:10px;font-size:13px;opacity:.7}
-.stage.shotting .qs,.stage.shotting .qshot{visibility:hidden}
+.aib{left:12px;width:var(--base);border:0;padding:0;display:grid;place-items:center;transition:transform .12s ease-out,background .2s}
+.aib:active{transform:scale(.92)}
+.aib svg{width:58%;height:58%}
+.aib.on{background:linear-gradient(135deg,#0a84ff,#bf5af2);color:#fff;animation:aipulse 1.3s ease-in-out infinite}
+@keyframes aipulse{0%,100%{box-shadow:0 0 0 0 rgba(10,132,255,.55),0 6px 16px rgba(0,0,0,.28)}50%{box-shadow:0 0 0 9px rgba(10,132,255,0),0 6px 16px rgba(0,0,0,.28)}}
+.lite .aib.on{animation:none}
+.aip{position:absolute;left:12px;bottom:calc(17px + var(--base) + 10px);z-index:9;width:min(340px,calc(100% - 24px));max-height:min(60vh,420px);overflow-y:auto;padding:12px 38px 12px 14px;border-radius:18px;background:var(--win);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3)}
+.aip[hidden]{display:none}
+.aiH{font-size:11px;font-weight:700;opacity:.6;letter-spacing:.04em}
+.ait{margin-top:4px;font-size:16px;font-weight:600;line-height:1.35;word-break:break-word}
+.aim{display:flex;align-items:flex-end;gap:3px;height:20px;margin-top:8px}
+.aim[hidden]{display:none}
+.aim i{flex:1;height:100%;border-radius:2px;background:#0a84ff;opacity:.22;transition:opacity .08s}
+.ail{margin-top:6px;font-size:12px;opacity:.65}
+.ait2{margin-top:8px;font-size:11.5px;line-height:1.45;opacity:.65}
+.aih{margin:6px 0 0;padding:0 0 0 16px;font-size:12.5px;line-height:1.55}
+.aih[hidden],.ait2[hidden],.ail[hidden]{display:none}
+.aix{position:absolute;top:6px;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:none;color:inherit;font-size:20px;line-height:1;opacity:.6}
+.stage.shotting .aib,.stage.shotting .aip,.stage.shotting .qshot{visibility:hidden}
 .shotflash{position:absolute;inset:0;z-index:45;background:#fff;opacity:0;pointer-events:none;animation:shotfl .35s ease-out}
 @keyframes shotfl{0%{opacity:.85}100%{opacity:0}}
 @media (min-width:561px){.dock{touch-action:none}}
@@ -1094,11 +1093,15 @@ body.native .stage{border-radius:0;min-height:0}
 
   <nav class="dock" id="dock" aria-label="Dock"></nav>
   <div class="hotz" id="hotz"></div>
-  <div class="qs" id="qs">
-    <button class="qsb" id="qsb" type="button" aria-label="Tìm kiếm ứng dụng và tệp trong máy" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 15l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <input class="qsi" id="qsi" type="text" placeholder="Tìm ứng dụng, tệp trong máy" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Tìm ứng dụng và tệp trong máy">
-    <button class="qsx" id="qsx" type="button" aria-label="Đóng tìm kiếm">×</button>
-    <div class="qsres" id="qsres" hidden></div>
+  <button class="aib" id="aib" type="button" aria-label="AI giọng nói: bấm rồi nói lệnh" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.5 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0h-2a7 7 0 0 0 6 6.9V22h2v-3.1A7 7 0 0 0 17.5 12zM19 1.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg></button>
+  <div class="aip" id="aip" hidden role="status" aria-live="polite">
+    <button class="aix" id="aix" type="button" aria-label="Đóng">×</button>
+    <div class="aiH">AI GIỌNG NÓI</div>
+    <div class="ait" id="ait"></div>
+    <div class="aim" id="aim" hidden></div>
+    <div class="ail" id="ail" hidden></div>
+    <ul class="aih" id="aih" hidden></ul>
+    <div class="ait2" id="ait2" hidden></div>
   </div>
   <button class="qshot" id="qshot" type="button" aria-label="Chụp ảnh màn hình"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/></svg></button>
 
@@ -1344,7 +1347,7 @@ const APPS={
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
   browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.gkShow)?buildGecko(b,w,a):buildBrowser(b,w,a)},
   webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser?buildWebApp(b,w,'webandr','https://www.google.com/','Duyệt web',{plain:true,local:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
-  youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true,compact:true}):buildBrowser(b,w,a)},
+  youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true,compact:true,url:typeof a==='string'&&/^https:\/\/www\.youtube\.com\//.test(a)?a:undefined}):buildBrowser(b,w,a)},
   mail:{name:'Thư',w:880,h:540,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail'):buildMail(b,w)},
   calendar:{name:'Lịch',w:660,h:450,minW:380,minH:300,build:buildCal},
   photos:{name:'Ảnh',w:660,h:440,minW:340,minH:280,build:buildPhotos},
@@ -3161,7 +3164,7 @@ function kbPolicy(inp){
     else inp.setAttribute('inputmode','text');
   });
 }
-['qsi','sq','lpq'].forEach(id=>kbPolicy(document.getElementById(id)));
+['sq','lpq'].forEach(id=>kbPolicy(document.getElementById(id)));
 /* ---------- Spotlight ---------- */
 const sq=$('#sq'), sres=$('#sres'); let sel=0, hits=[];
 function calcExpr(t){
@@ -3194,8 +3197,8 @@ function renderSpot(){
   });
   if(term&&!hits.length)sres.innerHTML='<div class="sr nores">Không có kết quả</div>';
 }
-function openSpot(){if(window.dmSearch){window.dmSearch.open();return}closeAllPopups();if(lpOn)closeLP();pops.spot.hidden=false;sq.value='';renderSpot();setTimeout(()=>sq.focus(),0)}
-$('#srch').addEventListener('click',e=>{e.stopPropagation();const S=window.dmSearch;if(S){if(S.isOpen())S.close();else S.open();return}if(pops.spot.hidden)openSpot();else closeAllPopups()});
+function openSpot(){closeAllPopups();if(lpOn)closeLP();pops.spot.hidden=false;sq.value='';renderSpot();setTimeout(()=>sq.focus(),0)}
+$('#srch').addEventListener('click',e=>{e.stopPropagation();if(pops.spot.hidden)openSpot();else closeAllPopups()});
 sq.addEventListener('input',renderSpot);
 sq.addEventListener('keydown',e=>{
   const mark=()=>$$('.sr',sres).forEach((r,i)=>r.setAttribute('aria-selected',String(i===sel)));
@@ -3204,76 +3207,342 @@ sq.addEventListener('keydown',e=>{
   else if(e.key==='Enter'&&hits.length){const h=hits[sel];closeAllPopups();h.fn()}
 });
 
-/* ---------- Nút tìm kiếm (ứng dụng + tệp trong máy) và nút chụp ảnh màn hình ---------- */
+/* ---------- Nút AI giọng nói (góc trái dưới) + nút chụp ảnh màn hình ----------
+   Cách hoạt động (học theo nút AI của app Nokia): bấm nút -> nghe tiếng Việt bằng bộ nhận dạng của Android (hiện chữ đang nghe + thanh mức âm);
+   im lặng 2 giây thì chốt, 3 giây đầu không ai nói thì dừng. Chữ nghe được đi qua bộ hiểu lệnh chạy ngay trong máy (không cần khóa API)
+   rồi thực hiện luôn (mở app, âm lượng, độ sáng, báo thức, khóa, chụp màn hình...). */
 {
-  const qs=$('#qs'), qsb=$('#qsb'), qsi=$('#qsi'), qsx=$('#qsx'), qres=$('#qsres'), shotBtn=$('#qshot');
+  const aib=$('#aib'), aip=$('#aip'), ait=$('#ait'), aim=$('#aim'), shotBtn=$('#qshot');
   const QA=window.AndroidLauncher;
-  let devApps=null, hitsQ=[], fsTok=0, fsTimer=0, fsN=0; const fsCbs={};
-  window.fsCb=function(id,json){const f=fsCbs[id]; delete fsCbs[id]; if(!f)return; let r=[]; try{r=JSON.parse(json)}catch(e){} f(r)};
-  let devV=null;
-  const loadDev=()=>{const v=QA&&QA.getAppsVersion?QA.getAppsVersion():0; if(!devApps||v!==devV){try{devApps=QA&&QA.getApps?JSON.parse(QA.getApps()):[]}catch(e){devApps=[]} devV=v} return devApps};
-  const fmtSize=n=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
-  const FCOL={jpg:'#e0457b',jpeg:'#e0457b',png:'#e0457b',gif:'#e0457b',webp:'#e0457b',heic:'#e0457b',mp4:'#d9534f',mkv:'#d9534f',webm:'#d9534f',mov:'#d9534f',mp3:'#8e5ad7',m4a:'#8e5ad7',wav:'#8e5ad7',flac:'#8e5ad7',pdf:'#e5493a',doc:'#2b6fd6',docx:'#2b6fd6',xls:'#1f9d55',xlsx:'#1f9d55',ppt:'#e07b1f',pptx:'#e07b1f',zip:'#a07a3c',rar:'#a07a3c',apk:'#3ddc84',txt:'#6b7280',md:'#6b7280'};
-  const shortPath=p=>{const d=p.replace(/\/[^\/]*$/,'').replace(/^\/storage\/emulated\/0/,'Bộ nhớ trong').replace(/^\/sdcard/,'Bộ nhớ trong');return d};
-  function qsRows(files,pending){
-    let h='',n=0; hitsQ=[];
-    const apps=[];
-    LP_APPS.forEach(id=>{if(APPS[id]&&norm(APPS[id].name).indexOf(qsTerm)>=0)apps.push({k:'app',id:id})});
-    loadDev().forEach(a=>{if(norm(a.label).indexOf(qsTerm)>=0)apps.push({k:'dev',a:a})});
-    apps.slice(0,10).forEach(x=>{
-      hitsQ.push(x);
-      h+=(n===0?'<div class="qsh">Ứng dụng</div>':'')+'<button class="qsr" type="button" data-i="'+(hitsQ.length-1)+'">'+(x.k==='app'?iconHTML(x.id)+'<span class="qst"><b>'+esc(APPS[x.id].name)+'</b><small>Ứng dụng Desktop Mini</small></span>':'<img class="qsa" alt="" src="'+esc(x.a.icon||'')+'"><span class="qst"><b>'+esc(x.a.label)+'</b><small>Ứng dụng trên máy</small></span>')+'</button>';
-      n++;
-    });
-    let fh='';
-    (files||[]).forEach((f,i)=>{
-      hitsQ.push({k:'file',f:f});
-      const ext=(f.n.indexOf('.')>0?f.n.split('.').pop():'').toLowerCase();
-      fh+='<button class="qsr" type="button" data-i="'+(hitsQ.length-1)+'"><span class="qsf" style="background:'+(FCOL[ext]||'#6b7280')+'">'+esc((ext||'tệp').slice(0,4).toUpperCase())+'</span><span class="qst"><b>'+esc(f.n)+'</b><small>'+esc(fmtSize(f.s||0))+' • '+esc(shortPath(f.p))+'</small></span></button>';
-    });
-    if(fh)h+='<div class="qsh">Tệp trong máy</div>'+fh;
-    else if(pending)h+='<div class="qsh">Tệp trong máy</div><div class="qsn">Đang tìm…</div>';
-    else if(qsTerm.length>=2&&QA&&QA.searchFiles)h+=(n?'<div class="qsh">Tệp trong máy</div>':'')+'<div class="qsn">'+(n?'Không có tệp nào khớp':'Không có kết quả')+'</div>';
-    else if(!n)h+='<div class="qsn">Gõ ít nhất 2 chữ để tìm tệp</div>';
-    qres.innerHTML=h; qres.hidden=false;
+  const aiN=s=>norm(String(s).toLowerCase());
+  let st=0, heard='', hideT=0;     /* 0 rảnh, 1 đang nghe, 2 đang hiện kết quả / lỗi */
+  const TIPS='Ví dụ: "mở YouTube", "tăng âm lượng", "đặt báo thức 6 giờ 30", "bật chế độ tối", "chụp màn hình", "khóa màn hình". Nói "giúp đỡ" để xem thêm.';
+  const HELP=['Mở ứng dụng: "mở Tệp", "mở Zalo", "mở cài đặt"','Tìm trên YouTube: "mở YouTube bài Hãy trao cho anh"','Tìm trên Google: "tìm kiếm thời tiết hôm nay"','Phát nhạc: "phát nhạc", "mở bài Đường về"','Âm lượng / độ sáng: "tăng âm lượng", "âm lượng 50", "giảm độ sáng"','Báo thức: "đặt báo thức 6 giờ 30", "đặt báo thức sau 20 phút"','Hệ thống: "bật Wi-Fi", "tắt Bluetooth", "bật chế độ tối", "không làm phiền"','Khác: "chụp màn hình", "khóa màn hình", "bây giờ là mấy giờ", "hôm nay ngày mấy"'];
+  aim.innerHTML='<i></i>'.repeat(10);
+  const bars=$$('i',aim);
+  const setLevel=v=>{const n=Math.round(Math.max(0,Math.min(1,(v+2)/12))*10);bars.forEach((x,i)=>x.style.opacity=i<n?'.9':'.22')};
+  const show=(txt,mode)=>{
+    aip.hidden=false; aip.dataset.mode=mode||'';
+    ait.textContent=txt; aim.hidden=mode!=='listen';
+    $('#ait2',aip).hidden=mode!=='listen'; $('#aih',aip).hidden=mode!=='help'; $('#ail',aip).hidden=true;
+  };
+  function aiClose(){
+    clearTimeout(hideT); st=0; heard='';
+    try{QA&&QA.aiCancel&&QA.aiCancel()}catch(e){}
+    aip.hidden=true; aib.classList.remove('on'); aib.setAttribute('aria-pressed','false'); setLevel(-2);
   }
-  let qsTerm='';
-  function qsRender(){
-    const raw=qsi.value.trim(); qsTerm=norm(raw);
-    clearTimeout(fsTimer); const tok=++fsTok;
-    if(!qsTerm){qres.hidden=true;qres.innerHTML='';return}
-    const canFiles=!!(QA&&QA.searchFiles)&&raw.length>=2;
-    qsRows([],canFiles);
-    if(!canFiles)return;
-    fsTimer=setTimeout(()=>{
-      const id=++fsN; fsCbs[id]=r=>{if(tok!==fsTok||!qs.classList.contains('open'))return; qsRows(r,false)};
-      try{QA.searchFiles(raw,id)}catch(e){delete fsCbs[id];qsRows([],false)}
-    },280);
+  function finish(msg,ms){
+    clearTimeout(hideT); st=2; aib.classList.remove('on'); aib.setAttribute('aria-pressed','false');
+    show(msg,'done'); $('#ail',aip).textContent=heard?('Bạn nói: '+heard):''; $('#ail',aip).hidden=!heard;
+    hideT=setTimeout(aiClose,ms||2800);
   }
-  function qsOpen(){closeAllPopups();if(lpOn)closeLP();qs.classList.add('open');qsb.setAttribute('aria-expanded','true');qsi.value='';qres.hidden=true;setTimeout(()=>qsi.focus(),0)}
-  function qsClose(){if(!qs.classList.contains('open'))return;qs.classList.remove('open');qsb.setAttribute('aria-expanded','false');qsi.blur();qsi.value='';qres.hidden=true;qres.innerHTML='';fsTok++;clearTimeout(fsTimer)}
-  qsb.addEventListener('click',e=>{e.stopPropagation();if(qs.classList.contains('open'))qsClose();else qsOpen()});
-  window.dmSearch={open:qsOpen,close:qsClose,isOpen:()=>qs.classList.contains('open')};
-  qsx.addEventListener('click',e=>{e.stopPropagation();qsClose()});
-  qsi.addEventListener('input',qsRender);
-  qsi.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){qsClose();return}
-    if(e.key==='Enter'){const f=$('.qsr',qres);if(f)f.click()}
-  });
-  qres.addEventListener('click',e=>{
+  function aiErr(code){
+    const t={6:'Không nghe thấy gì. Bấm nút AI để thử lại.',7:'Không nghe rõ. Bấm nút AI để thử lại.',1:'Cần có mạng để nhận dạng giọng nói.',2:'Cần có mạng để nhận dạng giọng nói.',
+      9001:'Không có mạng và máy chưa có gói giọng nói tiếng Việt ngoại tuyến (tải ở Cài đặt > Google > Nhận dạng giọng nói).',
+      9:'Chưa cấp quyền Micro cho ứng dụng.',3:'Micro đang bận hoặc lỗi âm thanh.',8:'Bộ nhận dạng đang bận, thử lại sau giây lát.',4:'Máy chủ nhận dạng giọng nói lỗi, thử lại.',
+      '-1':'Máy chưa có dịch vụ nhận dạng giọng nói (cần ứng dụng Google).'}[code];
+    heard=''; finish(t||('Không nhận dạng được (mã '+code+'). Kiểm tra mạng và ứng dụng Google.'),4200);
+  }
+  function aiStart(){
+    if(!QA||!QA.aiListen){notify({app:'AI',title:'Chỉ dùng được trong ứng dụng Android',icon:'settings'});return}
+    closeAllPopups(); if(typeof lpOn!=='undefined'&&lpOn)closeLP();
+    clearTimeout(hideT); st=1; heard=''; setLevel(-2);
+    aib.classList.add('on'); aib.setAttribute('aria-pressed','true');
+    show('Đang chuẩn bị nghe…','listen'); $('#ait2',aip).textContent=TIPS;
+    try{QA.aiListen()}catch(e){aiErr(-1)}
+  }
+  /* sự kiện từ bộ nhận dạng giọng nói (Java -> JS) */
+  window.aiVoice=o=>{
+    if(!o)return;
+    if(o.t==='ready'){if(st===1){ait.textContent='Hãy nói lệnh của bạn'}return}
+    if(o.t==='level'){if(st===1)setLevel(+o.v||0);return}
+    if(o.t==='partial'){if(st===1){heard=o.text||'';ait.textContent=heard||'Hãy nói lệnh của bạn'}return}
+    if(o.t==='error'){if(o.ask){if(st===1)ait.textContent='Hãy cho phép dùng Micro…';return}if(st===1)aiErr(o.code);return}
+    if(o.t==='result'&&st===1)handle(o.list||[]);
+  };
+  aib.addEventListener('click',e=>{
     e.stopPropagation();
-    const b=e.target.closest('.qsr'); if(!b)return;
-    const x=hitsQ[+b.dataset.i]; if(!x)return;
-    qsClose();
-    if(x.k==='app')openApp(x.id);
-    else if(x.k==='dev')extLaunch(x.a.pkg);
-    else if(x.k==='file'){
-      let m=''; try{m=QA.openFileMsg?QA.openFileMsg(x.f.p):(QA.openFile(x.f.p)?'':'Không mở được tệp')}catch(err){m='Không mở được tệp'}
-      if(m)notify({app:'Tìm kiếm',title:'Không mở được tệp',body:m,icon:'files'});
-    }
+    if(st===1){try{QA.aiStop()}catch(x){}return}       /* đang nghe: bấm lại = nói xong, nhận dạng luôn */
+    aiStart();
   });
-  /* chạm ra ngoài thì thu lại thành hình vuông */
-  document.addEventListener('pointerdown',e=>{if(qs.classList.contains('open')&&!e.target.closest('#qs'))qsClose()},true);
+  $('#aix',aip).addEventListener('click',e=>{e.stopPropagation();aiClose()});
+  document.addEventListener('pointerdown',e=>{if(st===2&&!e.target.closest('#aip,#aib'))aiClose()},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&st!==0){aiClose()}},true);
+
+  /* ======== Bộ hiểu lệnh (chạy ngay trong máy; thêm câu lệnh mới ở hàm parse) ======== */
+  const UNITS={khong:0,mot:1,hai:2,ba:3,bon:4,tu:4,nam:5,lam:5,sau:6,bay:7,tam:8,chin:9};
+  const MUSIC_VERB=['phat','nghe','bat','mo','choi'], MUSIC_SKIP=['nhac','bai','hat','ca','khuc','cua','ten','la','nghe','di','nhe','giup','toi','minh','cho'];
+  const TAIL=['di','nhe','nha','giup','minh','toi','ngay','luon','voi','gium','a','ha','nhanh','len','cho'];
+  const OPEN_VERB=['mo','vao','chay','khoi','truy','bat'], OPEN_SKIP=['dong','cap','ung','dung','app','phan','mem','cho','toi','len','di','giup','minh'];
+  const SEARCH_SKIP=['tim','kiem','tren','google','gugo','tra','cuu','giup','toi','minh','cho','ve','thong','tin','tu','khoa','di','nhe','nha'];
+  const YT_SKIP=['mo','phat','nghe','bat','tim','kiem','vao','xem','bai','nhac','khuc','video','clip','cua','ten','di','nhe','giup','len','tren'];
+  const YT_TAIL=['di','nhe','nha','giup','len','ngay','luon','voi','a','tren','o'];
+  /* (cụm từ khóa đã bỏ dấu, id ứng dụng) — cụ thể đứng trước, chung chung đứng sau */
+  const SECTIONS=[
+    [['thung rac'],'trash'],[['tai xuong'],'downloads'],[['quan ly tep','thu muc','tep tin','mo tep','ung dung tep'],'files'],
+    [['hop thu','gmail','email','thu dien tu','mo thu'],'mail'],[['ghi am'],'recorder'],[['ghi chu'],'notes'],
+    [['may tinh','tinh toan'],'calc'],[['terminal','dong lenh'],'terminal'],[['dong ho','bao thuc'],'clock'],
+    [['lich thang','am lich','mo lich','lich'],'calendar'],[['thu vien anh','album','bo suu tap','xem anh','xem hinh','hinh anh','mo anh','mo hinh','ung dung anh'],'photos'],
+    [['webcam','may anh','camera','chup anh','chup hinh','tu suong','selfie'],'camera'],[['nhac','may nghe nhac','trinh phat nhac'],'music'],
+    [['go van ban','soan van ban','soan thao'],'typing'],[['word online'],'msword'],[['excel'],'msexcel'],[['powerpoint','power point','trinh chieu'],'msppt'],[['office'],'msoffice'],
+    [['o mem','omem'],'omem'],[['google drive','drive'],'drive'],[['zalo'],'zalo'],[['facebook','phay bu','fb'],'facebook'],
+    [['duyet web'],'webbrowser'],[['trinh duyet','firefox'],'browser'],[['youtube','you tube','du tup'],'youtube'],
+    [['cai dat'],'settings'],[['launchpad','tat ca ung dung','danh sach ung dung'],'launchpad']
+  ];
+  const seqIndex=(t,p,from)=>{for(let i=from||0;i+p.length<=t.length;i++){let ok=true;for(let k=0;k<p.length;k++)if(t[i+k]!==p[k]){ok=false;break}if(ok)return i}return -1};
+  function wordNumber(t,i){
+    const a=t[i]; if(a==null)return null;
+    if(a==='muoi'){const u=UNITS[t[i+1]];return u>=1&&u<=9?[10+u,2]:[10,1]}
+    const u1=UNITS[a]; if(u1==null)return null;
+    if(t[i+1]==='muoi'){const u2=UNITS[t[i+2]];return u2>=1&&u2<=9?[u1*10+u2,3]:[u1*10,2]}
+    return [u1,1];
+  }
+  /* "sáu giờ ba mươi" -> "6 gio 30" ("sau 20 phút" thì giữ nguyên chữ "sau") */
+  function numTokens(n){
+    const out=[]; let i=0;
+    while(i<n.length){
+      const w=n[i];
+      const isSau=w==='sau'&&['gio','phut','muoi','ruoi','h','g'].indexOf(n[i+1])<0&&i!==n.length-1;
+      const r=isSau?null:wordNumber(n,i);
+      if(r){out.push(String(r[0]));i+=r[1]}else{out.push(w);i++}
+    }
+    return out;
+  }
+  function parseAlarm(n,now){
+    const a=numTokens(n).join(' ');
+    let m=/sau (\d+) (gio|tieng|phut)(?: (\d+) phut)?/.exec(a);
+    if(m){
+      const v=+m[1], minutes=m[2]==='phut'?v:v*60+(+m[3]||0), t=new Date(now.getTime()+minutes*60000);
+      return {k:'alarm',h:t.getHours(),m:t.getMinutes()};
+    }
+    m=/(\d{1,2})\s*(?:gio|h|g|:)\s*(\d{1,2}|ruoi)?/.exec(a)||/\b(\d{1,2})\b/.exec(a);
+    if(!m)return {k:'open',id:'clock'};
+    let h=+m[1], mm=m[2]==='ruoi'?30:(parseInt(m[2],10)||0);
+    const k=/kem (\d{1,2})/.exec(a); if(k){const d=+k[1];if(d>=1&&d<=59){mm=60-d;h-=1}}
+    const aft=/\b(chieu|toi)\b/.test(a), night=/\bdem\b/.test(a), noon=/\btrua\b/.test(a);
+    if(aft&&h>=1&&h<=11)h+=12;
+    if(night){if(h===12)h=0;else if(h>=5&&h<=11)h+=12}
+    if(noon&&h>=1&&h<=4)h+=12;
+    if(h<0)h+=24;
+    if(h<0||h>23||mm<0||mm>59)return {k:'open',id:'clock'};
+    return {k:'alarm',h:h,m:mm};
+  }
+  function parseYoutube(words,n,yt){
+    const ytLen=n[yt]==='you'?2:1;
+    const span=(from,to)=>{
+      let i=from;
+      while(i<to){
+        const two=i+1<to?n[i]+' '+n[i+1]:'';
+        if(two==='bai hat'||two==='ca khuc'||two==='cho toi'||two==='tim kiem')i+=2;
+        else if(YT_SKIP.indexOf(n[i])>=0)i++;
+        else break;
+      }
+      let e=to; while(e>i&&YT_TAIL.indexOf(n[e-1])>=0)e--;
+      return [i,e];
+    };
+    let r=span(yt+ytLen,n.length);
+    if(r[1]<=r[0])r=span(0,yt);
+    if(r[1]<=r[0])return null;           /* chỉ nói "mở YouTube" -> mở app như thường */
+    return {k:'youtube',q:words.slice(r[0],r[1]).join(' ')};
+  }
+  function parse(text,now){
+    now=now||new Date();
+    const words=[], n=[];
+    String(text).trim().split(/\s+/).forEach(w=>{
+      const k=aiN(w).replace(/[^a-z0-9:+]/g,'');
+      if(k){words.push(w.replace(/^[,.!?;"']+|[,.!?;"']+$/g,''));n.push(k)}
+    });
+    if(!n.length)return {k:'unknown',text:text};
+    const joined=n.join(' ');
+    const has=(...ps)=>ps.some(p=>seqIndex(n,p.split(' '))>=0);
+    const hasTok=(...ts)=>n.some(w=>ts.indexOf(w)>=0);
+    if(['huy','huy bo','thoi','thoi khong','khong','bo qua','khong can','thoat','thoat ra','dong lai'].indexOf(joined)>=0)return {k:'cancel'};
+    if(has('giup do','huong dan','lam duoc gi','biet lam gi','tro giup','co the lam gi'))return {k:'help'};
+    /* Báo thức */
+    if(has('bao thuc','dat chuong','danh thuc','hen gio','nhac toi'))return parseAlarm(n,now);
+    /* Chụp màn hình / khóa màn hình */
+    if(has('chup man hinh','chup anh man hinh','anh man hinh','screenshot','chup lai man hinh'))return {k:'shot'};
+    if(has('khoa man hinh','khoa may','khoa lai','khoa thiet bi','tat man hinh'))return {k:'lock'};
+    /* Giao diện tối / sáng, không làm phiền */
+    if(has('che do toi','giao dien toi','dark mode','nen toi','che do ban dem'))return {k:'theme',dark:!hasTok('tat')};
+    if(has('che do sang','giao dien sang','light mode','nen sang'))return {k:'theme',dark:false};
+    if(has('khong lam phien','tap trung'))return {k:'dnd',on:!hasTok('tat')};
+    /* Độ sáng (trước âm lượng để "tăng độ sáng" không lẫn) */
+    if(has('do sang','man hinh sang','man hinh toi')){
+      const num=/\b(\d{1,3})\b/.exec(numTokens(n).join(' '));
+      if(num)return {k:'level',what:'bright',set:Math.min(100,+num[1])};
+      const up=hasTok('tang','cao','len','hon'), down=hasTok('giam','thap','xuong','bot');
+      if(up!==down)return {k:'level',what:'bright',d:up?20:-20};
+    }
+    /* Âm lượng */
+    if(has('tat tieng','im lang','tat am','khong tieng'))return {k:'level',what:'vol',set:0};
+    if(has('am luong','tieng','volume','am thanh')||has('to len','lon len','nho di','nho lai','to hon','nho hon')){
+      const num=/\b(\d{1,3})\b/.exec(numTokens(n).join(' '));
+      if(num)return {k:'level',what:'vol',set:Math.min(100,+num[1])};
+      const up=hasTok('tang','to','lon','len','cao'), down=hasTok('giam','nho','be','xuong','thap');
+      if(up!==down)return {k:'level',what:'vol',d:up?15:-15};
+    }
+    /* Wi-Fi / Bluetooth */
+    if(hasTok('wifi')||has('wi fi'))return {k:'radio',kind:'wifi',on:!hasTok('tat')};
+    if(hasTok('bluetooth','blutooth','blutut'))return {k:'radio',kind:'bt',on:!hasTok('tat')};
+    /* Hỏi giờ / ngày */
+    if(has('may gio','gio hien tai','bay gio la'))return {k:'time'};
+    if(has('ngay may','ngay bao nhieu','thu may','hom nay la','ngay thang','ngay hom nay'))return {k:'date'};
+    /* YouTube kèm tên bài / từ khóa -> tìm trên YouTube */
+    let yt=n.findIndex(w=>['youtube','dutup','yutup','utube','yotube'].indexOf(w)>=0);
+    if(yt<0)yt=seqIndex(n,['you','tube']);
+    if(yt>=0){const r=parseYoutube(words,n,yt);if(r)return r}
+    /* Phát nhạc */
+    const musicWord=n.findIndex(w=>['nhac','bai','khuc','hat'].indexOf(w)>=0), verbIdx=n.findIndex(w=>MUSIC_VERB.indexOf(w)>=0);
+    if(musicWord>=0&&verbIdx>=0){
+      let i=musicWord; while(i<n.length&&MUSIC_SKIP.indexOf(n[i])>=0)i++;
+      let e=n.length; while(e>i&&TAIL.concat(['len']).indexOf(n[e-1])>=0)e--;
+      const q=n.slice(i,e).join(' ');
+      if(!q&&n[verbIdx]==='mo')return {k:'open',id:'music'};
+      return {k:'music',q:q};
+    }
+    /* Tìm trên Google (nói "tìm", "tìm kiếm", "google", "tra cứu" + từ khóa) */
+    const sv=n.findIndex(w=>w==='tim'||w==='google'||w==='gugo'||(w==='tra'&&n[n.indexOf(w)+1]==='cuu'));
+    if(sv>=0){
+      let i=sv; while(i<n.length&&SEARCH_SKIP.indexOf(n[i])>=0)i++;
+      let e=n.length; while(e>i&&TAIL.indexOf(n[e-1])>=0)e--;
+      if(e>i){
+        if(['ung','app'].indexOf(n[i])>=0&&n[i+1]!==undefined){return {k:'openapp',name:n.slice(i+(n[i]==='ung'?2:1),e).join(' ')}}
+        return {k:'web',q:words.slice(i,e).join(' ')};
+      }
+      return {k:'open',id:'webbrowser'};
+    }
+    /* Mở màn hình / ứng dụng có sẵn */
+    for(const [keys,id] of SECTIONS)if(has(...keys))return {k:'open',id:id};
+    /* Mở ứng dụng khác theo tên (cả ứng dụng cài trong máy) */
+    const vi=n.findIndex(w=>OPEN_VERB.indexOf(w)>=0);
+    if(vi>=0){
+      let i=vi+1; while(i<n.length&&OPEN_SKIP.indexOf(n[i])>=0)i++;
+      let e=n.length; while(e>i&&OPEN_SKIP.indexOf(n[e-1])>=0)e--;
+      if(e>i)return {k:'openapp',name:n.slice(i,e).join(' ')};
+    }
+    if(has('man hinh chinh','trang chu','ve nha','man hinh nen'))return {k:'desktop'};
+    return {k:'unknown',text:text};
+  }
+  /* Xếp hạng độ khớp tên (ứng dụng, bài hát) — chịu được lỗi nhận dạng nhẹ */
+  const HONOR=['anh','chi','em','co','chu','bac','ong','thay','cau'];
+  function lev(a,b){
+    const dp=[]; for(let j=0;j<=b.length;j++)dp[j]=j;
+    for(let i=1;i<=a.length;i++){let prev=dp[0];dp[0]=i;for(let j=1;j<=b.length;j++){const tmp=dp[j];dp[j]=Math.min(dp[j]+1,dp[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=tmp}}
+    return dp[b.length];
+  }
+  function score(key,qt){
+    const kt=key.split(/[ \-._,]+/).filter(Boolean), jq=qt.join(' ');
+    if(key===jq)return 100;
+    if(key.indexOf(jq)===0)return 85;
+    if(qt.every(t=>kt.indexOf(t)>=0))return 75-Math.max(0,Math.min(10,kt.length-qt.length));
+    if(key.indexOf(jq)>=0)return 65;
+    if(qt.every(t=>kt.some(k=>k.indexOf(t)===0)))return 60;
+    if(qt.every(t=>key.indexOf(t)>=0))return 50;
+    const hit=qt.filter(t=>kt.some(k=>k===t||k.indexOf(t)===0)).length;
+    if(hit>0&&hit*2>=qt.length)return 30+hit;
+    if(jq.length>=3){const tol=jq.length>=7?2:1;if(kt.some(k=>lev(k,jq)<=tol)||lev(key,jq)<=tol)return 20}
+    return 0;
+  }
+  function rank(keys,query){
+    const q=aiN(query).replace(/[^a-z0-9 +]/g,'').trim().replace(/\s+/g,' ');
+    if(!q)return [];
+    const qt=q.split(' '), qt2=qt.filter(t=>HONOR.indexOf(t)<0), use2=qt2.length&&qt2.length!==qt.length;
+    const sc=[];
+    keys.forEach((key,idx)=>{let s=score(key,qt);if(use2)s=Math.max(s,score(key,qt2)-10);if(s>0)sc.push([idx,s])});
+    sc.sort((a,b)=>b[1]-a[1]||keys[a[0]].length-keys[b[0]].length);
+    return sc.map(x=>x[0]);
+  }
+  const devApps=()=>{try{return QA&&QA.getApps?JSON.parse(QA.getApps()):[]}catch(e){return[]}};
+
+  /* ======== Thực hiện lệnh ======== */
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function setLevel2(what,o){
+    const key=what==='vol'?'vol':'bright', cur=+pref(key,what==='vol'?60:100);
+    const v=clamp(o.set!=null?o.set:cur+o.d,what==='vol'?0:1,100);
+    setPref(key,v);
+    try{what==='vol'?QA&&QA.setVolume(v):QA&&QA.setBrightness(v)}catch(e){}
+    if(what==='bright'){try{if(QA&&QA.canWriteSettings&&!QA.canWriteSettings()&&!window._wsAsked){window._wsAsked=1;QA.requestWriteSettings()}}catch(e){}}
+    bus.emit('slider');
+    return v;
+  }
+  function exec(c){
+    switch(c.k){
+      case 'cancel':aiClose();return;
+      case 'help':{
+        clearTimeout(hideT); st=2; aib.classList.remove('on');
+        show('Bạn có thể nói:','help'); $('#aih',aip).innerHTML=HELP.map(x=>'<li>'+esc(x)+'</li>').join('');
+        return;
+      }
+      case 'open':{
+        aiClose(); openApp(c.id); return;
+      }
+      case 'desktop':{aiClose();closeAllPopups();if(typeof lpOn!=='undefined'&&lpOn)closeLP();return}
+      case 'openapp':{
+        const own=Object.keys(APPS).filter(id=>!APPS[id].hidden&&!APPS[id].ext);
+        const dev=devApps();
+        const list=own.map(id=>({own:id,label:APPS[id].name})).concat(dev.map(a=>({pkg:a.pkg,label:a.label})));
+        const idx=rank(list.map(x=>aiN(x.label)),c.name);
+        if(!idx.length){finish('Không thấy ứng dụng "'+c.name+'"');return}
+        const a=list[idx[0]]; aiClose();
+        if(a.own)openApp(a.own);else extLaunch(a.pkg);
+        return;
+      }
+      case 'web':{aiClose();openApp('webbrowser','https://www.google.com/search?q='+encodeURIComponent(c.q));return}
+      case 'youtube':{aiClose();openApp('youtube','https://www.youtube.com/results?hl=vi&gl=VN&search_query='+encodeURIComponent(c.q));return}
+      case 'music':{
+        aiClose(); openApp('music');
+        setTimeout(()=>{
+          if(!TRK.length){notify({app:'AI',title:'Chưa có bài nhạc nào trong máy',icon:'music'});return}
+          let i=0;
+          if(c.q){const r=rank(TRK.map(t=>aiN(t.t+' '+(t.a||''))),c.q);if(!r.length){notify({app:'AI',title:'Không thấy bài "'+c.q+'"',icon:'music'});return}i=r[0]}
+          else i=Math.floor(Math.random()*TRK.length);
+          musPlay(i);
+        },700);
+        return;
+      }
+      case 'level':{
+        const v=setLevel2(c.what,c);
+        finish((c.what==='vol'?'Âm lượng: ':'Độ sáng: ')+v+'%');
+        return;
+      }
+      case 'radio':{
+        const lab=c.kind==='wifi'?'Wi-Fi':'Bluetooth';
+        let cur=null; try{cur=c.kind==='wifi'?QA.isWifiOn():QA.isBluetoothOn()}catch(e){}
+        if(cur===c.on){finish(lab+' đã '+(c.on?'bật':'tắt')+' rồi');return}
+        let done=false; try{done=c.kind==='wifi'?QA.setWifi(c.on):QA.setBluetooth(c.on)}catch(e){}
+        if(done){finish('Đang '+(c.on?'bật ':'tắt ')+lab)}
+        else{try{QA.openPanel(c.kind)}catch(e){} finish('Android không cho tự '+(c.on?'bật ':'tắt ')+lab+': đã mở bảng cài đặt, hãy bấm giúp')}
+        return;
+      }
+      case 'theme':{setTheme(c.dark?'dark':'light');finish('Đã chuyển sang giao diện '+(c.dark?'tối':'sáng'));return}
+      case 'dnd':{setPref('dnd',c.on);finish(c.on?'Đã bật không làm phiền':'Đã tắt không làm phiền');return}
+      case 'lock':{aiClose();lockNow();return}
+      case 'shot':{aiClose();setTimeout(()=>shotBtn.click(),120);return}
+      case 'alarm':{
+        const x={id:(Date.now()%2000000000)|0,h:c.h,m:c.m,uri:'',name:'Mặc định',rep:false,on:true};
+        let ok=true; try{if(QA&&QA.setAlarm)ok=QA.setAlarm(x.id,x.h,x.m,'',false,'')}catch(e){ok=false}
+        if(!ok){finish('Không đặt được báo thức. Hãy cấp quyền thông báo cho ứng dụng rồi thử lại.',4200);return}
+        const l=jget('dm-alarms',[]); l.push(x); jset('dm-alarms',l);
+        const d=new Date(); d.setSeconds(0,0); d.setHours(c.h,c.m); if(d.getTime()<=Date.now())d.setDate(d.getDate()+1);
+        const min=Math.round((d.getTime()-Date.now())/60000);
+        finish('Đã đặt báo thức '+pad(c.h)+':'+pad(c.m)+' (sau '+(min>=60?Math.floor(min/60)+' giờ ':'')+(min%60)+' phút)',3600);
+        return;
+      }
+      case 'time':{const d=new Date();finish('Bây giờ là '+d.getHours()+' giờ '+d.getMinutes()+' phút',4000);return}
+      case 'date':{finish('Hôm nay là '+new Date().toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),4500);return}
+      default:finish('Chưa hiểu lệnh này. Hãy nói rõ hơn, ví dụ: "mở YouTube" hoặc "tăng âm lượng".',4200);
+    }
+  }
+  function handle(list){
+    const hs=list.filter(s=>s&&String(s).trim());
+    if(!hs.length){heard='';finish('Không nghe rõ. Bấm nút AI để thử lại.');return}
+    /* thử lần lượt các cách nghe của bộ nhận dạng, lấy cách đầu tiên hiểu được */
+    const parsed=hs.map(s=>[s,parse(s)]);
+    const best=parsed.find(p=>p[1].k!=='unknown')||parsed[0];
+    heard=best[0]; exec(best[1]);
+  }
+  window.dmAI={parse:parse,rank:rank,close:aiClose};   /* để kiểm thử / gọi từ nơi khác */
 
   /* Chụp ảnh màn hình: ẩn hai nút một nhịp rồi nhờ Android chụp cả cửa sổ, lưu vào Pictures/Screenshots */
   let shotBusy=false;
@@ -3286,7 +3555,7 @@ sq.addEventListener('keydown',e=>{
   };
   shotBtn.addEventListener('click',e=>{
     e.stopPropagation(); if(shotBusy)return;
-    closeAllPopups(); qsClose();
+    closeAllPopups(); aiClose();
     if(!QA||!QA.takeScreenshot){notify({app:'Ảnh chụp màn hình',title:'Chỉ chụp được trong ứng dụng Android',icon:'settings'});return}
     shotBusy=true; stage.classList.add('shotting');
     requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>{try{QA.takeScreenshot()}catch(x){window.shotDone(false)}},70)));
@@ -3962,7 +4231,7 @@ document.addEventListener('keydown',e=>{
   }
   if(!ql.hidden&&e.key===' '){e.preventDefault();ql.hidden=true;return}
   if(!lock.hidden||!off.hidden)return;
-  if(e.ctrlKey&&e.code==='Space'){e.preventDefault();const S=window.dmSearch;if(S){if(S.isOpen())S.close();else S.open()}else if(pops.spot.hidden)openSpot();else closeAllPopups()}
+  if(e.ctrlKey&&e.code==='Space'){e.preventDefault();if(pops.spot.hidden)openSpot();else closeAllPopups()}
   else if(e.key==='F3'||(e.ctrlKey&&e.key==='ArrowUp')){e.preventDefault();mcOn?exitMC():enterMC()}
   else if(e.key==='F4'){e.preventDefault();toggleLP()}
 });
