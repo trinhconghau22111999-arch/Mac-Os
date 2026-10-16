@@ -182,11 +182,7 @@ public class LockService extends AccessibilityService {
         }
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), hh = getHeight(), cx = w / 2, cy = hh / 2;
-            if (barHidden) { /* thanh đang ẩn: chỉ còn vạch mờ nhỏ ở đáy để biết chỗ chạm đúp / vuốt lên */
-                bg.setColor(0x66FFFFFF); rf.set(cx - dp(18), hh - dp(6), cx + dp(18), hh - dp(3));
-                c.drawRoundRect(rf, dp(1.5f), dp(1.5f), bg); bg.setColor(0xFF000000);
-                return;
-            }
+            if (barHidden) return; /* thanh đang ẩn: không vẽ gì, cũng không nhận chạm */
             c.drawRect(0, 0, w, hh, bg);
             Bitmap pic = barPic();
             if (pic != null) {
@@ -343,7 +339,8 @@ public class LockService extends AccessibilityService {
         barHidden = b;
         if (btn == null || btnLp == null || wm == null) return;
         try {
-            btnLp.height = b ? dp(14) : sysBarHeight();
+            btnLp.height = b ? dp(2) : sysBarHeight();
+            if (b) btnLp.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE; else btnLp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
             btnLp.y = realSize().y - btnLp.height;
             wm.updateViewLayout(btn, btnLp);
             btn.invalidate();
