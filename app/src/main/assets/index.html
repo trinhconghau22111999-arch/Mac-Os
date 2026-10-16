@@ -1321,8 +1321,8 @@ setInterval(()=>{
 },3600000);
 setTimeout(()=>bus.emit('trash'),1500);
 
-/* Định dạng ngày dùng chung: toLocaleDateString tạo bộ định dạng mới mỗi lần gọi (rất chậm trên WebView cũ khi thư mục có hàng nghìn tệp) */
-const fmtDay=(()=>{let f=null;try{f=new Intl.DateTimeFormat('vi-VN')}catch(e){}return ms=>f?f.format(ms):new Date(ms).toLocaleDateString('vi-VN')})();
+/* Định dạng ngày + giờ:phút dùng chung: toLocaleDateString tạo bộ định dạng mới mỗi lần gọi (rất chậm trên WebView cũ khi thư mục có hàng nghìn tệp) */
+const fmtDay=(()=>{let f=null;try{f=new Intl.DateTimeFormat('vi-VN')}catch(e){}const p2=n=>(n<10?'0':'')+n;return ms=>{const d=new Date(ms);return (f?f.format(d):d.toLocaleDateString('vi-VN'))+' '+p2(d.getHours())+':'+p2(d.getMinutes())}})();
 /* Nạp lười: mã các app con lớn (Máy tính, Cài đặt, Ghi âm, Webcam, Trình duyệt, Ảnh, Terminal, Đồng hồ) nằm ở assets/js/<tên>.js,
    chỉ tải khi mở app lần đầu để lần khởi động đầu tiên parse ít mã hơn. Hàm "build..." ở đây chỉ là hàm giữ chỗ.
    Tệp js/<tên>.js đặt mã trong một hàm bọc (window.__LZ.<tên>); ta lấy phần thân rồi eval TRỰC TIẾP ở đây để mã chạy trong cùng phạm vi với phần còn lại. */
