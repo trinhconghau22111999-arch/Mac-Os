@@ -806,12 +806,14 @@ a.btn.pri{color:#fff}
 .laps li{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 
 /* Dock */
-.dock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;border-radius:28px 28px 0 0;max-width:calc(100% - 2*(var(--base) + 24px));
-  background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 14px 36px rgba(0,0,0,.3);transition:transform .25s ease}
+.dock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);z-index:5;height:calc(var(--base) + 18px);display:flex;flex-flow:row nowrap;white-space:nowrap;align-items:flex-end;gap:6px;padding:0 10px 9px;max-width:calc(100% - 2*(var(--base) + 24px));transition:transform .25s ease}
 .dock.hide:not(.peek){transform:translate(-50%,140%)}
+/* Thanh nền kính trải suốt cạnh dưới như thanh menu trên cùng: bao trọn nút AI (trái), các icon Dock (giữa) và nút chụp màn hình (phải) */
+.dbar{position:absolute;left:0;right:0;bottom:0;z-index:4;height:calc(var(--base) + 18px);pointer-events:auto;background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 -.5px 0 rgba(0,0,0,.3),0 1px 0 var(--glass-line) inset,0 -8px 28px rgba(0,0,0,.22);transition:transform .25s ease}
+.dock.hide:not(.peek)~.dbar{transform:translateY(140%)}
 .hotz{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:5}
 /* Nút tìm kiếm (trái) và nút chụp ảnh màn hình (phải): vuông, cùng cỡ và cùng hàng với icon Dock; Dock chừa chỗ hai bên nên không bao giờ che chúng */
-.aib,.qshot{position:absolute;bottom:9px;z-index:6;height:var(--base);border-radius:22.5%;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 0 0 1px var(--glass-line) inset,0 6px 16px rgba(0,0,0,.28)}
+.aib,.qshot{position:absolute;bottom:9px;z-index:6;height:var(--base);border-radius:22.5%;background:rgba(127,127,127,.2);color:var(--fg);box-shadow:0 0 0 .5px rgba(0,0,0,.25),0 0 0 1px var(--glass-line) inset}
 .qshot{right:12px;width:var(--base);border:0;padding:0;display:grid;place-items:center;transition:transform .12s ease-out}
 .qshot:active{transform:scale(.92)}
 .qshot svg{width:58%;height:58%}
@@ -895,7 +897,7 @@ html.lite *,html.lite *::before,html.lite *::after{backdrop-filter:none!importan
 html.lite{--glass:rgba(248,248,251,.96)!important;--side:rgba(238,238,243,.97)!important;--hdr:rgba(255,255,255,.97)!important}
 html.lite[data-theme="dark"]{--glass:rgba(40,41,48,.97)!important;--side:rgba(52,53,60,.97)!important;--hdr:rgba(40,41,46,.97)!important}
 @media (prefers-color-scheme: dark){html.lite:not([data-theme="light"]){--glass:rgba(40,41,48,.97)!important;--side:rgba(52,53,60,.97)!important;--hdr:rgba(40,41,46,.97)!important}}
-html.lite .win,html.lite .dock,html.lite .lp,html.lite .sw,html.lite .qlp{box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25)!important}
+html.lite .win,html.lite .dbar,html.lite .lp,html.lite .sw,html.lite .qlp{box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25)!important}
 html.lite .lp{background:rgba(14,18,34,.88)}
 @media (prefers-reduced-motion: reduce){.dk,.dk::after,.dock,.tg i,.tg{transition:none}.dk.bounce .ic{animation:none}.bn{animation:none}.lp{animation:none}.tr.on .eq{animation:none}}
 </style>
@@ -1102,6 +1104,7 @@ body.native .stage{border-radius:0;min-height:0}
   </div>
 
   <nav class="dock" id="dock" aria-label="Dock"></nav>
+  <div class="dbar" id="dbar" aria-hidden="true"></div>
   <div class="hotz" id="hotz"></div>
   <button class="aib" id="aib" type="button" aria-label="AI giọng nói: bấm rồi nói lệnh" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.5 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0h-2a7 7 0 0 0 6 6.9V22h2v-3.1A7 7 0 0 0 17.5 12zM19 1.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg></button>
   <div class="aip" id="aip" hidden role="status" aria-live="polite">
