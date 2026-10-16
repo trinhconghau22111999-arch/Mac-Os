@@ -50,7 +50,7 @@ public class LockService extends AccessibilityService {
     /* Khóa thanh hệ thống: tự đóng thanh thông báo (kéo từ trên xuống) và màn hình đa nhiệm ngay khi chúng vừa mở */
     private volatile boolean barLock = true, recentsOpen = false;
     private long lastClose = 0;
-    /* Thanh Desktop: đang có video phát toàn màn hình (do các cửa sổ web của app báo) -> cho phép nhấn đúp để ẩn thanh */
+    /* Thanh Desktop: đang có video phát toàn màn hình (do các cửa sổ web của app báo) -> thanh tự ẩn */
     private static volatile boolean videoFull = false;
     private boolean barHidden = false;
     /** Các màn hình web của app gọi khi bắt đầu / kết thúc xem video toàn màn hình. Hết video thì thanh tự hiện lại. */
@@ -207,7 +207,7 @@ public class LockService extends AccessibilityService {
             c.drawLine(x0 + iw / 2 - dp(4), cy + ih / 2, x0 + iw / 2 + dp(4), cy + ih / 2, ic);
             c.drawText("Desktop", x0 + iw + gap, cy + dp(4.5f), tx);
         }
-        private float dX, dY; private long lastTapUp = 0;
+        private float dX, dY;
         @Override public boolean onTouchEvent(MotionEvent ev) {
             switch (ev.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
@@ -216,20 +216,9 @@ public class LockService extends AccessibilityService {
                     return true;
                 case MotionEvent.ACTION_UP: {
                     setAlpha(1f);
-                    float up = dY - ev.getRawY(), dx = Math.abs(ev.getRawX() - dX);
-                    long now = android.os.SystemClock.uptimeMillis();
-                    if (up > dp(40) && up > dx) { /* vuốt lên từ thanh */
-                        lastTapUp = 0;
-                        if (barHidden) userShow(); else goMultitask();
-                        return true;
-                    }
                     int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
-                    if (up > slop || up < -slop || dx > slop) { lastTapUp = 0; return true; } /* kéo lệch, không phải chạm */
-                    boolean dbl = lastTapUp > 0 && now - lastTapUp <= ViewConfiguration.getDoubleTapTimeout();
-                    lastTapUp = dbl ? 0 : now;
-                    if (barHidden) { if (dbl) userShow(); return true; }
-                    if (videoFull) { if (dbl) setBarHidden(true); return true; } /* đang xem video: chạm 1 lần không làm gì, chờ chạm đúp */
-                    goDesktop();
+                    if (Math.abs(ev.getRawY() - dY) > slop || Math.abs(ev.getRawX() - dX) > slop) return true; /* kéo/vuốt: không phải chạm */
+                    goDesktop(); /* chỉ còn một chức năng: chạm là về Desktop */
                     return true;
                 }
                 case MotionEvent.ACTION_CANCEL: setAlpha(1f); return true;
@@ -308,18 +297,14 @@ public class LockService extends AccessibilityService {
     }
 
     /* ---- Tự ẩn thanh Desktop khi app ngoài chạy toàn màn hình (xem video...), không cần chạm đúp ---- */
-    private boolean autoHid = false, autoSuppress = false;
     private final Runnable fsPoll = new Runnable() { public void run() {
         h.removeCallbacks(fsPoll);
         if (btn == null) return;
-        boolean fs = externalFullscreen();
-        if (!fs) autoSuppress = false;
-        if (fs && !barHidden && !autoSuppress && !videoFull) { autoHid = true; setBarHidden(true); }
-        else if (!fs && barHidden && autoHid) { autoHid = false; setBarHidden(false); }
+        boolean fs = videoFull || externalFullscreen();
+        if (fs && !barHidden) setBarHidden(true);
+        else if (!fs && barHidden) setBarHidden(false);
         h.postDelayed(fsPoll, 500);
     } };
-    /** Người dùng tự gọi thanh hiện lại: giữ nguyên cho tới khi hết toàn màn hình (không tự ẩn lại ngay). */
-    private void userShow() { autoSuppress = externalFullscreen(); autoHid = false; setBarHidden(false); }
     /** Cửa sổ app đang dùng phủ tới tận mép dưới màn hình (không còn thanh hệ thống) = đang toàn màn hình. */
     private boolean externalFullscreen() {
         if (launcherFront || policyApplied || wm == null) return false; /* policy ẩn thanh hệ thống sẵn: không đo được bằng cách này */
@@ -349,7 +334,7 @@ public class LockService extends AccessibilityService {
         try { wm.addView(v, lp); btn = v; btnLp = lp; scheduleRefreshBar(); h.removeCallbacks(fsPoll); h.postDelayed(fsPoll, 400); } catch (Exception e) { btn = null; btnLp = null; }
     }
     private void removeButton() {
-        barHidden = false; autoHid = false; autoSuppress = false; h.removeCallbacks(fsPoll);
+        barHidden = false; h.removeCallbacks(fsPoll);
         if (btn != null) { try { wm.removeView(btn); } catch (Exception e) { } btn = null; btnLp = null; }
     }
     /** Ẩn thanh (chỉ còn dải mỏng ở đáy) hoặc hiện lại đủ chiều cao. */
@@ -363,13 +348,6 @@ public class LockService extends AccessibilityService {
             wm.updateViewLayout(btn, btnLp);
             btn.invalidate();
         } catch (Exception e) { }
-    }
-    /** Vuốt lên từ thanh: đưa app lên trước và mở màn hình đa nhiệm. */
-    private void goMultitask() {
-        try {
-            startActivity(new Intent(this, MainActivity.class).putExtra("openMS", true)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
-        } catch (Exception e) { goDesktop(); }
     }
     /** Bấm nút: đưa Desktop Mini lên trước (MainActivity tự thu nhỏ mọi cửa sổ để hiện màn hình Desktop). */
     private void goDesktop() {
