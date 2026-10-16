@@ -3,16 +3,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{height:100%;background:#111113;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none}
-/* Dock nổi trên các app khác: một thanh trải suốt cạnh dưới, nút AI (trái) – icon Dock (giữa) – nút chụp màn hình (phải) */
-.bar{height:100%;display:flex;align-items:center;gap:10px;padding:0 12px;background:#111113;box-shadow:0 1px 0 rgba(255,255,255,.16) inset}
-.sb{flex:none;width:48px;height:48px;border:0;border-radius:22.5%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset}
+html,body{height:100%;background:transparent;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none}
+/* Dock NỔI: viên thuốc bo tròn lơ lửng phía trên thanh điều hướng, luôn nằm trên các app khác.
+   Bên trong: nút AI (trái) – icon Dock (giữa) – nút chụp màn hình (phải). Vùng ngoài viên thuốc trong suốt. */
+body{display:flex;align-items:center;justify-content:center;padding:6px 6px 8px}
+.pill{display:inline-flex;align-items:center;gap:10px;max-width:100%;height:100%;padding:0 12px;border-radius:26px;background:rgba(32,32,36,.88);box-shadow:0 0 0 1px rgba(255,255,255,.22) inset,0 8px 24px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4)}
+.sb{flex:none;width:46px;height:46px;border:0;border-radius:22.5%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset}
 .sb:active{background:rgba(255,255,255,.34);transform:scale(.92)}
 .sb svg{width:58%;height:58%}
-.sc{flex:1;min-width:0;height:100%;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sep{flex:none;width:1px;height:30px;background:rgba(255,255,255,.2)}
+.sc{flex:0 1 auto;min-width:0;height:100%;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .sc::-webkit-scrollbar{display:none}
-.apps{display:flex;align-items:center;gap:8px;margin:0 auto}
-.dk{flex:none;width:48px;height:48px;border:0;background:none;padding:0}
+.apps{display:flex;align-items:center;gap:8px}
+.dk{flex:none;width:46px;height:46px;border:0;background:none;padding:0}
 .dk:active{transform:scale(.9)}
 .ic{position:relative;display:grid;place-items:center;width:100%;height:100%;border-radius:22.5%;overflow:hidden;container-type:inline-size;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.28)}
 .ic::before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,0) 46%);pointer-events:none}
@@ -23,22 +26,33 @@ html,body{height:100%;background:#111113;overflow:hidden;font-family:-apple-syst
 .cic span{flex:1;display:grid;place-items:center;font-size:48cqw;font-weight:300;line-height:1}
 </style></head>
 <body>
-<div class="bar" id="bar">
+<div class="pill" id="pill">
   <button class="sb" id="ai" type="button" aria-label="AI giọng nói"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.5 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0h-2a7 7 0 0 0 6 6.9V22h2v-3.1A7 7 0 0 0 17.5 12zM19 1.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg></button>
+  <span class="sep"></span>
   <div class="sc"><div class="apps" id="apps"></div></div>
+  <span class="sep" id="sep2"></span>
   <button class="sb" id="shot" type="button" aria-label="Chụp ảnh màn hình"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/></svg></button>
 </div>
 <script>
-var apps=document.getElementById('apps'),shot=document.getElementById('shot');
+var apps=document.getElementById('apps'),shot=document.getElementById('shot'),sep2=document.getElementById('sep2'),pill=document.getElementById('pill');
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+/* báo cho Android bề rộng thật của viên thuốc (px CSS = dp) để thu cửa sổ lại vừa khít, phần còn lại của màn hình vẫn chạm được app bên dưới */
+function report(){
+  try{
+    var w=Math.ceil(pill.getBoundingClientRect().width)+12;
+    if(window.DockApp&&DockApp.size)DockApp.size(w);
+  }catch(e){}
+}
 window.setDock=function(list){
   try{
     apps.innerHTML=list.map(function(a){
       return '<button class="dk" type="button" data-id="'+esc(a.id)+'" aria-label="'+esc(a.name)+'"><span class="ic" style="background:'+a.bg+'">'+a.g+'</span></button>';
     }).join('');
   }catch(e){}
+  report();
 };
-window.setShot=function(on){shot.style.display=on?'':'none'};
+window.setShot=function(on){shot.style.display=on?'':'none';sep2.style.display=on?'':'none';report()};
+window.addEventListener('load',report);
 document.addEventListener('click',function(e){
   var d=e.target.closest('[data-id]'); if(d){DockApp.open(d.dataset.id);return}
   if(e.target.closest('#ai')){DockApp.ai();return}
