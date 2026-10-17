@@ -1029,6 +1029,24 @@ public class LockService extends AccessibilityService {
         if (y != dockLp.y || hh != dockLp.height) { try { wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } h.postDelayed(new Runnable() { public void run() { MainActivity.dockMoved(); } }, 300); }
     }
     public static boolean isRunning() { return inst != null; }
+    /** Số liệu vị trí Dock để hiện lên bảng thông báo trên Desktop (dùng để cố định giá trị vào code). */
+    public static String dockDebug() {
+        final LockService s = inst; if (s == null) return "Dịch vụ trợ năng chưa chạy";
+        try {
+            Point r = s.realSize(); float d = s.getResources().getDisplayMetrics().density;
+            boolean land = s.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            return "man hinh: " + (land ? "NGANG" : "DOC") + " " + r.x + "x" + r.y + " px, density " + d + "\n"
+                + "dock hien: " + s.dockShown + "  dang o Desktop: " + s.launcherFront + "\n"
+                + "base icon(dp): " + dockBase + "  thanh Dock cao: " + s.dockBarPx() + "px = " + Math.round(s.dockBarPx() / d) + "dp\n"
+                + "gap duoi Desktop: " + s.desktopGapPx + "px = " + Math.round(s.desktopGapPx / d) + "dp\n"
+                + "dockYAdj: " + s.dockYAdj + "px  khoa: " + s.yAdjLocked + "  lan do: " + s.calTries + "\n"
+                + "lp.y: " + (s.dockLp == null ? -1 : s.dockLp.y) + "  lp.cao: " + (s.dockLp == null ? -1 : s.dockLp.height) + "\n"
+                + "mep tren Dock tren man hinh: " + dockTopOnScreen() + "px\n"
+                + "thanh he thong (sysBar): " + s.sysBarHeight() + "px  navBar: " + s.navBarHeight() + "px\n"
+                + "root(Desktop) top: " + MainActivity.dbgRootTop + "px  cao: " + MainActivity.dbgRootH + "px\n"
+                + "Dock cao tu day root (dp): " + MainActivity.dbgDockRes;
+        } catch (Throwable t) { return "loi do: " + t; }
+    }
     /** Toạ độ y thật (px) của mép trên Dock nổi trên màn hình; -1 nếu Dock đang ẩn. */
     public static int dockTopOnScreen() {
         final LockService s = inst;

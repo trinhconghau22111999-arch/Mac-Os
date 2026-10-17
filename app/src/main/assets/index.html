@@ -4725,4 +4725,20 @@ if(window.AndroidLauncher){(function(){
 
 })();
 </script>
+<div id="dkdbg" style="position:fixed;left:10px;top:44px;z-index:99998;max-width:calc(100% - 20px);padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.84);color:#7dff9a;font:12px/1.45 monospace;white-space:pre-wrap;box-shadow:0 6px 24px rgba(0,0,0,.5)"><b style="color:#fff">THONG SO DOCK - chup man hinh gui lai</b><span id="dkdbgx" style="float:right;margin-left:14px;color:#fff;border:1px solid #888;border-radius:6px;padding:0 8px;cursor:pointer">dong</span>
+<span id="dkdbgt"></span></div>
+<script>
+(function(){
+  var b=document.getElementById('dkdbgt'),p=document.getElementById('dkdbg');
+  document.getElementById('dkdbgx').addEventListener('click',function(){p.style.display='none';clearInterval(tm)});
+  function upd(){
+    var n='',pg='';
+    try{n=(window.AndroidLauncher&&AndroidLauncher.dockDebug)?AndroidLauncher.dockDebug():'khong co cau noi'}catch(e){n='loi: '+e}
+    try{var sr=document.getElementById('stage').getBoundingClientRect();
+      pg='\ntrang: inner '+innerWidth+'x'+innerHeight+' dpr '+devicePixelRatio+'\nstage top '+sr.top.toFixed(1)+' bottom '+sr.bottom.toFixed(1)+' cao '+sr.height.toFixed(1)+'\nDOCKNAT '+DOCKNAT+'  dockRes '+dockRes().toFixed(1)+'  --base '+getComputedStyle(document.getElementById('stage')).getPropertyValue('--base')}catch(e){pg='\ntrang: loi '+e}
+    b.textContent='\n'+n+pg;
+  }
+  var tm=setInterval(upd,800);upd();
+})();
+</script>
 </body></html>
