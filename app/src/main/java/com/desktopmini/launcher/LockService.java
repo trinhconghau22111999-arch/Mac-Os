@@ -248,7 +248,7 @@ public class LockService extends AccessibilityService {
         h.removeCallbacks(topTick);
         if (topBar == null) return;
         boolean fs = videoFull || externalFullscreenTop();
-        if (fs != topHidden && android.os.SystemClock.uptimeMillis() >= topPeekUntil) setTopHidden(fs); /* đang hiện tạm (kéo từ trên xuống) thì để bộ đếm 2 giây tự ẩn */
+        if (fs != topHidden && android.os.SystemClock.uptimeMillis() >= topPeekUntil) setTopHidden(fs); /* đang hiện tạm (kéo từ trên xuống) thì để bộ đếm 3,5 giây tự ẩn */
         topBar.invalidate();
         h.postDelayed(topTick, 1000);
     } };
@@ -827,7 +827,7 @@ public class LockService extends AccessibilityService {
             hit.put("srch", new RectF(rx - slot + dp(8), 0, rx + dp(8), hh)); rx -= slot;
             /* Bluetooth: chỉ hiện khi đang bật, nằm bên phải nút Wi-Fi */
             if (btOn()) {
-                float s = dp(0.792f), ox = rx - dp(9) - 8 * s, oy = cy - 8 * s; /* to thêm 10% so với bản trước (0.72 -> 0.792), độ dày nét giữ nguyên */ /* cao ~14dp, cân với biểu tượng Wi-Fi */
+                float s = dp(0.9108f), ox = rx - dp(9) - 8 * s, oy = cy - 8 * s; /* to thêm 15% so với bản trước (0.792 -> 0.9108), độ dày nét giữ nguyên */ /* cao ~14dp, cân với biểu tượng Wi-Fi */
                 android.graphics.Path bp = new android.graphics.Path();
                 bp.moveTo(ox + 4 * s, oy + 4.5f * s); bp.lineTo(ox + 12 * s, oy + 11.5f * s); bp.lineTo(ox + 8 * s, oy + 15 * s);
                 bp.lineTo(ox + 8 * s, oy + 1 * s); bp.lineTo(ox + 12 * s, oy + 4.5f * s); bp.lineTo(ox + 4 * s, oy + 11.5f * s);
@@ -900,7 +900,7 @@ public class LockService extends AccessibilityService {
         dismissPop(); dismissSpot(); h.removeCallbacks(topTick); h.removeCallbacks(topPeekEnd); topPeekUntil = 0; hideTopHot(); topHidden = false;
         if (topBar != null) { try { wm.removeView(topBar); } catch (Exception e) { } topBar = null; topLp = null; }
     }
-    /* ---- Đang xem toàn màn hình: kéo từ mép trên xuống thì thanh menu hiện ngay, giữ 2 giây rồi tự ẩn (hoặc ẩn sau khi bấm xong) ---- */
+    /* ---- Đang xem toàn màn hình: kéo từ mép trên xuống thì thanh menu hiện ngay, giữ 3,5 giây rồi tự ẩn (hoặc ẩn sau khi bấm xong) ---- */
     private android.view.View topHot;
     private long topPeekUntil = 0;
     private final Runnable topPeekEnd = new Runnable() { public void run() {
@@ -911,14 +911,15 @@ public class LockService extends AccessibilityService {
     } };
     private void peekTop() {
         if (topBar == null || topLp == null) return;
-        topPeekUntil = android.os.SystemClock.uptimeMillis() + 2000;
+        topPeekUntil = android.os.SystemClock.uptimeMillis() + 3500;
         setTopHidden(false);
-        h.removeCallbacks(topPeekEnd); h.postDelayed(topPeekEnd, 2000);
+        h.removeCallbacks(topPeekEnd); h.postDelayed(topPeekEnd, 3500);
     }
-    /** Vừa bấm xong một nút trên thanh đang hiện tạm: ẩn lại ngay (sau một nhịp ngắn), không chờ đủ 2 giây. */
+    /** Vừa bấm xong một nút trên thanh đang hiện tạm: tính lại 3,5 giây từ lúc bấm rồi mới ẩn. */
     private void topTapDone() {
         if (android.os.SystemClock.uptimeMillis() >= topPeekUntil) return;
-        h.removeCallbacks(topPeekEnd); h.postDelayed(topPeekEnd, 300);
+        topPeekUntil = android.os.SystemClock.uptimeMillis() + 3500;
+        h.removeCallbacks(topPeekEnd); h.postDelayed(topPeekEnd, 3500); /* bấm xong thì 3,5 giây sau mới ẩn */
     }
     private void showTopHot() {
         if (topHot != null || wm == null || topBar == null || barHide) return;
