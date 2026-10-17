@@ -967,17 +967,12 @@ public class LockService extends AccessibilityService {
         return barMax;
     }
     /** Chiều cao cửa sổ Dock (px): ở Desktop = đúng thanh icon; ở app khác = đủ cao để phủ kín thanh điều hướng/thanh tác vụ của ROM. */
-    private int dockBarPx() { int bar = dp(dockBase + 18); return launcherFront ? bar + desktopGapPx : Math.max(bar, sysBarHeight()); }
+    /** Cố định theo số đo thật (Yoga Book, cả ngang lẫn dọc): thanh Dock cao 48dp, sát đáy, không lệch, không hở. Không còn đo lại. */
+    static final int DOCK_BAR_DP = 48;
+    private int dockBarPx() { return dp(DOCK_BAR_DP); }
     /** Phần màn hình thật nằm dưới vùng Desktop (thanh điều hướng còn hiện...): Dock kéo dài phủ kín, icon nâng lên bằng đúng phần đó nên không còn khoảng trống. */
     private volatile int desktopGapPx = 0;
-    public static void setDesktopGap(final int px) {
-        final LockService s = inst; if (s == null) return;
-        s.h.post(new Runnable() { public void run() {
-            int v = Math.max(0, Math.min(px, s.dp(96)));
-            if (Math.abs(v - s.desktopGapPx) <= s.dp(1)) return;
-            s.desktopGapPx = v; s.applyDockBase();
-        } });
-    }
+    public static void setDesktopGap(final int px) { /* gap dưới Desktop đo được luôn 0: cố định, bỏ qua */ }
     private int dockGrowPx() { return 0; } /* không còn phóng đại nên cửa sổ Dock không bao giờ đổi cao */
     /** Đặt cửa sổ theo toạ độ tuyệt đối từ mép trên của màn hình THẬT (như thanh Desktop cũ) nên đè được lên thanh điều hướng. */
     private void placeDock(WindowManager.LayoutParams lp) {
@@ -989,34 +984,7 @@ public class LockService extends AccessibilityService {
     private int dockYAdj = 0, calTries = 0;
     private boolean yAdjLocked = false; /* đã hiệu chuẩn xong: không đo/nhích lại nữa */
     private final Runnable calibrateTick = new Runnable() { public void run() { calibrateDock(); } };
-    private void calibrateDock() {
-        android.view.View v = dockShown ? dockView : hotView; WindowManager.LayoutParams lp = dockShown ? dockLp : null;
-        if (v == null || wm == null) return;
-        if (lp == null) { /* chỉ có vạch cảm ứng (đang tự ẩn): đo bằng nó */
-            try {
-                int[] loc = new int[2]; v.getLocationOnScreen(loc);
-                int want = realSize().y - dp(10), err = loc[1] - want;
-                if (Math.abs(err) > dp(2) && calTries < 6) { calTries++; dockYAdj = Math.max(-dp(120), Math.min(dp(120), dockYAdj - err)); }
-            } catch (Throwable t) { }
-            return;
-        }
-        try {
-            if (yAdjLocked) return;
-            if (!v.isAttachedToWindow() || v.getHeight() <= 0 || recentsOpen) { /* chưa vẽ xong / đang đa nhiệm: đo lúc này sẽ sai */
-                if (calTries++ < 6) { h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); }
-                return;
-            }
-            int[] loc = new int[2]; v.getLocationOnScreen(loc);
-            int want = realSize().y - lp.height, err = loc[1] - want;   /* >0: cửa sổ đang thấp hơn mong muốn */
-            if (Math.abs(err) > dp(2) && calTries < 6) {
-                calTries++;
-                dockYAdj = Math.max(-dp(120), Math.min(dp(120), dockYAdj - err));
-                placeDock(lp); wm.updateViewLayout(v, lp);
-                h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 250);
-                MainActivity.dockMoved();
-            } else { yAdjLocked = true; MainActivity.dockMoved(); } /* đã đúng (hoặc hết lượt thử): khoá, không nhích nữa */
-        } catch (Throwable t) { }
-    }
+    private void calibrateDock() { /* đã cố định dockYAdj = 0 theo số đo thật: không hiệu chuẩn nữa */ yAdjLocked = true; }
     private static final int DOCK_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
     private int dockHDp() { return Math.round(dockBarPx() / getResources().getDisplayMetrics().density); }
     private int dockPadDp() { return launcherFront ? Math.round(desktopGapPx / getResources().getDisplayMetrics().density) : 0; }
@@ -1029,24 +997,6 @@ public class LockService extends AccessibilityService {
         if (y != dockLp.y || hh != dockLp.height) { try { wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } h.postDelayed(new Runnable() { public void run() { MainActivity.dockMoved(); } }, 300); }
     }
     public static boolean isRunning() { return inst != null; }
-    /** Số liệu vị trí Dock để hiện lên bảng thông báo trên Desktop (dùng để cố định giá trị vào code). */
-    public static String dockDebug() {
-        final LockService s = inst; if (s == null) return "Dịch vụ trợ năng chưa chạy";
-        try {
-            Point r = s.realSize(); float d = s.getResources().getDisplayMetrics().density;
-            boolean land = s.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-            return "man hinh: " + (land ? "NGANG" : "DOC") + " " + r.x + "x" + r.y + " px, density " + d + "\n"
-                + "dock hien: " + s.dockShown + "  dang o Desktop: " + s.launcherFront + "\n"
-                + "base icon(dp): " + dockBase + "  thanh Dock cao: " + s.dockBarPx() + "px = " + Math.round(s.dockBarPx() / d) + "dp\n"
-                + "gap duoi Desktop: " + s.desktopGapPx + "px = " + Math.round(s.desktopGapPx / d) + "dp\n"
-                + "dockYAdj: " + s.dockYAdj + "px  khoa: " + s.yAdjLocked + "  lan do: " + s.calTries + "\n"
-                + "lp.y: " + (s.dockLp == null ? -1 : s.dockLp.y) + "  lp.cao: " + (s.dockLp == null ? -1 : s.dockLp.height) + "\n"
-                + "mep tren Dock tren man hinh: " + dockTopOnScreen() + "px\n"
-                + "thanh he thong (sysBar): " + s.sysBarHeight() + "px  navBar: " + s.navBarHeight() + "px\n"
-                + "root(Desktop) top: " + MainActivity.dbgRootTop + "px  cao: " + MainActivity.dbgRootH + "px\n"
-                + "Dock cao tu day root (dp): " + MainActivity.dbgDockRes;
-        } catch (Throwable t) { return "loi do: " + t; }
-    }
     /** Toạ độ y thật (px) của mép trên Dock nổi trên màn hình; -1 nếu Dock đang ẩn. */
     public static int dockTopOnScreen() {
         final LockService s = inst;
