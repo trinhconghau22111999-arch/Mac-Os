@@ -369,7 +369,7 @@ public class MainActivity extends Activity {
         inFg = false; undimIdle();
         if (browserHost != null) { try { browserHost.onPause(); } catch (Exception e) { } }
         if (wordHost != null) wordHost.save();
-        if (omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(this, omemProfile);
+        /* Ổ mềm chạy bằng Gecko: mỗi hồ sơ có kho cookie riêng (contextId), không cần chụp/nạp cookie WebView nữa */
         /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) extPause(e.getKey(), e.getValue());
         for (String k : ext.keySet()) markExtHidden(k);
@@ -390,7 +390,7 @@ public class MainActivity extends Activity {
     }
 
     /** Đóng hẳn các trang nhúng đã ẩn quá EXT_IDLE_MS. Bỏ qua trang đang hiện, "Gõ văn bản" (giữ tài liệu đang soạn) và lúc đang phát nhạc. */
-    private void reapIdleExt() { reapExt(EXT_IDLE_MS); }
+    private void reapIdleExt() { omemReapIdle(EXT_IDLE_MS); reapExt(EXT_IDLE_MS); }
 
     /** minIdleMs = 0: đóng NGAY mọi trang nhúng đang ẩn (dùng khi máy sắp hết RAM), không chờ đủ thời gian. */
     private void reapExt(long minIdleMs) {
@@ -415,7 +415,7 @@ public class MainActivity extends Activity {
         /* Máy sắp hết RAM thật (đang chạy mà RAM tới mức "nguy cấp", hoặc app ở nền bị đẩy tới giữa/cuối danh sách bị giết): đóng ngay trang nhúng đang ẩn.
            Cố ý KHÔNG dùng mức UI_HIDDEN (20) và BACKGROUND (40): hai mức này xảy ra mỗi khi mở app khác từ launcher, chưa phải thiếu RAM, đóng thì YouTube/Zalo bị tải lại liên tục. */
         if (browserHost != null) { try { browserHost.onTrimMemory(level); } catch (Exception e) { } }
-        if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) reapExt(0);
+        if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) { omemReapIdle(0); reapExt(0); }
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
             for (WebView v : ext.values()) { try { if (v.getVisibility() != View.VISIBLE) v.clearCache(false); } catch (Exception e) { } }
         }
@@ -641,6 +641,20 @@ public class MainActivity extends Activity {
                     if (omemReady) { omemUploadStarted = true; omemRunUpload(); }
                 }
             }
+            return;
+        }
+        if (req == REQ_OMFILE) {
+            org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse> fr = omFileRes;
+            org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt fp = omFilePrompt;
+            omFileRes = null; omFilePrompt = null;
+            if (fr == null || fp == null) return;
+            Uri[] u = null;
+            if (res == RESULT_OK && data != null) {
+                android.content.ClipData cd = data.getClipData();
+                if (cd != null) { u = new Uri[cd.getItemCount()]; for (int k = 0; k < u.length; k++) u[k] = cd.getItemAt(k).getUri(); }
+                else if (data.getData() != null) u = new Uri[]{ data.getData() };
+            }
+            if (u != null && u.length > 0) fr.complete(omemConfirm(fp, u)); else fr.complete(fp.dismiss());
             return;
         }
         if (req == REQ_EXTFILE) {
@@ -1204,26 +1218,161 @@ public class MainActivity extends Activity {
 
     private void omemToast(String m) { android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show(); }
 
-    /** Mở / chuyển hồ sơ: lưu cookie hồ sơ cũ, nạp cookie hồ sơ mới rồi tải lại Drive. PHẢI chạy trên luồng giao diện. */
+    /* ---- Ổ mềm chạy bằng GeckoView (Firefox) thay cho WebView hệ thống: Google chấp nhận đăng nhập; mỗi hồ sơ một kho cookie riêng (contextId) ---- */
+    private static final int REQ_OMFILE = 1006;
+    private org.mozilla.geckoview.GeckoView omView;
+    private org.mozilla.geckoview.GeckoSession omSession;
+    private boolean omBackOk;
+    private String omUrl = "";
+    private long omHiddenAt = 0;
+    private boolean omExtDone;
+    private org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt omFilePrompt;
+    private org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse> omFileRes;
+
+    /** Tiện ích dọn giao diện Drive + tự bấm Tải tệp lên (assets/dmdrive). Lỗi thì bỏ qua, Ổ mềm vẫn dùng được. */
+    private void omemExt() {
+        if (omExtDone) return;
+        omExtDone = true;
+        try { gkRt().getWebExtensionController().ensureBuiltIn("resource://android/assets/dmdrive/", "dmdrive@desktopmini.launcher"); }
+        catch (Throwable t) { CrashLog.log(this, "Ổ mềm: không nạp được tiện ích dmdrive", t); }
+    }
+
+    private void omemEnsureView() {
+        if (omView != null) return;
+        omView = new org.mozilla.geckoview.GeckoView(this);
+        omView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);   /* nằm đúng thứ tự trên giao diện HTML */
+        omView.setVisibility(View.GONE);
+        root.addView(omView, new FrameLayout.LayoutParams(1, 1));
+    }
+
+    private org.mozilla.geckoview.GeckoSession omemNewSession(String profile) {
+        omemExt();
+        org.mozilla.geckoview.GeckoSessionSettings st = new org.mozilla.geckoview.GeckoSessionSettings.Builder()
+            .contextId("omem-" + profile)
+            .userAgentMode(org.mozilla.geckoview.GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+            .viewportMode(org.mozilla.geckoview.GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
+            .build();
+        final org.mozilla.geckoview.GeckoSession se = new org.mozilla.geckoview.GeckoSession(st);
+        se.setContentDelegate(new org.mozilla.geckoview.GeckoSession.ContentDelegate() {
+            @Override public void onExternalResponse(org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.WebResponse response) { gkDownload(response); }
+            @Override public void onCrash(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Ổ mềm (Gecko): tiến trình trang web bị văng (onCrash)", new Exception("onCrash")); omemDropSession(); gkToast("Ổ mềm bị văng, hãy mở lại. Chi tiết: " + CrashLog.where(MainActivity.this)); }
+            @Override public void onKill(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Ổ mềm (Gecko): bị hệ thống tắt, thường do thiếu RAM (onKill)", new Exception("onKill")); omemDropSession(); gkToast("Ổ mềm bị tắt do thiếu RAM, hãy mở lại."); }
+        });
+        se.setProgressDelegate(new org.mozilla.geckoview.GeckoSession.ProgressDelegate() {
+            @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) omUrl = url; }
+            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) {
+                if (!success || omUrl == null) return;
+                String oh = Uri.parse(omUrl).getHost();
+                if (oh != null && oh.equals("drive.google.com")) {
+                    omemReady = true;
+                    /* đã chọn tệp bằng nút "Tải lên": vào tới trang Drive thì tự bấm Mới -> Tải tệp lên */
+                    if (omemPending != null && !omemUploadStarted) { omemUploadStarted = true; root.postDelayed(new Runnable() { @Override public void run() { omemRunUpload(); } }, 1500); }
+                }
+            }
+        });
+        se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
+            @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { omBackOk = can; }
+            @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession> onNewSession(org.mozilla.geckoview.GeckoSession s, String uri) {
+                se.loadUri(uri); return null;   /* link mở thẻ mới -> mở ngay tại chỗ */
+            }
+        });
+        se.setPromptDelegate(new org.mozilla.geckoview.GeckoSession.PromptDelegate() {
+            @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse> onFilePrompt(
+                    org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt prompt) {
+                if (omemPending != null) {   /* nút "Tải lên": giao thẳng tệp đã chọn cho Drive */
+                    Uri[] given = omemPending; omemPending = null;
+                    omemToast("Đang tải lên Drive…");
+                    return org.mozilla.geckoview.GeckoResult.fromValue(omemConfirm(prompt, given));
+                }
+                if (omFileRes != null) omFileRes.complete(prompt.dismiss());
+                omFilePrompt = prompt;
+                omFileRes = new org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse>();
+                Intent it = new Intent(Intent.ACTION_GET_CONTENT);
+                it.addCategory(Intent.CATEGORY_OPENABLE); it.setType("*/*");
+                it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                try { startActivityForResult(Intent.createChooser(it, "Chọn tệp"), REQ_OMFILE); }
+                catch (Exception e) { omFileRes.complete(prompt.dismiss()); }
+                return omFileRes;
+            }
+        });
+        se.open(gkRt());
+        return se;
+    }
+
+    private org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse omemConfirm(org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt prompt, Uri[] uris) {
+        try {
+            if (uris.length == 1) return prompt.confirm(this, uris[0]);
+            return prompt.confirm(this, uris);
+        } catch (Throwable t) {
+            try { return prompt.confirm(this, uris[0]); } catch (Throwable t2) { return prompt.dismiss(); }
+        }
+    }
+
+    /** Bỏ phiên Gecko của Ổ mềm (giải phóng RAM); hồ sơ vẫn nhớ nên mở lại là vào đúng hồ sơ, đăng nhập vẫn còn. */
+    private void omemDropSession() {
+        org.mozilla.geckoview.GeckoSession old = omSession;
+        omSession = null; omBackOk = false; omemReady = false; omemUploadStarted = false;
+        if (omView != null) { try { omView.releaseSession(); } catch (Throwable t) { } omView.setVisibility(View.GONE); }
+        if (old != null) { try { old.close(); } catch (Throwable t) { } }
+    }
+
+    /** Mở / chuyển hồ sơ (mỗi hồ sơ một kho cookie riêng). PHẢI chạy trên luồng giao diện. */
     void omemSwitch(String profile, boolean upload) {
         if (!com.desktopmini.launcher.drive3.DriveEmbed.valid(profile)) return;
-        WebView old = ext.get("omem");
-        if (old != null && profile.equals(omemProfile)) { if (upload) omemPick(profile); return; }
-        android.view.ViewGroup.LayoutParams lp = null; int vis = View.GONE;
-        if (old != null) {
-            lp = old.getLayoutParams(); vis = old.getVisibility();
-            ext.remove("omem"); zooms.remove("omem"); extHiddenAt.remove("omem");
-            try { old.loadUrl("about:blank"); root.removeView(old); old.destroy(); } catch (Exception e) { }
-        }
-        com.desktopmini.launcher.drive3.DriveEmbed.activate(this, profile);   /* PHẢI chạy trước khi tạo WebView của hồ sơ */
-        omemProfile = profile; omemPending = null; omemReady = false; omemUploadStarted = false;
-        WebView v = extGet("omem", com.desktopmini.launcher.drive3.DriveEmbed.START_URL);
-        if (lp != null) {   /* giữ nguyên vị trí cũ trong cửa sổ: giao diện HTML không cần đặt lại */
-            v.setLayoutParams(lp); v.setVisibility(vis);
-            if (vis == View.VISIBLE) { try { v.onResume(); } catch (Exception e) { } }
-        }
+        if (omSession != null && profile.equals(omemProfile)) { if (upload) omemPick(profile); return; }
+        omemEnsureView();
+        int vis = omView.getVisibility();
+        omemDropSession();
+        omemProfile = profile; omemPending = null;
+        omSession = omemNewSession(profile);
+        omView.setSession(omSession);
+        omUrl = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;
+        omSession.loadUri(omUrl);
+        omView.setVisibility(vis);   /* giữ nguyên vị trí cũ trong cửa sổ: giao diện HTML không cần đặt lại */
         if (upload) omemPick(profile);
     }
+
+    /** Giao diện đặt/hiện khung Ổ mềm tại vị trí (px). */
+    void omemShow(int x, int y, int w, int h) {
+        omemEnsureView();
+        if (omSession == null && com.desktopmini.launcher.drive3.DriveEmbed.valid(omemProfile)) {   /* đã bị giải phóng do ẩn lâu / thiếu RAM: mở lại */
+            omSession = omemNewSession(omemProfile);
+            omView.setSession(omSession);
+            omUrl = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;
+            omSession.loadUri(omUrl);
+        }
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, w), Math.max(1, h));
+        lp.leftMargin = x; lp.topMargin = y;
+        omView.setLayoutParams(lp); omView.setVisibility(View.VISIBLE);
+        omHiddenAt = 0;
+        if (omSession != null) { try { omSession.setActive(true); } catch (Throwable t) { } }
+    }
+
+    void omemHideNow() {
+        if (omView == null || omView.getVisibility() != View.VISIBLE) return;
+        omView.setVisibility(View.GONE);
+        omHiddenAt = android.os.SystemClock.elapsedRealtime();
+        if (omSession != null) { try { omSession.setActive(false); } catch (Throwable t) { } }
+    }
+
+    /** Đóng hẳn Ổ mềm (đóng cửa sổ). */
+    void omemClose() {
+        omemDropSession();
+        omemProfile = ""; omemPending = null; omHiddenAt = 0;
+        if (omView != null) { try { root.removeView(omView); } catch (Throwable t) { } omView = null; }
+    }
+
+    private void omemReapIdle(long minIdleMs) {
+        if (omSession == null || omView == null || omView.getVisibility() == View.VISIBLE) return;
+        if (minIdleMs > 0 && (omHiddenAt == 0 || android.os.SystemClock.elapsedRealtime() - omHiddenAt < minIdleMs)) return;
+        omemDropSession();
+    }
+
+    void omemReload() { if (omSession != null) omSession.reload(); }
+    void omemForward() { if (omSession != null) omSession.goForward(); }
+    void omemBack() { if (omSession != null && omBackOk) omSession.goBack(); }
+    void omemGo(String url) { if (omSession != null && url != null && url.length() > 0) omSession.loadUri(url); }
+    String omemUrl() { return omUrl == null ? "" : omUrl; }
 
     private void omemPick(String profile) {
         Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -1233,27 +1382,17 @@ public class MainActivity extends Activity {
         try { startActivityForResult(i, REQ_OMEM_PICK); } catch (Exception e) { omemToast("Không mở được trình chọn tệp"); }
     }
 
-    /** Tự bấm "Mới" rồi "Tải tệp lên"; Drive gọi hộp chọn tệp thì onShowFileChooser đưa tệp đã chọn vào. */
+    /** Đổi địa chỉ thành #dm-upload-...: tiện ích trong trang Drive tự bấm "Mới" rồi "Tải tệp lên"; Drive gọi hộp chọn tệp thì onFilePrompt giao tệp đã chọn. */
     private void omemRunUpload() {
-        omemClick(com.desktopmini.launcher.drive3.DriveEmbed.clickNewJs(), 8, new Runnable() {
-            @Override public void run() { omemClick(com.desktopmini.launcher.drive3.DriveEmbed.clickUploadJs(), 6, null); }
-        });
-    }
-
-    private void omemClick(final String js, final int tries, final Runnable next) {
-        if (omemPending == null) return;   /* tệp đã được giao cho Drive */
-        final WebView v = ext.get("omem");
-        if (v == null) return;
-        v.evaluateJavascript(js, new android.webkit.ValueCallback<String>() {
-            @Override public void onReceiveValue(String r) {
-                if ("true".equals(r)) { if (next != null) v.postDelayed(next, 800); return; }
-                if (tries > 0) {
-                    v.postDelayed(new Runnable() { @Override public void run() { omemClick(js, tries - 1, next); } }, 800);
-                } else if (omemPending != null) {
-                    omemToast("Chưa tự bấm được – hãy bấm Mới → Tải tệp lên, tệp đã chọn sẽ được gửi");
-                }
-            }
-        });
+        if (omSession == null || omemPending == null) return;
+        String base = omUrl == null ? "" : omUrl;
+        int h = base.indexOf('#'); if (h >= 0) base = base.substring(0, h);
+        String bh = null; try { bh = Uri.parse(base).getHost(); } catch (Exception e) { }
+        if (bh == null || !bh.equals("drive.google.com")) base = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;
+        omSession.loadUri(base + "#dm-upload-" + System.currentTimeMillis());
+        root.postDelayed(new Runnable() { @Override public void run() {
+            if (omemPending != null) omemToast("Chưa tự bấm được – hãy bấm Mới → Tải tệp lên, tệp đã chọn sẽ được gửi");
+        } }, 12000);
     }
 
     BrowserHost browserGet(String url) {
@@ -1578,9 +1717,8 @@ public class MainActivity extends Activity {
         gkApplyZoom();
         getSharedPreferences("dm_zoom", MODE_PRIVATE).edit().putFloat("gecko", gkZoom).apply();
     }
-    void gkEnsure() {
-        if (gkView != null) return;
-        CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)");
+    /** Nhân Gecko dùng chung cho trình duyệt và Ổ mềm (tạo một lần). */
+    org.mozilla.geckoview.GeckoRuntime gkRt() {
         if (gkRuntime == null) {
             gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
             /* cho phép 2 ngón zoom cả trang cấm zoom; nạp mức zoom chữ đã lưu */
@@ -1588,6 +1726,12 @@ public class MainActivity extends Activity {
             gkZoom = getSharedPreferences("dm_zoom", MODE_PRIVATE).getFloat("gecko", 1f);
             if (Math.abs(gkZoom - 1f) > 0.01f) gkApplyZoom();
         }
+        return gkRuntime;
+    }
+    void gkEnsure() {
+        if (gkView != null) return;
+        CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)");
+        gkRt();
         /* Mở lại app: vào đúng trang đã xem lần trước (nếu có), chưa có thì về Google */
         String gkLast = getSharedPreferences("gk_state", MODE_PRIVATE).getString("last", null);
         final String gkStart = (gkLast != null && (gkLast.startsWith("http://") || gkLast.startsWith("https://"))) ? gkLast : GK_HOME;

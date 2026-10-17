@@ -1350,6 +1350,7 @@ public class LauncherBridge {
                 try {
                     float d = act.getResources().getDisplayMetrics().density;
                     for (WebView v : act.ext.values()) v.setVisibility(View.GONE);
+                    act.omemHideNow();
                     act.gkEnsure();
                     FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
                     lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
@@ -1381,7 +1382,18 @@ public class LauncherBridge {
             act.runOnUiThread(new Runnable() { public void run() {
                 float d = act.getResources().getDisplayMetrics().density;
                 act.gkHideNow();
+                act.omemHideNow();
                 for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); act.extPause(e.getKey(), e.getValue()); act.markExtHidden(e.getKey()); }
+                if ("omem".equals(key)) {   /* Ổ mềm chạy bằng Gecko */
+                    try {
+                        act.browserHide();
+                        act.omemShow(Math.round(x * d), Math.round(y * d), Math.round(w * d), Math.round(h * d));
+                    } catch (Throwable t) {
+                        CrashLog.log(act, "Ổ mềm không mở được (extShow omem)", t);
+                        act.gkToast("Ổ mềm không mở được: " + t + "\nChi tiết: " + CrashLog.where(act));
+                    }
+                    return;
+                }
                 if ("webandr".equals(key)) {
                     try {
                         View bv = act.browserGet(url).getRoot();
@@ -1413,21 +1425,22 @@ public class LauncherBridge {
         @JavascriptInterface public void extHide(final String key) {
             act.runOnUiThread(new Runnable() { public void run() {
                 if (key == null || key.length() == 0 || "webandr".equals(key)) act.browserHide();
+                if (key == null || key.length() == 0 || "omem".equals(key)) act.omemHideNow();
                 for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); act.extPause(e.getKey(), e.getValue()); act.markExtHidden(e.getKey()); }
             }});
         }
         @JavascriptInterface public void extReload(final String key) {
-            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.reload(); return; } WebView v = act.ext.get(key); if (v != null) v.reload(); } });
+            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.reload(); return; } if ("omem".equals(key)) { act.omemReload(); return; } WebView v = act.ext.get(key); if (v != null) v.reload(); } });
         }
         @JavascriptInterface public void extGo(final String key, final String url) {
-            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { act.browserGet(url).openUrl(url); return; } WebView v = act.extGet(key, url); v.loadUrl(url); } });
+            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { act.browserGet(url).openUrl(url); return; } if ("omem".equals(key)) { act.omemGo(url); return; } WebView v = act.extGet(key, url); v.loadUrl(url); } });
         }
         /** Back trong cửa sổ Gõ văn bản: đóng hộp thoại/màn hình Tệp của trang trước, hết thì đóng cửa sổ. */
         @JavascriptInterface public void wordBack() {
             act.runOnUiThread(new Runnable() { public void run() { if (act.wordHost != null) act.wordHost.back(); } });
         }
         @JavascriptInterface public void extForward(final String key) {
-            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.forward(); return; } WebView v = act.ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
+            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.forward(); return; } if ("omem".equals(key)) { act.omemForward(); return; } WebView v = act.ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
         }
         /** Đóng hẳn WebView nhúng (dừng phát video/âm thanh khi đóng cửa sổ). */
         @JavascriptInterface public void extClose(final String key) {
@@ -1441,10 +1454,7 @@ public class LauncherBridge {
                     bh.destroy();
                     return;
                 }
-                if ("omem".equals(key)) {
-                    if (act.omemProfile.length() > 0) com.desktopmini.launcher.drive3.DriveEmbed.captureIfActive(act, act.omemProfile);
-                    act.omemProfile = ""; act.omemPending = null; act.omemReady = false;
-                }
+                if ("omem".equals(key)) { act.omemClose(); return; }
                 final WebView v = act.ext.remove(key);
                 act.zooms.remove(key); act.extHiddenAt.remove(key);
                 if (v == null) return;
@@ -1461,6 +1471,7 @@ public class LauncherBridge {
         }
         @JavascriptInterface public String extUrl(final String key) {
             if ("webandr".equals(key)) return act.browserHost == null ? "" : act.browserHost.currentUrl();
+            if ("omem".equals(key)) return act.omemUrl();
             WebView v = act.ext.get(key); return v == null || v.getUrl() == null ? "" : v.getUrl();
         }
         @JavascriptInterface public void extBack(final String key) {
@@ -1470,6 +1481,7 @@ public class LauncherBridge {
                     if (act.browserHost == null || !act.browserHost.back()) act.web.evaluateJavascript("window.nativeCloseApp&&window.nativeCloseApp('webbrowser')", null);
                     return;
                 }
+                if ("omem".equals(key)) { act.omemBack(); return; }
                 WebView v = act.ext.get(key); if (v == null) return;
                 if (v.canGoBack()) { v.goBack(); return; }
                 /* Trang một-trang (vd Zalo web) không có lịch sử để lùi: gửi phím Esc để đóng cuộc trò chuyện/bảng đang mở */
