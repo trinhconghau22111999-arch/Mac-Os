@@ -113,6 +113,16 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
     private lateinit var urlBar: EditText
     private lateinit var bookmarkBtn: android.widget.ImageView
     private lateinit var progress: ProgressBar
+    // Gọn khi khung ngang: hai thanh trên cùng thấp bằng thanh tiêu đề có 3 nút ✕ − ＋
+    private var compact = false
+    private lateinit var topBarRow: LinearLayout
+    private lateinit var tabRowView: LinearLayout
+    private val barIcons = mutableListOf<android.widget.ImageView>()
+    private var plusBtn: TextView? = null
+    private var starBtn: View? = null
+    private var sideToggle: TextView? = null
+    private var sidePanel: View? = null
+    private var sideCatcher: View? = null
     private lateinit var qrOverlay: FrameLayout
     private var qrWeb: WebView? = null
     private lateinit var camOverlay: FrameLayout
@@ -284,9 +294,10 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             setPadding(dp(9), dp(9), dp(9), dp(9))
             contentDescription = desc
             background = rippleBg(fill, 20)
+            tag = fill
             layoutParams = LinearLayout.LayoutParams(dp(40), dp(40)).apply { leftMargin = dp(2); rightMargin = dp(2) }
             setOnClickListener { onClick(it) }
-        }
+        }.also { barIcons.add(it) }
         bar.addView(iconBtn(R.drawable.ic_menu, "Menu") { showMenu(it) })
         bar.addView(iconBtn(R.drawable.ic_back, "Quay lại") { active?.webView?.let { w -> if (w.canGoBack()) w.goBack() } })
         bar.addView(iconBtn(R.drawable.ic_forward, "Tiến tới") { active?.webView?.let { w -> if (w.canGoForward()) w.goForward() } })
@@ -324,6 +335,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         bar.addView(iconBtn(R.drawable.ic_close, "Màn hình chính", tint = 0xFFFF9A9A.toInt(), fill = 0x33FF6B6B) { goHome() }.apply {
             (layoutParams as LinearLayout.LayoutParams).leftMargin = dp(6)
         })
+        topBarRow = bar
         col.addView(bar, LinearLayout.LayoutParams(MATCH, WRAP))
 
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
@@ -337,6 +349,17 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(COLOR_TAB_BG)
         }
+        // Nút > ở trái cùng: bấm để hiện thanh app (Telegram, Zalo, Facebook, YouTube...) đang ẩn
+        val st = TextView(this).apply {
+            text = "›"
+            textSize = 24f
+            gravity = Gravity.CENTER
+            setTextColor(COLOR_BAR)
+            contentDescription = "Hiện thanh ứng dụng"
+            setOnClickListener { toggleSidePanel() }
+        }
+        sideToggle = st
+        tabRow.addView(st, LinearLayout.LayoutParams(dp(32), MATCH))
         val scroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         tabBar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val plus = TextView(this).apply {
@@ -350,6 +373,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         val tabsAndPlus = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         tabsAndPlus.addView(tabBar, LinearLayout.LayoutParams(WRAP, MATCH))
         tabsAndPlus.addView(plus, LinearLayout.LayoutParams(dp(44), MATCH))
+        plusBtn = plus
         scroll.addView(tabsAndPlus, FrameLayout.LayoutParams(WRAP, MATCH))
         tabRow.addView(scroll, LinearLayout.LayoutParams(0, MATCH, 1f))
         val bmBtn = android.widget.ImageView(this).apply {
@@ -360,6 +384,8 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             setOnClickListener { openDrawer() }
         }
         tabRow.addView(bmBtn, LinearLayout.LayoutParams(dp(44), MATCH))
+        starBtn = bmBtn
+        tabRowView = tabRow
         col.addView(tabRow, LinearLayout.LayoutParams(MATCH, dp(38)))
 
         // Noi dung
@@ -371,7 +397,6 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         splitRoot = LinearLayout(this)
         splitRoot.addView(splitPaneHolder, LinearLayout.LayoutParams(MATCH, 0, 3f))
         splitRoot.addView(content, LinearLayout.LayoutParams(MATCH, 0, 7f))
-        val body = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val sideScroll = android.widget.ScrollView(this).apply {
             isVerticalScrollBarEnabled = false
             setBackgroundColor(COLOR_TAB_BG)
@@ -415,9 +440,19 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         updateTranslateBtn()
         updateSideIcons()
         sideScroll.addView(sideCol, FrameLayout.LayoutParams(WRAP, WRAP))
-        body.addView(sideScroll, LinearLayout.LayoutParams(dp(40), MATCH))
-        body.addView(splitRoot, LinearLayout.LayoutParams(0, MATCH, 1f))
-        col.addView(body, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        // Thanh app mặc định ẩn (màn hình rộng hơn); hiện đè lên nội dung khi bấm ›, chạm ra ngoài thì ẩn lại
+        val bodyFrame = FrameLayout(this)
+        bodyFrame.addView(splitRoot, FrameLayout.LayoutParams(MATCH, MATCH))
+        val catcher = View(this).apply {
+            visibility = View.GONE
+            setOnTouchListener { _, ev -> if (ev.action == android.view.MotionEvent.ACTION_DOWN) setSidePanel(false); true }
+        }
+        bodyFrame.addView(catcher, FrameLayout.LayoutParams(MATCH, MATCH))
+        sideScroll.visibility = View.GONE
+        sideScroll.elevation = dp(8).toFloat()
+        bodyFrame.addView(sideScroll, FrameLayout.LayoutParams(dp(40), MATCH, Gravity.START))
+        sidePanel = sideScroll; sideCatcher = catcher
+        col.addView(bodyFrame, LinearLayout.LayoutParams(MATCH, 0, 1f))
 
         qrOverlay = FrameLayout(this).apply {
             setBackgroundColor(0xFF1A1030.toInt())
@@ -439,7 +474,47 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         rootFrame.addOnLayoutChangeListener { _, l, t, r, b, ol, ot, orr, ob ->
             val wide = (r - l) > (b - t); val wasWide = (orr - ol) > (ob - ot)
             if (wide != wasWide) applySplitLayout()
+            if (wide != compact) applyCompact(wide)
         }
+        applyCompact(false)
+    }
+
+    private fun setSidePanel(show: Boolean) {
+        sidePanel?.visibility = if (show) View.VISIBLE else View.GONE
+        sideCatcher?.visibility = if (show) View.VISIBLE else View.GONE
+        sideToggle?.text = if (show) "‹" else "›"
+    }
+    private fun toggleSidePanel() = setSidePanel(sidePanel?.visibility != View.VISIBLE)
+
+    /** Khung ngang: icon, ô địa chỉ, tab nhỏ lại để hai thanh trên cùng chỉ cao bằng thanh tiêu đề (≈28dp). */
+    private fun applyCompact(on: Boolean) {
+        compact = on
+        val ic = if (on) 24 else 40
+        val pad = if (on) 5 else 9
+        topBarRow.setPadding(dp(6), dp(if (on) 3 else 6), dp(6), dp(if (on) 3 else 6))
+        for (b in barIcons) {
+            b.setPadding(dp(pad), dp(pad), dp(pad), dp(pad))
+            (b.layoutParams as LinearLayout.LayoutParams).apply {
+                width = dp(ic); height = dp(ic)
+                leftMargin = dp(if (on) 1 else 2); rightMargin = dp(if (on) 1 else 2)
+            }
+            b.background = rippleBg((b.tag as? Int) ?: 0, ic / 2)
+            b.requestLayout()
+        }
+        (urlBar.layoutParams as LinearLayout.LayoutParams).height = dp(ic)
+        urlBar.textSize = if (on) 12f else 14f
+        urlBar.setPadding(dp(if (on) 10 else 16), 0, dp(if (on) 10 else 16), 0)
+        (urlBar.background as? android.graphics.drawable.GradientDrawable)?.cornerRadius = dp(ic / 2).toFloat()
+        urlBar.requestLayout()
+        (tabRowView.layoutParams as LinearLayout.LayoutParams).height = dp(if (on) 26 else 38)
+        tabRowView.requestLayout()
+        plusBtn?.textSize = if (on) 16f else 20f
+        sideToggle?.textSize = if (on) 20f else 24f
+        for (i in 0 until tabBar.childCount) styleTabHolder(tabBar.getChildAt(i))
+    }
+    private fun styleTabHolder(h: View) {
+        val g = h as? LinearLayout ?: return
+        for (i in 0 until g.childCount) (g.getChildAt(i) as? TextView)?.textSize = if (compact) 11f else 13f
     }
 
     fun onConfigurationChanged(newConfig: Configuration) {
@@ -618,6 +693,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         btn.setOnClickListener { selectTab(tab) }
         closeX.setOnClickListener { closeTab(tab) }
         tabBar.addView(holder, LinearLayout.LayoutParams(WRAP, MATCH))
+        styleTabHolder(holder)
 
         wv.visibility = View.GONE
         content.addView(wv, 0, FrameLayout.LayoutParams(MATCH, MATCH))
