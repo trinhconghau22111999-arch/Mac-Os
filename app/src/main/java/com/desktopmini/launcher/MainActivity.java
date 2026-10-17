@@ -1328,7 +1328,7 @@ public class MainActivity extends Activity {
         omemProfile = profile; omemPending = null;
         omSession = omemNewSession(profile);
         omView.setSession(omSession);
-        omUrl = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;
+        omUrl = com.desktopmini.launcher.drive3.DriveEmbed.startUrl(omemProfile);
         omSession.loadUri(omUrl);
         omView.setVisibility(vis);   /* giữ nguyên vị trí cũ trong cửa sổ: giao diện HTML không cần đặt lại */
         if (upload) omemPick(profile);
@@ -1340,7 +1340,7 @@ public class MainActivity extends Activity {
         if (omSession == null && com.desktopmini.launcher.drive3.DriveEmbed.valid(omemProfile)) {   /* đã bị giải phóng do ẩn lâu / thiếu RAM: mở lại */
             omSession = omemNewSession(omemProfile);
             omView.setSession(omSession);
-            omUrl = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;
+            omUrl = com.desktopmini.launcher.drive3.DriveEmbed.startUrl(omemProfile);
             omSession.loadUri(omUrl);
         }
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, w), Math.max(1, h));
@@ -1390,7 +1390,7 @@ public class MainActivity extends Activity {
         String base = omUrl == null ? "" : omUrl;
         int h = base.indexOf('#'); if (h >= 0) base = base.substring(0, h);
         String bh = null; try { bh = Uri.parse(base).getHost(); } catch (Exception e) { }
-        if (bh == null || !bh.equals("drive.google.com")) base = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;
+        if (bh == null || !bh.equals("drive.google.com") || base.contains("/drive/search")) base = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;   /* trang lọc theo loại không có chỗ tải lên: dùng Drive của tôi */
         omSession.loadUri(base + "#dm-upload-" + System.currentTimeMillis());
         root.postDelayed(new Runnable() { @Override public void run() {
             if (omemPending != null) omemToast("Chưa tự bấm được – hãy bấm Mới → Tải tệp lên, tệp đã chọn sẽ được gửi");

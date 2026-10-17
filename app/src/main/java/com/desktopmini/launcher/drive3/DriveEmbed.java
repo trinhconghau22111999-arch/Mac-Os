@@ -11,6 +11,13 @@ public final class DriveEmbed {
 
     public static final String START_URL = "https://drive.google.com/drive/my-drive";
 
+    /** Trang Drive mở đầu theo hồ sơ: Ảnh chỉ liệt kê ảnh, Video chỉ liệt kê video (bộ lọc loại của Drive), Tệp là Drive của tôi. */
+    public static String startUrl(String p) {
+        if ("anh".equals(p)) return "https://drive.google.com/drive/search?q=type:image";
+        if ("video".equals(p)) return "https://drive.google.com/drive/search?q=type:video";
+        return START_URL;
+    }
+
     public static boolean enabled() { return DriveCookies.enabled(); }
 
     public static boolean valid(String p) { return "anh".equals(p) || "video".equals(p) || "tep".equals(p); }
