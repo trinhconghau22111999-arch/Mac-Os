@@ -1844,7 +1844,8 @@ function minWin(w){
 function fitMax(w){
   const sr=stage.getBoundingClientRect();
   w.style.left='0px'; w.style.top='28px'; w.style.width=sr.width+'px';
-  w.style.height=(sr.height-28-dockRes())+'px';
+  /* Neo đáy cửa sổ vào cạnh dưới màn hình (cách đáy đúng chiều cao Dock) thay vì tính chiều cao từ số đo: luôn sát Dock, không hở dù trang đo sai */
+  w.style.height='auto'; w.style.bottom=dockRes()+'px';
 }
 const MAXK='dm-maxwins';
 const maxMem=()=>{try{return JSON.parse(lsGet(MAXK)||'{}')||{}}catch(e){return {}}};
@@ -1854,9 +1855,9 @@ function snapHalf(w,side){
   const H=sr.height-28-dockRes();
   if(!w._snap)w._snap={prev:[w.style.left,w.style.top,w.style.width,w.style.height]};
   w._snap.side=side;
-  w.style.left=(side==='l'?0:hw)+'px'; w.style.top='28px'; w.style.width=hw+'px'; w.style.height=H+'px'; kickSync();
+  w.style.left=(side==='l'?0:hw)+'px'; w.style.top='28px'; w.style.width=hw+'px'; w.style.height='auto'; w.style.bottom=dockRes()+'px'; kickSync();
 }
-function unsnap(w){ if(!w._snap)return; const p=w._snap.prev; w._snap=null; [w.style.left,w.style.top,w.style.width,w.style.height]=p; kickSync() }
+function unsnap(w){ if(!w._snap)return; const p=w._snap.prev; w._snap=null; [w.style.left,w.style.top,w.style.width,w.style.height]=p; w.style.bottom=''; kickSync() }
 /* Nút chia đôi màn hình: 2 cửa sổ đang mở trên cùng nằm cạnh nhau (cũ bên trái, mới nhất bên phải); chỉ có 1 cửa sổ thì dán vào nửa trái */
 function splitScreen(){
   const ws=$$('.win',layer).filter(w=>!w.classList.contains('min')&&!w._leaving).sort((a,b)=>(+b.style.zIndex||0)-(+a.style.zIndex||0));
@@ -1877,7 +1878,7 @@ function showSnap(zone){
 function toggleMax(w,auto){
   const on=w.classList.toggle('max');
   if(on){w._prev=w._snap?w._snap.prev:[w.style.left,w.style.top,w.style.width,w.style.height]; w._snap=null; fitMax(w)}
-  else if(w._prev){[w.style.left,w.style.top,w.style.width,w.style.height]=w._prev}
+  else if(w._prev){[w.style.left,w.style.top,w.style.width,w.style.height]=w._prev; w.style.bottom=''}
   /* Ghi nhớ: lần trước dùng toàn màn hình thì lần sau mở lại vẫn toàn màn hình */
   if(!auto&&w.dataset.app){const m=maxMem(); if(on)m[w.dataset.app]=1; else delete m[w.dataset.app]; lsSet(MAXK,JSON.stringify(m))}
 }
