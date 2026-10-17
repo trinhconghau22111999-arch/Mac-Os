@@ -1,5 +1,6 @@
 package com.desktopmini.launcher;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -114,7 +115,8 @@ public final class CrashLog {
                 try {
                     log(app, "APP VĂNG (luồng " + th.getName() + ")", t);
                     SharedPreferences sp = app.getSharedPreferences("dm_crash", Context.MODE_PRIVATE);
-                    sp.edit().putString("last", t.toString()).commit();
+                    String st = stack(t); if (st.length() > 1800) st = st.substring(0, 1800) + "\n...";
+                    sp.edit().putString("last", t.toString()).putString("lastStack", st).commit();
                 } catch (Throwable x) { }
                 if (prev != null) prev.uncaughtException(th, t);
             }
@@ -167,7 +169,9 @@ public final class CrashLog {
                 write(c, b.toString() + "\n");
                 if (sum == null) sum = name + (stage != null ? " — lúc: " + stage : "");
             }
-            sp.edit().putLong("exitSeen", newest).remove("stage").commit();
+            android.content.SharedPreferences.Editor ed = sp.edit().putLong("exitSeen", newest).remove("stage");
+            if (stage != null) ed.putString("stagePrev", stage);
+            ed.commit();
             return sum;
         } catch (Throwable t) { return null; }
     }
@@ -184,6 +188,160 @@ public final class CrashLog {
             case 12: return "BỊ ĐÓNG BĂNG";
             default: return "mã " + r;
         }
+    }
+
+    /* ================= Báo lỗi hiện lên màn hình sau khi khởi động lại =================
+       Android cũ (dưới 11) không cho hỏi hệ thống vì sao app bị tắt, nên ghi "nhịp tim" 20 giây/lần (RAM trống, bộ nhớ app, việc đang làm)
+       và cờ "đang chạy"; nếu lần sau mở lên mà cờ vẫn còn = lần trước tắt đột ngột -> hiện hộp báo để chụp màn hình gửi đi. */
+    private static final String SPN = "dm_crash";
+
+    /** Ghi nhanh tình trạng RAM / bộ nhớ của app (gọi định kỳ). */
+    static void heartbeat(Context c) {
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) c.getSystemService(Context.ACTIVITY_SERVICE);
+            android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+            am.getMemoryInfo(mi);
+            Runtime rt = Runtime.getRuntime();
+            String when = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
+            String s = when + " | RAM trống " + (mi.availMem >> 20) + "/" + (mi.totalMem >> 20) + " MB" + (mi.lowMemory ? " (HỆ THỐNG BÁO THIẾU RAM)" : "")
+                + " | Java " + ((rt.totalMemory() - rt.freeMemory()) >> 20) + "/" + (rt.maxMemory() >> 20) + " MB"
+                + " | native " + (android.os.Debug.getNativeHeapAllocatedSize() >> 20) + " MB";
+            c.getSharedPreferences(SPN, Context.MODE_PRIVATE).edit().putString("hb", s).apply();
+        } catch (Throwable t) { }
+    }
+
+    private static String trimName(int l) {
+        switch (l) {
+            case 5: return "RAM hơi thấp";
+            case 10: return "RAM thấp";
+            case 15: return "RAM NGUY CẤP";
+            case 60: return "app ở nền, sắp bị dọn";
+            case 80: return "app ở nền, rất dễ bị tắt";
+            default: return "";
+        }
+    }
+
+    /** Ghi lại các lần hệ thống kêu thiếu RAM (giữ 5 lần gần nhất). */
+    static void trimEvent(Context c, int level) {
+        try {
+            if (level != 5 && level != 10 && level != 15 && level != 60 && level != 80) return;
+            SharedPreferences sp = c.getSharedPreferences(SPN, Context.MODE_PRIVATE);
+            String when = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
+            java.util.ArrayList<String> l = new java.util.ArrayList<String>();
+            String old = sp.getString("trim", "");
+            if (old.length() > 0) for (String x : old.split("\n")) l.add(x);
+            l.add(when + " mức " + level + " (" + trimName(level) + ")");
+            while (l.size() > 5) l.remove(0);
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < l.size(); i++) { if (i > 0) b.append('\n'); b.append(l.get(i)); }
+            sp.edit().putString("trim", b.toString()).apply();
+        } catch (Throwable t) { }
+    }
+
+    /** Gọi một lần ở đầu onCreate. Trả true nếu lần chạy trước KHÔNG thoát bình thường (không tính khi vừa cập nhật app hoặc máy vừa khởi động lại). */
+    static boolean beginSession(Context c) {
+        boolean unclean = false;
+        try {
+            SharedPreferences sp = c.getSharedPreferences(SPN, Context.MODE_PRIVATE);
+            long boot = System.currentTimeMillis() - android.os.SystemClock.elapsedRealtime();
+            long upd = 0;
+            try { upd = c.getPackageManager().getPackageInfo(c.getPackageName(), 0).lastUpdateTime; } catch (Throwable t) { }
+            boolean wasAlive = sp.getBoolean("alive", false);
+            long oldBoot = sp.getLong("boot", 0), oldUpd = sp.getLong("upd", 0);
+            boolean rebooted = oldBoot != 0 && Math.abs(boot - oldBoot) > 120000;
+            boolean updated = oldUpd != 0 && oldUpd != upd;
+            unclean = wasAlive && !rebooted && !updated;
+            sp.edit().putBoolean("alive", true).putLong("boot", boot).putLong("upd", upd).commit();
+        } catch (Throwable t) { }
+        return unclean;
+    }
+
+    /** Thoát bình thường (Activity bị đóng hẳn): xóa cờ "đang chạy". */
+    static void endSession(Context c) {
+        try { c.getSharedPreferences(SPN, Context.MODE_PRIVATE).edit().putBoolean("alive", false).commit(); } catch (Throwable t) { }
+    }
+
+    /** Vài dòng nhật ký hệ thống liên quan tới việc app bị tắt (chỉ thấy được dòng của chính app này). */
+    private static String logTail() {
+        try {
+            final java.util.LinkedList<String> keep = new java.util.LinkedList<String>();
+            final Process p = Runtime.getRuntime().exec(new String[]{"logcat", "-d", "-v", "time", "-t", "2500"});
+            Thread rd = new Thread(new Runnable() { public void run() {
+                try {
+                    java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream(), "UTF-8"));
+                    String ln;
+                    String[] k = {"fatal", "androidruntime", "signal", "sigsegv", "abort", "tombstone", "lowmemory", "lmk", "outofmemory", "oom", "killing", "died", "anr", "backtrace", "crash"};
+                    while ((ln = r.readLine()) != null) {
+                        String lo = ln.toLowerCase(Locale.ROOT);
+                        for (String x : k) if (lo.contains(x)) {
+                            keep.add(ln.length() > 200 ? ln.substring(0, 200) : ln);
+                            while (keep.size() > 25) keep.removeFirst();
+                            break;
+                        }
+                    }
+                } catch (Throwable t) { }
+            } }, "crashlog-logcat");
+            rd.start(); rd.join(4000);
+            try { p.destroy(); } catch (Throwable t) { }
+            StringBuilder b = new StringBuilder();
+            synchronized (keep) { for (String x : new java.util.ArrayList<String>(keep)) b.append(x).append('\n'); }
+            return b.toString();
+        } catch (Throwable t) { return ""; }
+    }
+
+    /** Nếu lần chạy trước bị lỗi / tắt đột ngột: dựng bản báo lỗi, ghi vào tệp và hiện hộp thoại trên màn hình (không tự tắt) để chụp lại gửi đi. */
+    static void reportAsync(final Activity a, String lastExit, String javaCrash, boolean unclean) {
+        if (lastExit == null && javaCrash == null && !unclean) return;
+        final Context c = a.getApplicationContext();
+        SharedPreferences sp = c.getSharedPreferences(SPN, Context.MODE_PRIVATE);
+        final StringBuilder b = new StringBuilder();
+        b.append(javaCrash != null ? "LẦN TRƯỚC APP BỊ LỖI VĂNG (lỗi Java)\n" : "LẦN TRƯỚC APP BỊ TẮT ĐỘT NGỘT\n");
+        b.append("(nếu bạn tự vuốt tắt app thì bỏ qua hộp này)\n\n");
+        if (javaCrash != null) b.append("Lỗi: ").append(javaCrash).append('\n');
+        String st = sp.getString("lastStack", null);
+        if (st != null) b.append(st).append('\n');
+        if (lastExit != null) b.append("Hệ thống Android báo: ").append(lastExit).append('\n');
+        else if (javaCrash == null) b.append("Không có lỗi Java nào được ghi lại: nhiều khả năng là văng ở phần gốc (Gecko), hết RAM bị hệ thống tắt, hoặc bị treo rồi bị tắt.\n");
+        String stage = sp.getString("stage", sp.getString("stagePrev", null));
+        if (stage != null) b.append("Đang làm lúc đó: ").append(stage).append('\n');
+        String hb = sp.getString("hb", null);
+        if (hb != null) b.append("Nhịp ghi cuối (RAM): ").append(hb).append('\n');
+        String trim = sp.getString("trim", "");
+        if (trim.length() > 0) b.append("Lần hệ thống kêu thiếu RAM gần đây:\n").append(trim).append('\n');
+        b.append('\n').append(header(c));
+        sp.edit().remove("lastStack").remove("stagePrev").remove("trim").apply();
+        new Thread(new Runnable() { public void run() {
+            String lg = logTail();
+            if (lg.length() > 0) b.append("\nNhật ký hệ thống (rút gọn):\n").append(lg);
+            b.append("\nTệp đầy đủ: ").append(where(c)).append('\n');
+            final String text = b.toString();
+            try { write(c, "==== " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date()) + " | BÁO LỖI HIỆN TRÊN MÀN HÌNH ====\n" + text + "\n"); } catch (Throwable t) { }
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() { public void run() { showReport(a, text); } }, 900);
+        } }, "crashlog-report").start();
+    }
+
+    private static void showReport(final Activity a, final String text) {
+        try {
+            if (a.isFinishing()) return;
+            float d = a.getResources().getDisplayMetrics().density;
+            android.widget.TextView tv = new android.widget.TextView(a);
+            tv.setText(text); tv.setTextSize(12); tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+            tv.setTextIsSelectable(true);
+            int pd = Math.round(14 * d); tv.setPadding(pd, pd, pd, pd);
+            android.widget.ScrollView sv = new android.widget.ScrollView(a); sv.addView(tv);
+            final android.app.AlertDialog dlg = new android.app.AlertDialog.Builder(a)
+                .setTitle("Báo lỗi — chụp màn hình này gửi mình")
+                .setView(sv).setCancelable(false)
+                .setPositiveButton("Đóng", null)
+                .setNeutralButton("Sao chép", null).create();
+            dlg.show();
+            dlg.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new android.view.View.OnClickListener() { public void onClick(android.view.View v) {
+                try {
+                    ((android.content.ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText("loi", text));
+                    android.widget.Toast.makeText(a, "Đã sao chép", android.widget.Toast.LENGTH_SHORT).show();
+                } catch (Throwable t) { }
+            } });
+        } catch (Throwable t) { }
     }
 
     /** Lần mở trước app bị văng? Trả mô tả lỗi rồi xóa dấu. */

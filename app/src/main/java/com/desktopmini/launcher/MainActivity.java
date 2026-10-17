@@ -247,8 +247,10 @@ public class MainActivity extends Activity {
         inst = this;
         CrashLog.install(getApplicationContext());
         final String lastExit = CrashLog.reportLastExit(this);
-        final String lastCrash = lastExit != null ? "bị tắt do " + lastExit : CrashLog.takeLastCrash(this);
-        if (lastCrash != null) gkToast("Lần trước app bị lỗi: " + lastCrash + "\nChi tiết: " + CrashLog.where(this));
+        final String javaCrash = CrashLog.takeLastCrash(this);
+        final boolean uncleanExit = CrashLog.beginSession(this);
+        CrashLog.reportAsync(this, lastExit, javaCrash, uncleanExit);   /* lần trước lỗi / tắt đột ngột -> hiện hộp báo lỗi trên màn hình để chụp gửi */
+        reaper.postDelayed(hbTask, 5000);
         new Thread(new Runnable() { public void run() { try { TrashStore.purgeOld(MainActivity.this); } catch (Exception e) { } } }).start();   /* Thùng rác: dọn mục quá 7 ngày */
         assetLoader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -434,6 +436,7 @@ public class MainActivity extends Activity {
 
     @Override public void onTrimMemory(int level) {
         super.onTrimMemory(level);
+        CrashLog.trimEvent(this, level);
         /* Máy sắp hết RAM thật (đang chạy mà RAM tới mức "nguy cấp", hoặc app ở nền bị đẩy tới giữa/cuối danh sách bị giết): đóng ngay trang nhúng đang ẩn.
            Cố ý KHÔNG dùng mức UI_HIDDEN (20) và BACKGROUND (40): hai mức này xảy ra mỗi khi mở app khác từ launcher, chưa phải thiếu RAM, đóng thì YouTube/Zalo bị tải lại liên tục. */
         if (browserHost != null) { try { browserHost.onTrimMemory(level); } catch (Exception e) { } }
@@ -443,11 +446,16 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** Mỗi 20 giây ghi nhanh tình trạng RAM để lần sau có dữ liệu nếu app bị tắt đột ngột. */
+    private final Runnable hbTask = new Runnable() { public void run() { CrashLog.heartbeat(getApplicationContext()); reaper.postDelayed(this, 20000); } };
+
     @Override protected void onDestroy() {
         if (browserHost != null) { try { browserHost.destroy(); } catch (Exception e) { } browserHost = null; }
         aiCancel();
         stopMediaWatch();
         reaper.removeCallbacks(reapTask); reaper.removeCallbacks(idleTask); reaper.removeCallbacks(appsRefresh);
+        reaper.removeCallbacks(hbTask);
+        if (isFinishing()) CrashLog.endSession(this);
         try { unregisterReceiver(pkgRx); } catch (Exception e) { }
         try { unregisterReceiver(media); } catch (Exception e) { }
         try { unregisterReceiver(scr); } catch (Exception e) { }
