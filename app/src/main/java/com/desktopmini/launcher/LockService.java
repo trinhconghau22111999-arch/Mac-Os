@@ -793,7 +793,7 @@ public class LockService extends AccessibilityService {
             hit.put("srch", new RectF(rx - slot + dp(8), 0, rx + dp(8), hh)); rx -= slot;
             /* Bluetooth: chỉ hiện khi đang bật, nằm bên phải nút Wi-Fi */
             if (btOn()) {
-                float s = dp(0.8f), ox = rx - dp(9) - 8 * s, oy = cy - 8 * s; /* nhỏ còn 80%, nét dày thêm 20% */ /* cao ~14dp, cân với biểu tượng Wi-Fi */
+                float s = dp(0.72f), ox = rx - dp(9) - 8 * s, oy = cy - 8 * s; /* nhỏ còn 90% của bản trước (0.8 -> 0.72), độ dày nét giữ nguyên */ /* cao ~14dp, cân với biểu tượng Wi-Fi */
                 android.graphics.Path bp = new android.graphics.Path();
                 bp.moveTo(ox + 4 * s, oy + 4.5f * s); bp.lineTo(ox + 12 * s, oy + 11.5f * s); bp.lineTo(ox + 8 * s, oy + 15 * s);
                 bp.lineTo(ox + 8 * s, oy + 1 * s); bp.lineTo(ox + 12 * s, oy + 4.5f * s); bp.lineTo(ox + 4 * s, oy + 11.5f * s);
