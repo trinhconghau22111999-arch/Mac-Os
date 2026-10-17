@@ -1020,12 +1020,11 @@ body.native .stage{border-radius:0;min-height:0}
 .msall:active{background:rgba(255,255,255,.32)}
 .mshint{position:absolute;left:0;right:0;bottom:calc(var(--base) + 110px);text-align:center;color:rgba(255,255,255,.75);font-size:12px;pointer-events:none}
 /* Chạm giữ màn hình nền */
-.dsh{position:absolute;left:50%;bottom:calc(var(--base) + 44px);transform:translateX(-50%);z-index:9;display:flex;gap:6px;align-items:flex-start;padding:14px 10px 10px;border-radius:28px;background:rgba(40,44,60,.38);backdrop-filter:blur(var(--bl)) saturate(1.6);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.6);box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.16);max-width:calc(100% - 12px);animation:dshin .2s ease-out}
+.dsh{position:absolute;left:50%;bottom:calc(var(--base) + 44px);transform:translateX(-50%);z-index:9;display:flex;gap:4px;padding:14px 10px 12px;border-radius:28px;background:rgba(40,44,60,.38);backdrop-filter:blur(var(--bl)) saturate(1.6);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.6);box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.16);max-width:calc(100% - 12px);animation:dshin .2s ease-out}
 @keyframes dshin{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
-.dsi{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:7px;flex:0 0 78px;width:78px;color:#fff;font-size:12.5px;line-height:1.15;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.4)}
-.dsi i{flex:0 0 56px;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.24);display:grid;place-items:center}
+.dsi{display:flex;flex-direction:column;align-items:center;gap:7px;width:78px;color:#fff;font-size:12.5px;line-height:1.15;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.dsi i{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.24);display:grid;place-items:center}
 .dsi svg{width:25px;height:25px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.dsi span{display:flex;align-items:flex-start;justify-content:center;min-height:2.3em;width:100%}
 .dsi:active i{background:rgba(255,255,255,.42)}
 /* Kiểu biểu tượng chỉ áp dụng cho thanh Dock, icon trên màn hình desktop giữ nguyên */
 .stage[data-ics="circle"] .dock .ic{border-radius:50%}
