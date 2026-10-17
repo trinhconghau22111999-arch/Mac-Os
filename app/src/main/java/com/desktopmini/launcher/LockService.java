@@ -193,6 +193,7 @@ public class LockService extends AccessibilityService {
 
     /** Bấm nút: đưa Desktop Mini lên trước (MainActivity tự thu nhỏ mọi cửa sổ để hiện màn hình Desktop). */
     private void goDesktop() {
+        MainActivity.leaveFullscreen(); videoFull = false;
         try {
             startActivity(new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
@@ -284,6 +285,7 @@ public class LockService extends AccessibilityService {
         } catch (Exception e) { }
     }
     private void forward(String id) {
+        MainActivity.leaveFullscreen(); videoFull = false;
         try {
             startActivity(new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -291,6 +293,7 @@ public class LockService extends AccessibilityService {
         } catch (Exception e) { }
     }
     private void openInLauncher(String app) {
+        MainActivity.leaveFullscreen(); videoFull = false;
         try {
             startActivity(new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)

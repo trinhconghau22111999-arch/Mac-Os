@@ -1143,6 +1143,11 @@ public class MainActivity extends Activity {
             web.evaluateJavascript("window.nativeExtNav&&window.nativeExtNav(" + JSONObject.quote(key) + "," + o.toString() + ")", null);
         } catch (Exception e) { }
     }
+    /** Dock nổi / thanh menu nổi gọi TRƯỚC khi chuyển app: thoát video toàn màn hình ngay (không chờ onNewIntent). */
+    static void leaveFullscreen() {
+        final MainActivity a = inst; if (a == null) return;
+        a.runOnUiThread(new Runnable() { public void run() { try { a.extHideFull(); } catch (Throwable t) { } try { if (a.web != null) a.web.evaluateJavascript("document.fullscreenElement&&document.exitFullscreen&&document.exitFullscreen()", null); } catch (Throwable t) { } } });
+    }
     void extHideFull() {
         if (extFullView == null) return;
         try { root.removeView(extFullView); } catch (Exception e) { }
