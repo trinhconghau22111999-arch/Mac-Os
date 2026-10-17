@@ -1174,8 +1174,8 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             isChecked = tab?.desktop == true
         }
         m.add(0, 4, 0, "Lịch sử")
-        m.add(0, 7, 0, "Xoá lịch sử")
-        m.add(0, 3, 0, "Dấu trang")
+        // Mục "Xoá lịch sử" (id 7) và "Dấu trang" (id 3) đã ẩn khỏi menu: xoá lịch sử có nút "Xoá hết" trong trang Lịch sử,
+        // dấu trang mở từ nút ★ trên thanh tab; clearData() và showList("Dấu trang") vẫn giữ nguyên.
         m.add(0, 5, 0, "QR Remote Input")
         m.add(0, 9, 0, "Truyền tệp")
         m.add(0, 11, 0, "Chặn web đen / lừa đảo")
