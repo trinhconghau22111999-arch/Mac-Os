@@ -2291,10 +2291,10 @@ function buildCamera(b,w){return lazyBuild('camera','buildCamera',b,w)}
 var FCLIP={mode:'copy',paths:[]};   /* bảng nhớ tạm Chép / Cắt của app Tệp */
 function confirmBox(title,sub,okText,fn){
   const o=document.createElement('div'); o.className='bpk';
-  o.innerHTML='<div class="bps"><b></b><div style="margin-top:6px;opacity:.7;padding:0 6px"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn rc">Hủy</button><button type="button" class="btn ok" style="background:#e53935;color:#fff"></button></div></div>';
+  o.innerHTML='<div class="bps"><b></b><div style="margin-top:6px;opacity:.7;padding:0 6px"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn bpc">Hủy</button><button type="button" class="btn ok" style="background:#e53935;color:#fff"></button></div></div>';
   $('b',o).textContent=title; $('.bps>div',o).textContent=sub; $('.ok',o).textContent=okText;
   stage.appendChild(o);
-  $('.rc',o).addEventListener('click',()=>o.remove());
+  $('.bpc',o).addEventListener('click',()=>o.remove());
   o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
   $('.ok',o).addEventListener('click',()=>{o.remove();fn()});
 }
@@ -2508,11 +2508,11 @@ function buildRealFiles(b,w,arg,mode){
     ZBUSY[full]=Date.now();
     ZIPCB[tok]=r=>{
       delete ZBUSY[full];
-      if(r.error){notify({app:'Tệp',title:'Không giải nén được',body:nm+': '+r.error,icon:'files'});return}
-      notify({app:'Tệp',title:'Đã giải nén',body:nm+' → '+r.n+' tệp',icon:'files'});
+      if(r.error){notify({app:'Tệp',title:'Không giải nén được',body:nm+': '+r.error,icon:'files',ms:2080});return}
+      notify({app:'Tệp',title:'Đã giải nén',body:nm+' → '+r.n+' tệp',icon:'files',ms:2080});
       M={}; bus.emit('files'); go(r.dir);
     };
-    notify({app:'Tệp',title:'Đang giải nén…',body:nm,icon:'files'});
+    notify({app:'Tệp',title:'Đang giải nén…',body:nm,icon:'files',ms:2080});
     A.extractZipAsync(full,tok);
   }
   function openPath(full,nm,alt){
@@ -2523,11 +2523,11 @@ function buildRealFiles(b,w,arg,mode){
   }
   function renameBox(n,full,refresh){
     const o=document.createElement('div'); o.className='bpk';
-    o.innerHTML='<div class="bps"><b>Đổi tên</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn rc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
+    o.innerHTML='<div class="bps"><b>Đổi tên</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn bpc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
     stage.appendChild(o);
     const inp=$('input',o); inp.value=n; inp.focus();
     const dot=n.lastIndexOf('.'); try{inp.setSelectionRange(0,dot>0?dot:n.length)}catch(e){}
-    $('.rc',o).addEventListener('click',()=>o.remove());
+    $('.bpc',o).addEventListener('click',()=>o.remove());
     o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
     $('form',o).addEventListener('submit',e=>{
       e.preventDefault(); const v=inp.value.trim(); if(!v||v===n){o.remove();return}
@@ -2740,9 +2740,9 @@ function buildRealFiles(b,w,arg,mode){
   rdel.addEventListener('click',()=>{
     if(!SEL.size)return;
     const o=document.createElement('div'); o.className='bpk';
-    o.innerHTML='<div class="bps"><b>Xoá '+SEL.size+' mục đã chọn?</b><div style="margin-top:6px;opacity:.7;padding:0 6px">Các mục sẽ vào Thùng rác và tự xóa hẳn sau 7 ngày.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn rc">Huỷ</button><button type="button" class="btn ok">Xoá</button></div></div>';
+    o.innerHTML='<div class="bps"><b>Xoá '+SEL.size+' mục đã chọn?</b><div style="margin-top:6px;opacity:.7;padding:0 6px">Các mục sẽ vào Thùng rác và tự xóa hẳn sau 7 ngày.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn bpc">Huỷ</button><button type="button" class="btn ok">Xoá</button></div></div>';
     stage.appendChild(o);
-    $('.rc',o).addEventListener('click',()=>o.remove());
+    $('.bpc',o).addEventListener('click',()=>o.remove());
     o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
     $('.ok',o).addEventListener('click',()=>{
       o.remove();
@@ -3115,7 +3115,7 @@ function notify(n){
   el.innerHTML=nIcon(n)+'<span><small>'+esc(n.app)+'</small><b>'+esc(n.title)+'</b><em>'+esc(n.body||'')+'</em></span>';
   el.addEventListener('click',()=>{el.remove();if(n.fn)n.fn();else if(n.icon)openApp(n.icon)});
   $('#banners').appendChild(el);
-  setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),320)},5200);
+  setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),320)},n.ms||5200);
 }
 function renderNC(){
   const nl=$('#nlist'), wg=$('#wgs');
@@ -3988,12 +3988,12 @@ const openDeskItem=id=>{const f=deskFile(id); if(f)openDeskFile(f); else openApp
 function deskRename(id){
   const f=deskFile(id); if(!f)return;
   const o=document.createElement('div'); o.className='bpk';
-  o.innerHTML='<div class="bps"><b>Đổi tên tệp</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn rc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
+  o.innerHTML='<div class="bps"><b>Đổi tên tệp</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn bpc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
   stage.appendChild(o);
   const inp=$('input',o); inp.value=f.n; inp.focus();
   const dot=f.n.lastIndexOf('.'); try{inp.setSelectionRange(0,dot>0?dot:f.n.length)}catch(e){}
   inp.addEventListener('keydown',ev=>ev.stopPropagation());
-  $('.rc',o).addEventListener('click',()=>o.remove());
+  $('.bpc',o).addEventListener('click',()=>o.remove());
   o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
   $('form',o).addEventListener('submit',e=>{
     e.preventDefault(); const v=inp.value.trim().slice(0,120);
