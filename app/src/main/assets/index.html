@@ -1831,6 +1831,7 @@ function dockCenter(id){
   return {x:r.left+r.width/2-s.left,y:r.top+r.height/2-s.top};
 }
 function flyIn(w,id){
+  return;   /* đã tắt hiệu ứng cửa sổ bay ra từ icon Dock khi mở app (cửa sổ hiện ngay); muốn bật lại thì xóa dòng này */
   if(reduce)return;
   const c=dockCenter(id);
   w.style.transformOrigin=(c.x-w.offsetLeft)+'px '+(c.y-w.offsetTop)+'px';
