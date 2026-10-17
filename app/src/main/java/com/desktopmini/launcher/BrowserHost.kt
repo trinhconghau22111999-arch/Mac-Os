@@ -359,7 +359,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             setOnClickListener { toggleSidePanel() }
         }
         sideToggle = st
-        tabRow.addView(st, LinearLayout.LayoutParams(dp(32), MATCH))
+        tabRow.addView(st, LinearLayout.LayoutParams(dp(40), MATCH))
         val scroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         tabBar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val plus = TextView(this).apply {
@@ -423,7 +423,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         // Nut dich (khong phai app con, khong chia doi): dich trang hien tai sang tieng Viet / tra ve goc.
         val tb = android.widget.ImageView(this).apply {
             setImageResource(R.drawable.ic_translate)
-            setPadding(dp(5), dp(5), dp(5), dp(5))
+            setPadding(dp(6), dp(6), dp(6), dp(6))
             scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             contentDescription = "Dịch sang tiếng Việt / về ngôn ngữ gốc"
             setOnClickListener { toggleTranslate() }
@@ -433,13 +433,13 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             }
         }
         translateBtn = tb
-        sideCol.addView(tb, LinearLayout.LayoutParams(dp(28), dp(28)).apply {
+        sideCol.addView(tb, LinearLayout.LayoutParams(dp(32), dp(32)).apply {
             gravity = Gravity.CENTER_HORIZONTAL
-            topMargin = dp(14); bottomMargin = dp(6)
+            topMargin = dp(12); bottomMargin = dp(6)
         })
         updateTranslateBtn()
         updateSideIcons()
-        sideScroll.addView(sideCol, FrameLayout.LayoutParams(WRAP, WRAP))
+        sideScroll.addView(sideCol, FrameLayout.LayoutParams(MATCH, WRAP))
         // Thanh app mặc định ẩn (màn hình rộng hơn); hiện đè lên nội dung khi bấm ›, chạm ra ngoài thì ẩn lại
         val bodyFrame = FrameLayout(this)
         bodyFrame.addView(splitRoot, FrameLayout.LayoutParams(MATCH, MATCH))
@@ -2221,9 +2221,9 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
 
     // (icon chinh thuc dang vector, mau nen hinh tron, do dem dp)
     private val sideIconSpec = mapOf(
-        "Telegram" to Triple(R.drawable.ic_telegram, Color.WHITE, 2),
+        "Telegram" to Triple(R.drawable.ic_telegram, Color.WHITE, 3),
         "Zalo" to Triple(R.drawable.ic_zalo, 0xFF0068FF.toInt(), 4),
-        "Facebook" to Triple(R.drawable.ic_facebook, Color.WHITE, 2),
+        "Facebook" to Triple(R.drawable.ic_facebook, Color.WHITE, 3),
         "YouTube" to Triple(R.drawable.ic_youtube, Color.WHITE, 5),
         "Google" to Triple(R.drawable.ic_google, Color.WHITE, 6)
     )
