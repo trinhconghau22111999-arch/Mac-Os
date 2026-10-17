@@ -1787,13 +1787,30 @@ public class MainActivity extends Activity {
             }
         });
     }
+    /** Địa chỉ có nên mở lại khi vào lại app không: bỏ link chuyển hướng của Google (google.com/url?...ved=...) và địa chỉ quá dài.
+     *  Các link này chỉ dùng được đúng một lần ngay lúc bấm; mở lại sau đó dễ treo hoặc kẹt ở trang chuyển hướng. */
+    static boolean gkRestorable(String u) {
+        try {
+            if (u == null || u.length() > 2000) return false;
+            android.net.Uri x = android.net.Uri.parse(u);
+            String h = x.getHost() == null ? "" : x.getHost().toLowerCase(java.util.Locale.ROOT);
+            String path = x.getPath() == null ? "" : x.getPath();
+            if ((h.equals("google.com") || h.endsWith(".google.com")) && (path.equals("/url") || path.equals("/aclk") || path.startsWith("/imgres"))) return false;
+            return true;
+        } catch (Throwable t) { return false; }
+    }
+    /** Địa chỉ THẬT của trang sau khi chuyển hướng (thanh địa chỉ và trang lưu để mở lại đều dùng cái này). */
+    void gkLoc(String url) {
+        if (url == null || url.length() == 0 || url.equals("about:blank")) return;
+        gkUrl = url; gkPush();
+    }
     void gkEnsure() {
         if (gkView != null) return;
         CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)");
         gkRt();
         /* Mở lại app: vào đúng trang đã xem lần trước (nếu có), chưa có thì về Google */
         String gkLast = getSharedPreferences("gk_state", MODE_PRIVATE).getString("last", null);
-        final String gkStart = (gkLast != null && (gkLast.startsWith("http://") || gkLast.startsWith("https://"))) ? gkLast : GK_HOME;
+        final String gkStart = (gkLast != null && (gkLast.startsWith("http://") || gkLast.startsWith("https://")) && gkRestorable(gkLast)) ? gkLast : GK_HOME;
         gkUrl = gkStart; gkBackOk = false; gkFwdOk = false; gkProg = 0;
         gkView = new org.mozilla.geckoview.GeckoView(this);
         /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
@@ -1840,6 +1857,9 @@ public class MainActivity extends Activity {
             }
         });
         se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
+            /* Không gắn @Override: tùy bản Gecko là chữ ký 2 hay 3 tham số, cái nào có thì được gọi; kiểu List thô để khớp mọi bản */
+            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url, java.util.List perms) { gkLoc(url); }
+            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url) { gkLoc(url); }
             @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { gkBackOk = can; gkPush(); }
             @Override public void onCanGoForward(org.mozilla.geckoview.GeckoSession s, boolean can) { gkFwdOk = can; gkPush(); }
             @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession> onNewSession(org.mozilla.geckoview.GeckoSession s, String uri) {
