@@ -1210,12 +1210,10 @@ function kickSync(){if(nsRaf)return;nsRaf=requestAnimationFrame(()=>{nsRaf=0;NSY
 /* Một bộ đếm chung cho các cửa sổ web nhúng và Gecko (trước đây mỗi cửa sổ có một setInterval 90ms riêng).
    Đang dùng: 90ms/lần như cũ. Desktop Mini ra nền (document.hidden): chỉ thức dậy 1 lần/giây và không làm gì. Hết cửa sổ thì tự dừng. */
 /* Cửa sổ web nhúng (YouTube, Gecko...) là view native nằm đè lên HTML nên chỉ hiện được khi cửa sổ ở trên cùng; nếu ẩn thì chỉ còn nền đen.
-   Cửa sổ không được chọn nhưng KHÔNG bị cửa sổ nào khác che (kể cả che một phần) thì vẫn cho hiện để không bị đen, và video đang phát không bị tạm dừng. */
+   Cửa sổ không được chọn nhưng KHÔNG bị cửa sổ nào khác che (kể cả che một phần) thì vẫn cho hiện để không bị đen, và video đang phát không bị tạm dừng; nhiều cửa sổ web nhúng không chồng nhau hiện song song được. */
 function winFree(w){
   try{
     const r=w.getBoundingClientRect(); if(r.width<2||r.height<2)return false;
-    /* native chỉ hiện một view web nhúng tại một thời điểm: có cửa sổ web nhúng khác đang mở thì cửa sổ này không được giữ view */
-    if($$('.win',layer).some(o=>o!==w&&o._nat&&!o.classList.contains('min')&&!o._leaving))return false;
     return !$$('.win',layer).some(o=>{
       if(o===w||o.classList.contains('min')||o._leaving)return false;
       const q=o.getBoundingClientRect(); if(q.width<2||q.height<2)return false;
@@ -1799,6 +1797,7 @@ function focusWin(w){
   $$('.win',layer).forEach(x=>x.classList.toggle('focus',x===w));
   appname.textContent=APPS[w.dataset.app].name;
   bus.emit('focus',w);
+  kickSync(); /* đổi cửa sổ chính: cập nhật ngay view web nhúng nào hiện/ẩn, không chờ vòng dò 90ms */
 }
 function focusTop(){
   let best=null;

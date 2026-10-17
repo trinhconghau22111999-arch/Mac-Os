@@ -1361,8 +1361,7 @@ public class LauncherBridge {
             act.runOnUiThread(new Runnable() { public void run() {
                 try {
                     float d = act.getResources().getDisplayMetrics().density;
-                    for (WebView v : act.ext.values()) v.setVisibility(View.GONE);
-                    act.omemHideNow();
+                    /* không ẩn view web nhúng khác: mỗi cửa sổ tự ẩn/hiện mình qua đồng bộ bên giao diện (cho phép nhiều cửa sổ không chồng nhau hiện cùng lúc) */
                     act.gkEnsure();
                     FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
                     lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
@@ -1393,12 +1392,9 @@ public class LauncherBridge {
         @JavascriptInterface public void extShow(final String key, final String url, final float x, final float y, final float w, final float h) {
             act.runOnUiThread(new Runnable() { public void run() {
                 float d = act.getResources().getDisplayMetrics().density;
-                act.gkHideNow();
-                act.omemHideNow();
-                for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (!e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); act.extPause(e.getKey(), e.getValue()); act.markExtHidden(e.getKey()); }
+                /* không ẩn view web nhúng khác: mỗi cửa sổ tự ẩn/hiện mình (xem winFree bên giao diện) nên nhiều cửa sổ không chồng nhau hiện cùng lúc được */
                 if ("omem".equals(key)) {   /* Ổ mềm chạy bằng Gecko */
                     try {
-                        act.browserHide();
                         act.omemShow(Math.round(x * d), Math.round(y * d), Math.round(w * d), Math.round(h * d));
                     } catch (Throwable t) {
                         CrashLog.log(act, "Ổ mềm không mở được (extShow omem)", t);
@@ -1419,7 +1415,6 @@ public class LauncherBridge {
                     }
                     return;
                 }
-                act.browserHide();
                 WebView v = act.extGet(key, url);
                 act.extHiddenAt.remove(key);
                 try { v.onResume(); } catch (Exception x) { }
