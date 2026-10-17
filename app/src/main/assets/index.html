@@ -2113,14 +2113,17 @@ function icalOn(d){
   return DEVC[t0];
 }
 window.devCalReset=()=>{DEVC={};DEVT=0;bus.emit('ev')};
+/* Xóa các sự kiện mẫu cũ ('Gửi báo cáo tháng 10', 'Cà phê với Lan') đã lỡ lưu từ các bản trước; sự kiện do người dùng tự thêm được giữ nguyên */
+(function(){try{
+  const E=jget('dm-events',null); if(!E||typeof E!=='object')return;
+  const SEED=['Gửi báo cáo tháng 10','Cà phê với Lan']; let ch=false;
+  Object.keys(E).forEach(d=>{const a=Array.isArray(E[d])?E[d]:[], b=a.filter(x=>SEED.indexOf(x)<0); if(b.length!==a.length){ch=true; if(b.length)E[d]=b; else delete E[d]}});
+  if(ch)jset('dm-events',E);
+}catch(e){}})();
 function buildCal(b,w){
   const k=(y,m,d)=>y+'-'+m+'-'+d;
   let EV=jget('dm-events',null);
-  if(!EV){
-    EV={}; const t1=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1), t3=new Date(now.getFullYear(),now.getMonth(),now.getDate()+3);
-    EV[k(t1.getFullYear(),t1.getMonth(),t1.getDate())]=['Gửi báo cáo tháng 10'];
-    EV[k(t3.getFullYear(),t3.getMonth(),t3.getDate())]=['Cà phê với Lan'];
-  }
+  if(!EV)EV={};   /* Lịch trống: không còn sự kiện mẫu ("Cà phê với Lan"...) */
   const save=()=>{jset('dm-events',EV);bus.emit('ev')};
   b.innerHTML='<div class="app cal"><div class="bar cal-bar"><span class="t"></span><span class="grow"></span><div class="cnav"><button class="cpv" aria-label="Tháng trước">‹</button><button class="td">Hôm nay</button><button class="cnx" aria-label="Tháng sau">›</button></div></div><div class="wk"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div><div class="cg"></div><div class="evp" hidden></div></div>';
   let y=now.getFullYear(), m=now.getMonth(), open=null;
