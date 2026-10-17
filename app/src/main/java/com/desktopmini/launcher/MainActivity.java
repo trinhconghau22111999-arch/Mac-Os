@@ -1265,6 +1265,7 @@ public class MainActivity extends Activity {
         omView = new org.mozilla.geckoview.GeckoView(this);
         omView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);   /* nằm đúng thứ tự trên giao diện HTML */
         kbGuard(omView);
+        omView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         omView.setVisibility(View.GONE);
         root.addView(omView, new FrameLayout.LayoutParams(1, 1));
     }
@@ -1742,10 +1743,27 @@ public class MainActivity extends Activity {
         gkApplyZoom();
         getSharedPreferences("dm_zoom", MODE_PRIVATE).edit().putFloat("gecko", gkZoom).apply();
     }
+    /** Tắt hiệu ứng kéo quá đầu/cuối trang (trang bị \"võng\" lộ hình nền hệ thống phía sau): kéo tới cuối là dừng hẳn.
+     *  Đặt cờ Gecko apz.overscroll.enabled=false cho cả 2 nhánh (mặc định + người dùng). Gọi bằng reflection để không vỡ build nếu bản Gecko khác chữ ký. */
+    private static void gkNoOverscroll() {
+        try {
+            Class<?> c = Class.forName("org.mozilla.geckoview.GeckoPreferenceController");
+            for (java.lang.reflect.Method m : c.getMethods()) {
+                if (!"setGeckoPref".equals(m.getName()) || !java.lang.reflect.Modifier.isStatic(m.getModifiers())) continue;
+                Class<?>[] t = m.getParameterTypes();
+                if (t.length == 3 && t[0] == String.class && t[1] == boolean.class && t[2] == int.class) {
+                    for (int br = 0; br <= 1; br++) { try { m.invoke(null, "apz.overscroll.enabled", false, br); } catch (Throwable x) { } }
+                } else if (t.length == 2 && t[0] == String.class && t[1] == boolean.class) {
+                    try { m.invoke(null, "apz.overscroll.enabled", false); } catch (Throwable x) { }
+                }
+            }
+        } catch (Throwable t) { }
+    }
     /** Nhân Gecko dùng chung cho trình duyệt và Ổ mềm (tạo một lần). */
     org.mozilla.geckoview.GeckoRuntime gkRt() {
         if (gkRuntime == null) {
             gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
+            gkNoOverscroll();
             /* cho phép 2 ngón zoom cả trang cấm zoom; nạp mức zoom chữ đã lưu */
             try { org.mozilla.geckoview.GeckoRuntimeSettings.class.getMethod("setForceUserScalableEnabled", boolean.class).invoke(gkRuntime.getSettings(), true); } catch (Throwable t) { }
             gkZoom = getSharedPreferences("dm_zoom", MODE_PRIVATE).getFloat("gecko", 1f);
@@ -1781,6 +1799,7 @@ public class MainActivity extends Activity {
         /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
         gkView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
         kbGuard(gkView);
+        gkView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         /* Ctrl + lăn chuột / Ctrl + - 0: đổi cỡ chữ cả trang (lưu lại); 2 ngón dùng zoom gốc của Gecko */
         gkView.setOnGenericMotionListener(new View.OnGenericMotionListener() {
             @Override public boolean onGenericMotion(View view, android.view.MotionEvent e) {
