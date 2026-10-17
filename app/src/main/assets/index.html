@@ -4154,6 +4154,7 @@ let deskDragEnd=0, deskDragOn=false;
   });
   window.addEventListener('pointermove',e=>{
     if(!dr||e.pointerId!==dr.pid)return;
+    if(dr.on&&e.pointerType==='mouse'&&e.buttons===0){end({pointerId:dr.pid,type:'pointerup'});return}   /* nhả chuột ngoài cửa sổ mà không nhận được pointerup */
     const sr=stage.getBoundingClientRect();
     if(!dr.on){
       const dx=e.clientX-dr.sx, dy=e.clientY-dr.sy;
@@ -4214,6 +4215,20 @@ let deskDragEnd=0, deskDragOn=false;
     renderDesk();
   };
   window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
+  /* Chống "treo bóng" icon: nếu vì lý do nào đó (đa chạm, lớp native chặn chạm, mất focus...) không nhận được pointerup/pointercancel thì vẫn dọn bóng và thả icon */
+  const force=type=>{ if(dr&&dr.on)end({pointerId:dr.pid,type}) };
+  window.addEventListener('pointerdown',()=>force('pointercancel'),true);   /* có lần chạm mới mà lần kéo cũ chưa kết thúc: kết thúc lần cũ trước */
+  ['touchend','touchcancel'].forEach(t=>window.addEventListener(t,e=>{
+    if(e.touches&&e.touches.length===0)setTimeout(()=>force(t==='touchend'?'pointerup':'pointercancel'),80);   /* không còn ngón nào chạm mà vẫn đang "kéo" = đã nhả */
+  },{passive:true,capture:true}));
+  window.addEventListener('blur',()=>force('pointercancel'));
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden)force('pointercancel') });
+  setInterval(()=>{   /* lưới an toàn cuối cùng: không có lần kéo nào mà vẫn còn bóng / icon mờ thì xóa */
+    if(dr&&dr.on)return;
+    const g=stage.querySelectorAll('.dghost'); if(g.length)g.forEach(x=>x.remove());
+    const m=desk.querySelectorAll('.da.dmov'); if(m.length)m.forEach(x=>x.classList.remove('dmov'));
+    if(deskDragOn)deskDragOn=false;
+  },1000);
 })();
 /* Kéo khung trên nền trống (bằng chuột) để chọn nhiều icon; kéo 1 icon đã chọn thì cả nhóm di chuyển cùng; thả chuột ra là hiện menu Xóa khỏi màn hình */
 var DSEL=new Set();
