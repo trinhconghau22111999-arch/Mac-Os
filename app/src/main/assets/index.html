@@ -1209,6 +1209,20 @@ const NSYNC=new Set(); let nsRaf=0;
 function kickSync(){if(nsRaf)return;nsRaf=requestAnimationFrame(()=>{nsRaf=0;NSYNC.forEach(f=>{try{f()}catch(e){}})})}
 /* Một bộ đếm chung cho các cửa sổ web nhúng và Gecko (trước đây mỗi cửa sổ có một setInterval 90ms riêng).
    Đang dùng: 90ms/lần như cũ. Desktop Mini ra nền (document.hidden): chỉ thức dậy 1 lần/giây và không làm gì. Hết cửa sổ thì tự dừng. */
+/* Cửa sổ web nhúng (YouTube, Gecko...) là view native nằm đè lên HTML nên chỉ hiện được khi cửa sổ ở trên cùng; nếu ẩn thì chỉ còn nền đen.
+   Cửa sổ không được chọn nhưng KHÔNG bị cửa sổ nào khác che (kể cả che một phần) thì vẫn cho hiện để không bị đen, và video đang phát không bị tạm dừng. */
+function winFree(w){
+  try{
+    const r=w.getBoundingClientRect(); if(r.width<2||r.height<2)return false;
+    /* native chỉ hiện một view web nhúng tại một thời điểm: có cửa sổ web nhúng khác đang mở thì cửa sổ này không được giữ view */
+    if($$('.win',layer).some(o=>o!==w&&o._nat&&!o.classList.contains('min')&&!o._leaving))return false;
+    return !$$('.win',layer).some(o=>{
+      if(o===w||o.classList.contains('min')||o._leaving)return false;
+      const q=o.getBoundingClientRect(); if(q.width<2||q.height<2)return false;
+      return q.left<r.right&&q.right>r.left&&q.top<r.bottom&&q.bottom>r.top;
+    });
+  }catch(e){return false}
+}
 let nsTimer=0;
 function nsTick(){
   nsTimer=0; if(!NSYNC.size)return;
@@ -2824,6 +2838,7 @@ const EXTST={webandr:{back:true}};
 window.nativeExtNav=(k,o)=>{EXTST[k]=o;if(EXTNAV[k])EXTNAV[k](o)};
 function buildWebApp(b,w,key,url,title,opt){
   opt=opt||{};
+  w._nat=true;
   const A=window.AndroidLauncher;
   if(!A){b.innerHTML='<div class="app"><div class="bar"><strong class="t">'+title+'</strong></div>'+NATIVE_ONLY(title)+'</div>';return {}}
   if(opt.plain||opt.compact)w.classList.add('wplain');
@@ -2855,7 +2870,7 @@ function buildWebApp(b,w,key,url,title,opt){
   const blocked=()=>(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||(typeof msOn!=='undefined'&&msOn)||['#spot','#nc','#cc','#ql','#lock','#off','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
   function sync(){
     if(!w.isConnected)return;
-    const vis=w.classList.contains('focus')&&!w.classList.contains('min')&&!w._leaving&&!blocked();
+    const vis=(w.classList.contains('focus')||winFree(w))&&!w.classList.contains('min')&&!w._leaving&&!blocked();
     if(!vis||!check()){if(last!=='hide'){A.extHide(key);last='hide'}return}
     const r=area.getBoundingClientRect(), sig=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
     if(sig!==last){last=sig;A.extShow(key,firstUrl,r.left,r.top,r.width,r.height)}
@@ -2903,6 +2918,7 @@ window.nativeGkDl=o=>{
 };
 function buildGecko(b,w,arg){
   const A=window.AndroidLauncher;
+  w._nat=true;
   b.innerHTML='<div class="wa gk"><div class="bar"><button class="ib gbk" type="button" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button><button class="ib gfw" type="button" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button><button class="ib grl" type="button" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nhập địa chỉ hoặc tìm kiếm" aria-label="Địa chỉ"><button class="ib gdl" type="button" aria-label="Tải xuống"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" hidden></i></button></div><div class="gkp"><i></i></div><div class="wab"><div class="gdp" hidden></div></div></div>';
   const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b), dlb=$('.gdl',b), dot=$('.gdot',b), dp=$('.gdp',b); let last='', timer=null;
   const sz=n=>typeof fmtSize==='function'?fmtSize(n):Math.round(n/1024)+' KB';
@@ -2933,7 +2949,7 @@ function buildGecko(b,w,arg){
   const blocked=()=>(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||(typeof msOn!=='undefined'&&msOn)||['#spot','#nc','#cc','#ql','#lock','#off','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
   function sync(){
     if(!w.isConnected)return;
-    const vis=w.classList.contains('focus')&&!w.classList.contains('min')&&!w._leaving&&!blocked()&&!GK.dlOpen;
+    const vis=(w.classList.contains('focus')||winFree(w))&&!w.classList.contains('min')&&!w._leaving&&!blocked()&&!GK.dlOpen;
     if(!vis){if(last!=='hide'){A.gkHide();last='hide'}return}
     const r=area.getBoundingClientRect(), sig=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
     if(sig!==last){last=sig;A.gkShow(r.left,r.top,r.width,r.height)}
