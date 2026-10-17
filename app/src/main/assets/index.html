@@ -4370,6 +4370,7 @@ function closeMS(){if(!msOn)return;msOn=false;stage.classList.remove('ms');msw.h
 $('#msall').addEventListener('click',e=>{
   e.stopPropagation();
   $$('.msc',mst).forEach((c,i)=>setTimeout(()=>msClose(c.dataset.id,c),i*70));
+  try{const A=window.AndroidLauncher; if(A&&A.clearExtDock)A.clearExtDock()}catch(x){}   /* dọn luôn icon app ngoài trên Dock nổi */
 });
 msw.addEventListener('click',e=>{if(e.target===msw||e.target===mst||e.target.classList.contains('msp'))closeMS()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&msOn)closeMS()});

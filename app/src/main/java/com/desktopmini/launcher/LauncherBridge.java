@@ -781,9 +781,11 @@ public class LauncherBridge {
                 return o.toString();
             } catch (Exception e) { return ""; }
         }
+        @JavascriptInterface public void clearExtDock() { LockService.forgetAllExt(); }
         /** Tắt tiến trình nền của ứng dụng ngoài (cần quyền KILL_BACKGROUND_PROCESSES). */
         @JavascriptInterface public boolean killApp(String pkg) {
             if (pkg == null || pkg.equals(act.getPackageName())) return false;
+            LockService.forgetExt(pkg);   /* gỡ icon app này khỏi Dock nổi dù có tắt được tiến trình hay không */
             try {
                 ((ActivityManager) act.getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pkg);
                 return true;

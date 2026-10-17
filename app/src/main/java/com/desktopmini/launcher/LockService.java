@@ -1281,6 +1281,22 @@ public class LockService extends AccessibilityService {
             extIcons.put(p, u); return u;
         } catch (Throwable t) { return null; }
     }
+    /** App ngoài đã bị tắt/xóa khỏi đa nhiệm: gỡ icon + chấm của nó khỏi Dock nổi ngay (trước đây danh sách chỉ thêm, không bao giờ bớt). */
+    public static void forgetExt(final String pk) {
+        final LockService s = inst; if (s == null || pk == null) return;
+        s.h.post(new Runnable() { public void run() {
+            if (s.extPk.remove(pk)) s.pushExt();
+            try { s.getSharedPreferences(PK, 0).edit().remove("extlaunched").apply(); } catch (Throwable t) { }
+        } });
+    }
+    /** "Xóa tất cả" ở đa nhiệm: gỡ mọi icon app ngoài khỏi Dock nổi (kể cả app không có thẻ trong đa nhiệm). */
+    public static void forgetAllExt() {
+        final LockService s = inst; if (s == null) return;
+        s.h.post(new Runnable() { public void run() {
+            s.extPk.clear(); s.pushExt();
+            try { s.getSharedPreferences(PK, 0).edit().remove("extlaunched").apply(); } catch (Throwable t) { }
+        } });
+    }
     private void pushExt() {
         if (dockWeb == null || !dockReady) return;
         try {
