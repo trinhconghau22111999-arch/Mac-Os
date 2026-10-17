@@ -1122,7 +1122,6 @@ body.native .stage{border-radius:0;min-height:0}
   <button class="qshot" id="qshot" type="button" aria-label="Chụp ảnh màn hình"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/></svg></button>
 
   <div class="lp" id="lp" hidden>
-    <button class="lpx" id="lpx" type="button" aria-label="Đóng">✕</button>
     <label class="lpq"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input id="lpq" type="text" placeholder="Tìm kiếm" autocomplete="off" aria-label="Tìm ứng dụng"></label>
     <div class="lpg" id="lpg"></div>
     <div class="lpd" id="lpd"></div>
@@ -1809,7 +1808,9 @@ function openApp(id,arg){
 }
 /* Chiều cao Dock hiện tại (cỡ icon + 18px): cửa sổ chừa đúng chừng này ở đáy, Dock thu nhỏ thì cửa sổ mở rộng theo */
 const DOCK_OV=8; /* cửa sổ chui xuống dưới Dock 8px nên không còn hở lộ hình nền khi Dock nhỏ lại */
-const dockRes=()=>(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||27)+18-DOCK_OV;
+let DOCKNAT=0; /* chiều cao Dock nổi THẬT do bản Android đo (dp, từ đáy vùng Desktop lên mép trên Dock) */
+const dockRes=()=>DOCKNAT>0?Math.max(0,DOCKNAT-4):(parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||27)+18-DOCK_OV;
+window.nativeDockRes=function(v){v=+v;if(!(v>=0)||Math.abs(v-DOCKNAT)<.6)return;DOCKNAT=v;try{fitDock()}catch(e){}};
 function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
@@ -3665,7 +3666,6 @@ function renderLP(){
 }
 $$('[data-x]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();closeAllPopups()}));
 $('#mcx').addEventListener('click',e=>{e.stopPropagation();exitMC()});
-$('#lpx').addEventListener('click',e=>{e.stopPropagation();closeLP()});
 function openLP(){
   closeAllPopups(); if(mcOn)exitMC(); closeMS();
   lpOn=true; lp.hidden=false; lp.classList.remove('out'); $('#lpq').value=''; renderLP(); $('#lpd').innerHTML='<i class="on"></i>';

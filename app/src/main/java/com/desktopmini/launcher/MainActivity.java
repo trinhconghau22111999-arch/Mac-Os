@@ -652,11 +652,19 @@ public class MainActivity extends Activity {
     }
     @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
     /** Đo phần màn hình thật nằm dưới vùng Desktop để Dock nổi phủ kín, không để hở giữa Dock và cửa sổ app. */
+    /** Dock nổi vừa đổi vị trí/cỡ: đo lại. */
+    static void dockMoved() { final MainActivity a = inst; if (a == null || a.root == null) return; a.runOnUiThread(new Runnable() { public void run() { a.reportDockGap(); } }); }
     private void reportDockGap() {
         try {
             int[] loc = new int[2]; root.getLocationOnScreen(loc);
             android.graphics.Point p = new android.graphics.Point(); getWindowManager().getDefaultDisplay().getRealSize(p);
             if (root.getHeight() > 0) LockService.setDesktopGap(p.y - (loc[1] + root.getHeight()));
+            /* Báo cho trang biết Dock nổi thật sự bắt đầu từ đâu (dp tính từ đáy vùng Desktop) để cửa sổ app dừng đúng sát mép Dock, không hở */
+            int dt = LockService.dockTopOnScreen();
+            if (dt > 0 && root.getHeight() > 0) {
+                float d = getResources().getDisplayMetrics().density;
+                push("nativeDockRes", String.valueOf(Math.max(0, Math.round((loc[1] + root.getHeight() - dt) / d * 10f) / 10f)));
+            }
         } catch (Throwable t) { }
     }
     @Override protected void onResume() {

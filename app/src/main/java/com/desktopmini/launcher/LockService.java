@@ -1013,7 +1013,8 @@ public class LockService extends AccessibilityService {
                 dockYAdj = Math.max(-dp(120), Math.min(dp(120), dockYAdj - err));
                 placeDock(lp); wm.updateViewLayout(v, lp);
                 h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 250);
-            } else yAdjLocked = true; /* đã đúng (hoặc hết lượt thử): khoá, không nhích nữa */
+                MainActivity.dockMoved();
+            } else { yAdjLocked = true; MainActivity.dockMoved(); } /* đã đúng (hoặc hết lượt thử): khoá, không nhích nữa */
         } catch (Throwable t) { }
     }
     private static final int DOCK_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
@@ -1025,9 +1026,17 @@ public class LockService extends AccessibilityService {
         int y = dockLp.y, hh = dockLp.height; placeDock(dockLp);
         int bp = dockBarPx();
         if (bp != lastBarPx) { lastBarPx = bp; if (!yAdjLocked) { calTries = 0; h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); } if (dockWeb != null && dockReady) dockWeb.evaluateJavascript("window.setLayout&&setLayout(" + dockHDp() + "," + dockPadDp() + ")", null); }
-        if (y != dockLp.y || hh != dockLp.height) { try { wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } }
+        if (y != dockLp.y || hh != dockLp.height) { try { wm.updateViewLayout(dockView, dockLp); } catch (Exception e) { } h.postDelayed(new Runnable() { public void run() { MainActivity.dockMoved(); } }, 300); }
     }
     public static boolean isRunning() { return inst != null; }
+    /** Toạ độ y thật (px) của mép trên Dock nổi trên màn hình; -1 nếu Dock đang ẩn. */
+    public static int dockTopOnScreen() {
+        final LockService s = inst;
+        try {
+            if (s == null || !s.dockShown || s.dockView == null || s.dockView.getHeight() <= 0 || !s.dockView.isAttachedToWindow()) return -1;
+            int[] loc = new int[2]; s.dockView.getLocationOnScreen(loc); return loc[1];
+        } catch (Throwable t) { return -1; }
+    }
     public static void setDockBase(Context c, int base) {
         /* cỡ Dock đã cố định 66%: bỏ qua giá trị giao diện gửi sang */
     }
@@ -1292,7 +1301,7 @@ public class LockService extends AccessibilityService {
             PixelFormat.TRANSLUCENT);
         placeDock(lp);
         dockLp = lp;
-        try { wm.addView(dockView, lp); dockShown = true; if (!yAdjLocked) { calTries = 0; h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); } } catch (Throwable e) { dockShown = false; }
+        try { wm.addView(dockView, lp); dockShown = true; h.postDelayed(new Runnable() { public void run() { MainActivity.dockMoved(); } }, 500); if (!yAdjLocked) { calTries = 0; h.removeCallbacks(calibrateTick); h.postDelayed(calibrateTick, 300); } } catch (Throwable e) { dockShown = false; }
     }
     private void hideDockBar() {
         if (dockView != null && dockShown) { try { wm.removeView(dockView); } catch (Exception e) { } }
