@@ -1289,7 +1289,8 @@ public class MainActivity extends Activity {
                 omFilePrompt = prompt;
                 omFileRes = new org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse>();
                 Intent it = new Intent(Intent.ACTION_GET_CONTENT);
-                it.addCategory(Intent.CATEGORY_OPENABLE); it.setType("*/*");
+                /* hồ sơ Ảnh chỉ cho chọn ảnh, hồ sơ Video chỉ cho chọn video, hồ sơ Tệp cho chọn mọi loại */
+                it.addCategory(Intent.CATEGORY_OPENABLE); it.setType(com.desktopmini.launcher.drive3.DriveEmbed.pickType(omemProfile));
                 it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 try { startActivityForResult(Intent.createChooser(it, "Chọn tệp"), REQ_OMFILE); }
                 catch (Exception e) { omFileRes.complete(prompt.dismiss()); }
@@ -1565,7 +1566,7 @@ public class MainActivity extends Activity {
                         if (extFileCb != null) extFileCb.onReceiveValue(null);
                         extFileCb = cb;
                         Intent it = new Intent(Intent.ACTION_GET_CONTENT);
-                        it.addCategory(Intent.CATEGORY_OPENABLE); it.setType("*/*");
+                        it.addCategory(Intent.CATEGORY_OPENABLE); it.setType(om ? com.desktopmini.launcher.drive3.DriveEmbed.pickType(omemProfile) : "*/*");
                         if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                         try { startActivityForResult(Intent.createChooser(it, "Chọn tệp"), REQ_EXTFILE); return true; }
                         catch (Exception e) { extFileCb = null; return false; }
