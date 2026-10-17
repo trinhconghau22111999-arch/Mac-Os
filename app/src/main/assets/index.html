@@ -1496,7 +1496,7 @@ function addDockBtn(id){
       else{
         const w=wins[id];
         items.push({t:w?'Hiện cửa sổ':'Mở',fn:()=>openApp(id)});
-        if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Thoát (tắt hẳn)',fn:()=>closeWin(w)})}
+        if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Đóng cửa sổ',fn:()=>closeWin(w)})}
       }
       if(id!=='launchpad')items.push('-',TEMP.indexOf(id)>=0?{t:'Giữ trong Dock',fn:()=>addToDock(id)}:{t:'Xóa khỏi Dock',fn:()=>removeFromDock(id)});
       showCtx(cx,cy,items);
@@ -4556,8 +4556,13 @@ if(window.AndroidLauncher){(function(){
     try{const mo=new MutationObserver(pushHide);mo.observe(lock,{attributes:true,attributeFilter:['hidden']});mo.observe(off,{attributes:true,attributeFilter:['hidden']})}catch(e){}
     pushName();pushHide();pushGeom();window.addEventListener('resize',pushGeom);
   })();
-  window.nativeOpenApp=function(id){
-    try{overlaysOpen();openApp(id)}catch(e){}
+  window.nativeOpenApp=function(id,toggle){
+    try{
+      /* Bấm icon trên Dock nổi khi app đó đang mở ở trên cùng: thu xuống như bấm nút − */
+      const w=wins[id], lpUp=typeof lpOn!=='undefined'&&lpOn;
+      if(toggle&&w&&id!=='launchpad'&&!lpUp&&!w._leaving&&!w.classList.contains('min')&&w.classList.contains('focus')){closeAllPopups();minWin(w);return}
+      overlaysOpen();openApp(id);
+    }catch(e){}
   };
   /* Gửi nguồn hình nền sang dịch vụ để thanh menu trên và Dock dưới dùng cùng một hình với Desktop */
   let _wsig='';

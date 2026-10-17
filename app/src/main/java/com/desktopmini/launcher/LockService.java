@@ -315,12 +315,14 @@ public class LockService extends AccessibilityService {
                 .putExtra("mbClick", id).putExtra("mbFront", launcherFront));
         } catch (Exception e) { }
     }
-    private void openInLauncher(String app) {
+    private void openInLauncher(String app) { openInLauncher(app, false); }
+    /** toggle = bấm icon trên Dock nổi: nếu Desktop Mini đang ở trước và app đó đang mở ở trên cùng thì thu xuống (như nút −). */
+    private void openInLauncher(String app, boolean toggle) {
         MainActivity.leaveFullscreen(); videoFull = false;
         try {
             startActivity(new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                .putExtra("openApp", app));
+                .putExtra("openApp", app).putExtra("openToggle", toggle && launcherFront));
         } catch (Exception e) { }
     }
     private void startSafe(Intent i) { try { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e) { } }
@@ -1102,7 +1104,7 @@ public class LockService extends AccessibilityService {
         } catch (Exception e) { return 0; }
     }
     private class DockJs {
-        @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { dismissPop(); openInLauncher(id); } }); }
+        @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { dismissPop(); openInLauncher(id, true); } }); }
         @JavascriptInterface public void multitask() { h.post(new Runnable() { public void run() { openMultitask(); } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
@@ -1169,7 +1171,7 @@ public class LockService extends AccessibilityService {
         java.util.List<PI> L = new java.util.ArrayList<PI>();
         if (name != null && name.length() > 0) L.add(pText(name));
         L.add(pItem("Mở", new Runnable() { public void run() { openInLauncher(id); } }));
-        if (running) L.add(pItem("Thoát (tắt hẳn)", new Runnable() { public void run() { MainActivity.push("nativeCloseApp", org.json.JSONObject.quote(id)); } }));
+        if (running) L.add(pItem("Đóng cửa sổ", new Runnable() { public void run() { MainActivity.push("nativeCloseApp", org.json.JSONObject.quote(id)); } }));
         if (!id.equals("launchpad")) {
             L.add(pSep());
             if (pinned) L.add(pItem("Xóa khỏi Dock", new Runnable() { public void run() { dockRemove(id); } }));

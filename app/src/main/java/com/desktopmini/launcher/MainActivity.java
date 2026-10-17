@@ -852,7 +852,7 @@ public class MainActivity extends Activity {
             return;
         }
         String oa = i == null ? null : i.getStringExtra("openApp");
-        if (oa != null) web.evaluateJavascript("window.nativeOpenApp&&window.nativeOpenApp(" + JSONObject.quote(oa) + ")", null);
+        if (oa != null) web.evaluateJavascript("window.nativeOpenApp&&window.nativeOpenApp(" + JSONObject.quote(oa) + "," + i.getBooleanExtra("openToggle", false) + ")", null);
         else web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null);
     }
     void runMenuClick(String id) { web.evaluateJavascript("window.nativeMenuClick&&window.nativeMenuClick(" + JSONObject.quote(id) + ")", null); }
