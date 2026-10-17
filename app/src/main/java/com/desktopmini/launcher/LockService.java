@@ -71,6 +71,12 @@ public class LockService extends AccessibilityService {
         c.getSharedPreferences(PK, 0).edit().putString("data", json == null || json.length() == 0 ? "[]" : json).apply();
         final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.pushDockData(); } });
     }
+    /** Thứ tự icon đã ghim trên Dock (JSON mảng id) do người dùng sắp xếp; lưu cố định nên khởi động lại vẫn giữ nguyên. Rỗng = chưa tùy chỉnh. */
+    public static String getDockOrder(Context c) { return c.getSharedPreferences(PK, 0).getString("dockorder", ""); }
+    public static void setDockOrder(Context c, String json) {
+        if (json == null || json.length() == 0) return;
+        c.getSharedPreferences(PK, 0).edit().putString("dockorder", json).apply();
+    }
     public static void saveEnabled(Context c, boolean on) {
         c.getSharedPreferences(PK, 0).edit().putBoolean("on", on).apply();
         final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.apply(); } });
@@ -652,6 +658,8 @@ public class LockService extends AccessibilityService {
             float sw = realSize().x, x = Math.max(dp(6), Math.min(anchorX, sw - w - dp(6)));
             panel.set(x, dp(2), x + w, dp(2) + hh);
         }
+        /** Đặt khung menu nằm sát đáy cửa sổ (dùng cho menu của Dock, mở lên phía trên). */
+        void bottomAlign(float winH) { panel.offsetTo(panel.left, Math.max(dp(2), winH - panel.height() - dp(8))); }
         @Override protected void onDraw(Canvas c) {
             p.setStyle(Paint.Style.FILL); p.setColor(0xF2232326); c.drawRoundRect(panel, dp(10), dp(10), p);
             for (PI i : items) {
@@ -1077,14 +1085,90 @@ public class LockService extends AccessibilityService {
         } catch (Exception e) { return 0; }
     }
     private class DockJs {
-        @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { openInLauncher(id); } }); }
+        @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { dismissPop(); openInLauncher(id); } }); }
         @JavascriptInterface public void multitask() { h.post(new Runnable() { public void run() { openMultitask(); } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
         @JavascriptInterface public void shotRegion() { h.post(new Runnable() { public void run() { dockShotRegion(); } }); }
         @JavascriptInterface public void openExt(final String pk) { h.post(new Runnable() { public void run() { openExternal(pk); } }); }
         @JavascriptInterface public void touch() { peekDock(); }
+        /** Chuột phải / nhấn giữ icon trên Dock: hiện menu (Mở, Thoát, Xóa khỏi Dock / Giữ trong Dock) phía trên Dock. */
+        @JavascriptInterface public void menu(final String id, final String name, final float xCss, final boolean pinned, final boolean running) { h.post(new Runnable() { public void run() { showDockMenu(id, name, xCss, pinned, running); } }); }
+        /** Người dùng kéo đổi chỗ icon: JSON mảng id theo thứ tự mới (các icon đã ghim). */
+        @JavascriptInterface public void reorder(final String json) { h.post(new Runnable() { public void run() { dockReorder(json); } }); }
         @JavascriptInterface public void grow(final boolean on) { h.post(new Runnable() { public void run() { growDock(on); } }); }
+    }
+    /* ================= Menu và sắp xếp icon trên Dock ================= */
+    private org.json.JSONArray readDockData() {
+        try { return new org.json.JSONArray(getSharedPreferences(PK, 0).getString("data", "[]")); } catch (Throwable t) { return new org.json.JSONArray(); }
+    }
+    /** Các id đã ghim, theo đúng thứ tự hiện tại. */
+    private java.util.ArrayList<String> pinnedIds() {
+        java.util.ArrayList<String> o = new java.util.ArrayList<String>();
+        org.json.JSONArray d = readDockData();
+        for (int i = 0; i < d.length(); i++) { org.json.JSONObject j = d.optJSONObject(i); if (j != null && j.optInt("p", 1) != 0) o.add(j.optString("id")); }
+        String s = getSharedPreferences(PK, 0).getString("dockorder", "");
+        if (s.length() > 0) {
+            try {
+                org.json.JSONArray a = new org.json.JSONArray(s); java.util.ArrayList<String> r = new java.util.ArrayList<String>();
+                for (int i = 0; i < a.length(); i++) { String id = a.optString(i); if (id.length() > 0 && !r.contains(id)) r.add(id); }
+                if (!r.isEmpty()) return r;
+            } catch (Throwable t) { }
+        }
+        return o;
+    }
+    /** Lưu thứ tự mới, sắp lại dữ liệu Dock, vẽ lại và báo cho giao diện Desktop (đang chạy) cập nhật theo. */
+    private void commitDockOrder(java.util.List<String> ord) {
+        try {
+            org.json.JSONArray oa = new org.json.JSONArray(); for (String s : ord) oa.put(s);
+            org.json.JSONArray d = readDockData(), nd = new org.json.JSONArray();
+            for (String id : ord) for (int i = 0; i < d.length(); i++) { org.json.JSONObject o = d.optJSONObject(i); if (o != null && id.equals(o.optString("id"))) { o.put("p", 1); nd.put(o); break; } }
+            for (int i = 0; i < d.length(); i++) {
+                org.json.JSONObject o = d.optJSONObject(i); if (o == null || ord.contains(o.optString("id"))) continue;
+                if (o.optInt("r", 0) == 1) { o.put("p", 0); nd.put(o); } /* app đang chạy mà bị bỏ ghim: vẫn hiện tạm tới khi thoát */
+            }
+            getSharedPreferences(PK, 0).edit().putString("dockorder", oa.toString()).putString("data", nd.toString()).apply();
+            pushDockData();
+            MainActivity.push("nativeDockOrder", oa.toString());
+        } catch (Throwable t) { }
+    }
+    private void dockReorder(String json) {
+        try {
+            org.json.JSONArray a = new org.json.JSONArray(json); java.util.ArrayList<String> o = new java.util.ArrayList<String>();
+            for (int i = 0; i < a.length(); i++) { String id = a.optString(i); if (id.length() > 0 && !o.contains(id)) o.add(id); }
+            if (!o.isEmpty()) commitDockOrder(o);
+        } catch (Throwable t) { }
+    }
+    private void dockRemove(String id) {
+        if (id.equals("launchpad")) return;
+        java.util.ArrayList<String> o = pinnedIds(); o.remove(id); commitDockOrder(o);
+    }
+    private void dockKeep(String id) {
+        java.util.ArrayList<String> o = pinnedIds(); if (!o.contains(id)) o.add(id); commitDockOrder(o);
+    }
+    private void showDockMenu(final String id, String name, float xCss, boolean pinned, boolean running) {
+        if (wm == null || dockLp == null || !dockShown) return;
+        dismissPop();
+        java.util.List<PI> L = new java.util.ArrayList<PI>();
+        if (name != null && name.length() > 0) L.add(pText(name));
+        L.add(pItem("Mở", new Runnable() { public void run() { openInLauncher(id); } }));
+        if (running) L.add(pItem("Thoát (tắt hẳn)", new Runnable() { public void run() { MainActivity.push("nativeCloseApp", org.json.JSONObject.quote(id)); } }));
+        if (!id.equals("launchpad")) {
+            L.add(pSep());
+            if (pinned) L.add(pItem("Xóa khỏi Dock", new Runnable() { public void run() { dockRemove(id); } }));
+            else L.add(pItem("Giữ trong Dock", new Runnable() { public void run() { dockKeep(id); } }));
+        }
+        float d = getResources().getDisplayMetrics().density;
+        final PopView pv = new PopView(this, L, xCss * d - dp(115));
+        int y0 = topLp != null ? topLp.height : 0, wh = Math.max(dp(60), dockLp.y - y0);
+        pv.bottomAlign(wh);
+        Point sz = realSize();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(sz.x, wh,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = y0;
+        try { wm.addView(pv, lp); pop = pv; popId = "dock:" + id; } catch (Exception e) { pop = null; popId = ""; }
     }
     /* ================= App ngoài trên Dock =================
      * App nào vừa lên trước (Zalo, Chrome...) thì icon thật của nó hiện ngay sau các icon Dock, có chấm bên dưới; bấm vào để mở lại. */

@@ -632,6 +632,9 @@ public class LauncherBridge {
         @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(act); }
         @JavascriptInterface public void setDockPrefs(String ics, boolean magnify, boolean autoHide) { LockService.setDockPrefs(act, ics, magnify, autoHide); }
         @JavascriptInterface public void setDockBase(int px) { LockService.setDockBase(act, px); }
+        /** Thứ tự icon đã ghim trên Dock (người dùng sắp xếp): lưu bên Android để mở lại app vẫn giữ nguyên. */
+        @JavascriptInterface public String getDockOrder() { return LockService.getDockOrder(act); }
+        @JavascriptInterface public void setDockOrder(String json) { LockService.setDockOrder(act, json); }
         /** Mép trên Dock nổi tính bằng px CSS theo toạ độ màn hình thật (vùng nhìn của trang có thể ngắn hơn màn hình, nên trang không tự đo được). */
         @JavascriptInterface public float dockTopCss() {
             try {

@@ -1399,8 +1399,11 @@ const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','cale
 const DOCK_DEF=['launchpad','files','webbrowser','youtube','mail','photos','camera','notes','omem','zalo','facebook','settings'];
 /* Dock và màn hình desktop do người dùng tự sắp xếp (lưu lại để mở app lần sau vẫn giữ) */
 const DOCK_GONE=['browser','calendar','music','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','drive','downloads'];
-const DOCK=(()=>{let s=jget('dm-dock',null);if(Array.isArray(s)&&!jget('dm-dock-v2',false)){s=s.filter(id=>DOCK_GONE.indexOf(id)<0);jset('dm-dock',s);jset('dm-dock-v2',true)}if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||APPS[id]);if(l.indexOf('launchpad')<0)l.unshift('launchpad');return l})();
-const saveDock=()=>jset('dm-dock',DOCK);
+const DOCK=(()=>{let s=jget('dm-dock',null);if(Array.isArray(s)&&!jget('dm-dock-v2',false)){s=s.filter(id=>DOCK_GONE.indexOf(id)<0);jset('dm-dock',s);jset('dm-dock-v2',true)}
+/* Thứ tự do người dùng sắp xếp ở Dock nổi được Android lưu cố định (kể cả khi giao diện này không chạy): ưu tiên dùng */
+try{const A=window.AndroidLauncher,n=A&&A.getDockOrder?JSON.parse(A.getDockOrder()||'null'):null;if(Array.isArray(n)&&n.length)s=n}catch(e){}
+if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||APPS[id]);if(l.indexOf('launchpad')<0)l.unshift('launchpad');return l})();
+const saveDock=()=>{jset('dm-dock',DOCK);try{const A=window.AndroidLauncher;A&&A.setDockOrder&&A.setDockOrder(JSON.stringify(DOCK))}catch(e){}};
 let DESKAPPS=jget('dm-deskapps',null);
 /* Thùng rác lên màn hình Desktop: máy đã có danh sách icon lưu sẵn thì thêm một lần (sau đó xóa icon đi thì không tự thêm lại) */
 if(Array.isArray(DESKAPPS)&&!lsGet('dm-trashdesk1')){lsSet('dm-trashdesk1','1');if(DESKAPPS.indexOf('trash')<0){DESKAPPS=DESKAPPS.concat('trash');jset('dm-deskapps',DESKAPPS)}}
@@ -1538,6 +1541,24 @@ function removeFromDock(id){
   dockLeave(dockBtn(id));
   unmagnify();
 }
+/* Dock nổi (Android) đổi chỗ / xóa / ghim icon: áp dụng thứ tự mới vào Dock trong giao diện và lưu lại */
+function applyDockOrder(list){
+  if(!Array.isArray(list))return;
+  const want=list.filter((x,i)=>(x==='launchpad'||APPS[x])&&list.indexOf(x)===i);
+  if(want.indexOf('launchpad')<0)want.unshift('launchpad');
+  DOCK.slice().forEach(id=>{if(want.indexOf(id)<0)removeFromDock(id)});
+  want.forEach(id=>{if(DOCK.indexOf(id)<0)addToDock(id)});
+  const nl=want.filter(id=>DOCK.indexOf(id)>=0);
+  DOCK.length=0; nl.forEach(x=>DOCK.push(x)); saveDock();
+  const first=TEMP.length?dockBtn(TEMP[0]):null;
+  nl.forEach(id=>{const b=dockBtn(id); if(b){if(first)dock.insertBefore(b,first); else dock.appendChild(b)}});
+  fitDock(); syncDock();
+}
+window.nativeDockOrder=applyDockOrder;
+/* Quay lại giao diện (có thể đã đổi thứ tự lúc đang ở app khác): đọc lại thứ tự đã lưu bên Android */
+function pullDockOrder(){try{const A=window.AndroidLauncher;if(!A||!A.getDockOrder)return;const n=JSON.parse(A.getDockOrder()||'null');if(Array.isArray(n)&&n.length&&JSON.stringify(n)!==JSON.stringify(DOCK))applyDockOrder(n)}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pullDockOrder()});
+window.addEventListener('focus',pullDockOrder);
 function addToDesk(id){
   const l=deskApps().slice(); if(!APPS[id]||l.indexOf(id)>=0)return;
   l.push(id); saveDeskApps(l);
@@ -4544,7 +4565,7 @@ if(window.AndroidLauncher){(function(){
     const A=window.AndroidLauncher; if(!A||!A.setDockData)return;
     try{
       /* icon ghim + icon tạm của app đang mở (như Dock trong giao diện), kèm cờ r = đang chạy để vẽ chấm */
-      const d=JSON.stringify(DOCK.concat(TEMP).filter(x=>x!=='|'&&ICONS[x]).map(id=>({id:id,name:appTitle(id),bg:ICONS[id].bg,g:ICONS[id].g,r:wins[id]?1:0})));
+      const d=JSON.stringify(DOCK.concat(TEMP).filter(x=>x!=='|'&&ICONS[x]).map(id=>({id:id,name:appTitle(id),bg:ICONS[id].bg,g:ICONS[id].g,r:wins[id]?1:0,p:DOCK.indexOf(id)>=0?1:0})));
       if(d!==_dd){_dd=d;A.setDockData(d)}
       A.setDockOverlay(!!pref('dockFloat',true));
       markND(); pushBarWall();
