@@ -632,6 +632,14 @@ public class LauncherBridge {
         @JavascriptInterface public boolean isDockOverlay() { return LockService.isEnabled(act); }
         @JavascriptInterface public void setDockPrefs(String ics, boolean magnify, boolean autoHide) { LockService.setDockPrefs(act, ics, magnify, autoHide); }
         @JavascriptInterface public void setDockBase(int px) { LockService.setDockBase(act, px); }
+        /** Mép trên Dock nổi tính bằng px CSS theo toạ độ màn hình thật (vùng nhìn của trang có thể ngắn hơn màn hình, nên trang không tự đo được). */
+        @JavascriptInterface public float dockTopCss() {
+            try {
+                android.graphics.Point p = new android.graphics.Point(); act.getWindowManager().getDefaultDisplay().getRealSize(p);
+                float d = act.getResources().getDisplayMetrics().density;
+                return (p.y - Math.round(LockService.DOCK_BAR_DP * d)) / d;
+            } catch (Throwable t) { return 0f; }
+        }
         @JavascriptInterface public boolean dockOverlayLive() { return LockService.isEnabled(act) && LockService.isRunning(); }
         @JavascriptInterface public void setBarLock(boolean on) { LockService.saveBarLock(act, on); }
         @JavascriptInterface public boolean isBarLock() { return LockService.isBarLock(act); }

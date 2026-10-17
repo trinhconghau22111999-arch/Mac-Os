@@ -1809,7 +1809,8 @@ function openApp(id,arg){
 /* Chiều cao Dock hiện tại (cỡ icon + 18px): cửa sổ chừa đúng chừng này ở đáy, Dock thu nhỏ thì cửa sổ mở rộng theo */
 const DOCK_OV=8; /* cửa sổ chui xuống dưới Dock 8px nên không còn hở lộ hình nền khi Dock nhỏ lại */
 /* Dock cao 48dp cố định (số đo thật trên máy, cả ngang lẫn dọc); cửa sổ chui xuống dưới Dock 4dp nên không hở */
-const dockRes=()=>44;
+/* Đáy cửa sổ = mép trên Dock thật (+4px chui xuống dưới). Vùng nhìn của trang ngắn hơn màn hình thật nên tính theo toạ độ màn hình do Android báo, không tính theo innerHeight. */
+const dockRes=()=>{try{const A=window.AndroidLauncher,t=A&&A.dockTopCss?+A.dockTopCss():0; if(t>0)return Math.max(0,Math.round((innerHeight-(t+4))*10)/10)}catch(e){} return 44};
 function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
@@ -4723,31 +4724,6 @@ if(window.AndroidLauncher){(function(){
   if(inf.model){window.NATIVE_INFO=inf}
 })()}
 
-})();
-</script>
-<div id="dkdbg" style="position:fixed;left:10px;top:44px;z-index:99998;max-width:calc(100% - 20px);padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.84);color:#7dff9a;font:12px/1.45 monospace;white-space:pre-wrap;box-shadow:0 6px 24px rgba(0,0,0,.5)"><b style="color:#fff">DO CUA SO - mo 1 app phong to roi chup gui lai</b><span id="dkdbgx" style="float:right;margin-left:14px;color:#fff;border:1px solid #888;border-radius:6px;padding:0 8px;cursor:pointer">dong</span>
-<span id="dkdbgt"></span></div>
-<script>
-(function(){
-  var b=document.getElementById('dkdbgt'),p=document.getElementById('dkdbg');
-  document.getElementById('dkdbgx').addEventListener('click',function(){p.style.display='none';clearInterval(tm)});
-  function r(e){if(!e)return 'khong co';var x=e.getBoundingClientRect();return 'top '+x.top.toFixed(1)+' bottom '+x.bottom.toFixed(1)+' cao '+x.height.toFixed(1)}
-  function upd(){
-    var t='';
-    try{
-      var st=document.getElementById('stage'),w=document.querySelector('.win.focus')||document.querySelector('.win'),cs=w?getComputedStyle(w):null;
-      t+='\ninner '+innerWidth+'x'+innerHeight+'  dpr '+devicePixelRatio+'  html cao '+document.documentElement.clientHeight;
-      t+='\nbody: '+r(document.body)+'\nstage: '+r(st)+'\nwins: '+r(document.getElementById('wins'));
-      t+='\ncua so: '+(w?w.dataset.app+' ['+w.className+']':'khong co');
-      if(w){t+='\n  '+r(w)+'\n  style bottom='+w.style.bottom+' top='+w.style.top+' height='+w.style.height;
-        t+='\n  computed bottom='+cs.bottom+' height='+cs.height+' position='+cs.position;
-        t+='\n  body: '+r(w.querySelector('.body'))}
-      try{t+='\ndockRes='+dockRes()}catch(e){t+='\ndockRes: '+e}
-      var dk=document.getElementById('dock');t+='\ndock trang: '+r(dk)
-    }catch(e){t='loi '+e}
-    b.textContent=t;
-  }
-  var tm=setInterval(upd,700);upd();
 })();
 </script>
 </body></html>
