@@ -205,12 +205,19 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
 
         val saved = try { JSONArray(prefs.getString("tabs", "[]")) } catch (e: Exception) { JSONArray() }
         for (i in 0 until saved.length()) newTab(saved.optString(i), false)
-        if (startUrl != null) newTab(startUrl) else if (tabs.isEmpty()) newTab(HOME)
+        // Mở lại app: đã có thẻ cũ thì dùng lại thẻ cũ, không tạo thêm thẻ Google mới mỗi lần mở.
+        val homeStart = startUrl != null && startUrl.trimEnd('/') == HOME
+        if (startUrl != null && !(homeStart && tabs.isNotEmpty())) openUrl(startUrl)
+        else if (tabs.isEmpty()) newTab(HOME)
         else selectTab(tabs[prefs.getInt("activeIdx", 0).coerceIn(0, tabs.size - 1)])
     }
 
-    /** Mở một địa chỉ trong thẻ mới. */
-    fun openUrl(u: String) { newTab(u) }
+    /** Mở một địa chỉ: nếu đã có thẻ đang mở đúng địa chỉ đó thì chuyển sang thẻ đó, chưa có mới tạo thẻ mới. */
+    fun openUrl(u: String) {
+        val key = u.trimEnd('/')
+        val ex = tabs.firstOrNull { displayUrl(it.url).trimEnd('/') == key }
+        if (ex != null) selectTab(ex) else newTab(u)
+    }
     fun reload() { active?.webView?.reload() }
     fun forward() { active?.webView?.let { if (it.canGoForward()) it.goForward() } }
     fun currentUrl(): String = active?.let { displayUrl(it.url) } ?: ""
