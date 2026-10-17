@@ -1170,6 +1170,20 @@ function extLaunch(pkg){
     extSave();
   }catch(e){}
 }
+/* Gộp các app ngoài mở từ Dock nổi (Java ghi lại) vào danh sách đa nhiệm */
+function extSync(){
+  try{
+    const A=window.AndroidLauncher; if(!A||!A.takeExtLaunched)return;
+    const arr=JSON.parse(A.takeExtLaunched()||'[]'); if(!arr.length)return;
+    const add=[];
+    arr.forEach(pkg=>{
+      let info=null; try{const r=A.appInfo&&A.appInfo(pkg); if(r)info=JSON.parse(r)}catch(e){}
+      const old=extRun.find(x=>x.pkg===pkg); info=info||old; if(info)add.push(info);
+    });
+    if(!add.length)return;
+    extRun=add.concat(extRun.filter(x=>!add.some(a=>a.pkg===x.pkg))); extSave();
+  }catch(e){}
+}
 function extKill(pkg){
   extRun=extRun.filter(x=>x.pkg!==pkg); extSave();
   try{const A=window.AndroidLauncher; if(A&&A.killApp)A.killApp(pkg)}catch(e){}
@@ -4217,7 +4231,7 @@ desk.addEventListener('keydown',e=>{
 let msOn=false, lastSheet=0, popAtDown=false, lpFired=false;
 const msw=$('#msw'), mst=$('#mst'), dsh=$('#dsh');
 function openMS(){
-  closeAllPopups(); if(lpOn)closeLP(); if(mcOn)exitMC();
+  extSync(); closeAllPopups(); if(lpOn)closeLP(); if(mcOn)exitMC();
   const ids=Object.keys(wins).filter(id=>wins[id]&&!wins[id]._leaving).sort((a,b)=>(+wins[b].style.zIndex||0)-(+wins[a].style.zIndex||0));
   if(!ids.length&&!extRun.length)return;
   msOn=true; stage.classList.add('ms'); msw.hidden=false; mst.innerHTML='';
@@ -4321,7 +4335,7 @@ desk.addEventListener('dblclick',e=>{
 });
 function tryOpenMS(){
   if(msOn||lpOn||mcOn)return;
-  if(!Object.keys(wins).some(id=>wins[id]&&!wins[id]._leaving)&&!extRun.length)return;
+  extSync(); if(!Object.keys(wins).some(id=>wins[id]&&!wins[id]._leaving)&&!extRun.length)return;
   openMS();
 }
 

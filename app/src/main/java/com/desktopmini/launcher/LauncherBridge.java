@@ -757,6 +757,8 @@ public class LauncherBridge {
             Intent i = act.getPackageManager().getLaunchIntentForPackage(pkg);
             if (i != null) act.go(i);
         }
+        /** Các app ngoài đã mở từ Dock nổi (JSON mảng pkg, mới nhất trước); đọc xong thì xóa để không lặp. */
+        @JavascriptInterface public String takeExtLaunched() { return LockService.takeExtLaunched(act); }
         /** Tên + biểu tượng của một ứng dụng đã cài (cho thẻ đa nhiệm). */
         @JavascriptInterface public String appInfo(String pkg) {
             try {

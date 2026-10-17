@@ -64,6 +64,23 @@ public class LockService extends AccessibilityService {
         c.getSharedPreferences(PK, 0).edit().putBoolean("barlock", on).apply();
         final LockService s = inst; if (s != null) s.barLock = on;
     }
+    /** Ghi nhớ app ngoài vừa mở từ Dock nổi (mới nhất đứng đầu) để thẻ đa nhiệm của Desktop Mini hiện đủ. */
+    public static void noteExt(Context c, String pk) {
+        if (pk == null || pk.equals(c.getPackageName())) return;
+        try {
+            SharedPreferences sp = c.getSharedPreferences(PK, 0);
+            org.json.JSONArray old = new org.json.JSONArray(sp.getString("extlaunched", "[]"));
+            org.json.JSONArray n = new org.json.JSONArray(); n.put(pk);
+            for (int i = 0; i < old.length() && n.length() < 30; i++) if (!pk.equals(old.optString(i))) n.put(old.optString(i));
+            sp.edit().putString("extlaunched", n.toString()).apply();
+        } catch (Throwable t) { }
+    }
+    public static String takeExtLaunched(Context c) {
+        SharedPreferences sp = c.getSharedPreferences(PK, 0);
+        String s = sp.getString("extlaunched", "[]");
+        sp.edit().remove("extlaunched").apply();
+        return s;
+    }
     public static boolean isBarLock(Context c) { return c.getSharedPreferences(PK, 0).getBoolean("barlock", true); }
 
     /** Giao diện Desktop Mini đẩy danh sách icon Dock (JSON: id, name, bg, g) sang để vẽ ở Dock nổi. */
@@ -1219,7 +1236,7 @@ public class LockService extends AccessibilityService {
     private void openExternal(String pk) {
         try {
             Intent i = getPackageManager().getLaunchIntentForPackage(pk);
-            if (i != null) startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
+            if (i != null) { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)); noteExt(this, pk); }
         } catch (Throwable t) { }
     }
 
