@@ -270,9 +270,6 @@ ul,ol{margin:0;padding:0;list-style:none}
 .lpg{overscroll-behavior:contain;flex:1;width:min(860px,100%);display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));align-content:start;justify-items:center;gap:26px 10px;overflow:auto;min-height:0;padding:24px 0 36px;-webkit-overflow-scrolling:touch}
 .lpi{content-visibility:auto;contain-intrinsic-size:96px 100px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);font-size:12.5px;padding:6px;border-radius:14px}
 .lpi .ic{width:64px;height:64px}
-.lpd{display:flex;gap:8px;height:10px}
-.lpd i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4)}
-.lpd i.on{background:#fff}
 
 /* Chuyển ứng dụng, Xem nhanh */
 .sw{position:absolute;z-index:13;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:10px;padding:14px;border-radius:26px;background:var(--glass);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 0 0 1px var(--glass-line) inset,0 20px 50px rgba(0,0,0,.4);max-width:calc(100% - 20px);overflow:auto}
@@ -1125,7 +1122,6 @@ body.native .stage{border-radius:0;min-height:0}
   <div class="lp" id="lp" hidden>
     <label class="lpq"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input id="lpq" type="text" placeholder="Tìm kiếm" autocomplete="off" aria-label="Tìm ứng dụng"></label>
     <div class="lpg" id="lpg"></div>
-    <div class="lpd" id="lpd"></div>
   </div>
   <button class="xb mx" id="mcx" type="button" aria-label="Thoát Mission Control" hidden>✕</button>
   <div class="sw" id="sw" hidden></div>
@@ -3670,7 +3666,7 @@ $$('[data-x]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();clo
 $('#mcx').addEventListener('click',e=>{e.stopPropagation();exitMC()});
 function openLP(){
   closeAllPopups(); if(mcOn)exitMC(); closeMS();
-  lpOn=true; lp.hidden=false; lp.classList.remove('out'); $('#lpq').value=''; renderLP(); $('#lpd').innerHTML='<i class="on"></i>';
+  lpOn=true; lp.hidden=false; lp.classList.remove('out'); $('#lpq').value=''; renderLP();
   /* Không tự đưa con trỏ vào ô tìm kiếm: chỉ khi người dùng chạm vào ô thì bàn phím mới hiện */
   try{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}catch(x){}
   kickSync(); /* trang web nhúng là view gốc nằm đè lên giao diện: ẩn nó ngay khung hình kế tiếp, không chờ vòng kiểm tra 90ms */
