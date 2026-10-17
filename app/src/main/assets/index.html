@@ -2932,7 +2932,7 @@ function buildGecko(b,w,arg){
   function renderDl(){
     dot.hidden=!GKDL.some(x=>x.state==='run');
     if(!GK.dlOpen)return;
-    dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>Tải xuống</b></div>'+(GKDL.length?GKDL.map((x,i)=>{
+    dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>Tải xuống</b><button class="btn gdc" type="button"'+(GKDL.some(x=>x.state!=='run')?'':' disabled')+'>Xoá lịch sử</button></div>'+(GKDL.length?GKDL.map((x,i)=>{
       const pct=x.total>0?Math.min(100,Math.round(x.got*100/x.total)):(x.state==='ok'?100:0);
       const st=x.state==='run'?(x.total>0?sz(x.got)+' / '+sz(x.total)+' · '+pct+'%':sz(x.got)+' · đang tải…'):x.state==='ok'?'Đã tải xong · '+sz(x.got||0):'Lỗi: '+esc(x.msg||'không tải được');
       return '<div class="gdr '+x.state+'"><b>'+esc(x.name)+'</b><div class="gdb"><i style="width:'+(x.state==='err'?100:pct)+'%"></i></div><small>'+st+'</small>'+(x.state==='ok'?'<button class="btn gdo" type="button" data-i="'+i+'">Mở trong Tải xuống</button>':'')+'</div>';
@@ -2946,6 +2946,10 @@ function buildGecko(b,w,arg){
   dlb.addEventListener('click',()=>setDl(!GK.dlOpen));
   dp.addEventListener('click',e=>{
     if(e.target.closest('.gdx')){setDl(false);return}
+    if(e.target.closest('.gdc')){ /* chỉ xoá mục trong danh sách (không xoá tệp đã tải); mục đang tải được giữ lại */
+      for(let i=GKDL.length-1;i>=0;i--)if(GKDL[i].state!=='run')GKDL.splice(i,1);
+      gkdlSave(); renderDl(); return;
+    }
     const o=e.target.closest('.gdo'); if(!o)return;
     const it=GKDL[+o.dataset.i]; if(it)openApp('downloads',{select:it.name});
   });
