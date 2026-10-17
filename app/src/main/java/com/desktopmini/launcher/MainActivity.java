@@ -364,8 +364,30 @@ public class MainActivity extends Activity {
         reaper.postDelayed(idleTask, 5000);
     }
 
+    /** Cắm / rút sạc và pin đổi mức: báo giao diện cập nhật icon pin (tia sét) ngay, không chờ vòng dò 10 giây. */
+    private boolean powerRxOn = false;
+    private final BroadcastReceiver powerRx = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            try { if (web != null) web.evaluateJavascript("window.nativeBatt&&window.nativeBatt()", null); } catch (Throwable t) { }
+        }
+    };
+    private void powerRxStart() {
+        if (powerRxOn) return;
+        try {
+            android.content.IntentFilter f = new android.content.IntentFilter();
+            f.addAction(Intent.ACTION_POWER_CONNECTED); f.addAction(Intent.ACTION_POWER_DISCONNECTED); f.addAction(Intent.ACTION_BATTERY_CHANGED);
+            registerReceiver(powerRx, f); powerRxOn = true;
+        } catch (Throwable t) { }
+    }
+    private void powerRxStop() {
+        if (!powerRxOn) return;
+        try { unregisterReceiver(powerRx); } catch (Throwable t) { }
+        powerRxOn = false;
+    }
+
     @Override protected void onPause() {
         super.onPause();
+        powerRxStop();
         inFg = false; undimIdle();
         if (browserHost != null) { try { browserHost.onPause(); } catch (Exception e) { } }
         if (wordHost != null) wordHost.save();
@@ -696,6 +718,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
+        powerRxStart();
         inFg = true; lastTouchAt = android.os.SystemClock.elapsedRealtime();
         imeUp = false; hideBars(); LockService.launcherResumed(); reportDockGap(); root.postDelayed(new Runnable() { public void run() { reportDockGap(); } }, 700); prefetchApps(); scanNewMedia(); startMediaWatch();
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) { try { if (e.getValue().getVisibility() == View.VISIBLE) { e.getValue().onResume(); extHiddenAt.remove(e.getKey()); } } catch (Exception x) { } }

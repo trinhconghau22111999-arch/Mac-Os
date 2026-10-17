@@ -4743,6 +4743,7 @@ if(window.AndroidLauncher){(function(){
   (window.requestIdleCallback||(f=>setTimeout(f,900)))(()=>{lpFill(true)},{timeout:2500});
   /* Pin thật */
   function realBatt(){const o=safe(()=>JSON.parse(A.getBattery()),{});if(o.level!=null){BAT.level=o.level;BAT.charging=!!o.charging;BAT.real=true;battUpdate()}}
+  window.nativeBatt=realBatt;   /* app Android gọi ngay khi cắm/rút sạc */
   dmEvery(realBatt,10000); realBatt(); setTimeout(realBatt,1500);
   /* RAM thật: cập nhật mỗi 5 giây */
   function realRam(){if(!A.getRam)return;const o=safe(()=>JSON.parse(A.getRam()),{});if(o.total)ramUpdate(o.total,o.free||0)}
