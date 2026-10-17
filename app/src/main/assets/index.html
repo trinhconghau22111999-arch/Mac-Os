@@ -998,6 +998,11 @@ body.native .stage{border-radius:0;min-height:0}
 .win.wplain .wa .bar .wbk::before,.win.wplain .wa .bar .wfw::before{font-size:24px}
 .win.wplain .wa .bar .wrl svg{width:16px;height:16px}
 @media (pointer:coarse){.win.wplain .tls{top:4px}}
+/* Ổ mềm: thanh tiêu đề gọn - ‹ | Ảnh Video Tệp (giữa, đều nhau) | Tải lên | tải lại; mọi nút cùng một hàng, cùng chiều cao */
+.win.wplain .omchips{gap:4px;align-items:center;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;justify-content:flex-start}
+.win.wplain .omchips::-webkit-scrollbar{display:none}
+.win.wplain .omchip{flex:none;height:22px;padding:0 11px;border-radius:11px;font-size:12px;font-weight:600;line-height:22px;white-space:nowrap}
+.win.wplain .omchip.omup{margin-left:auto;padding:0 10px}
 
 /* Đa nhiệm kiểu iPhone (thẻ ngang) */
 .msw{position:absolute;inset:0;z-index:8;display:flex;align-items:flex-start;background:rgba(10,12,24,.5);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);animation:mswin .22s ease-out}
@@ -2265,6 +2270,7 @@ function buildDrive3Stub(b,w){
     b.innerHTML='<div class="app"><div class="bar"><strong class="t">Ổ mềm</strong></div><div class="none">Ổ mềm (Drive 3 hồ sơ) chỉ chạy trong ứng dụng Android</div></div>';
     return {};
   }
+  w.classList.add('wplain');
   const P=[['anh','Ảnh','🖼','#4fc3f7'],['video','Video','🎬','#ff8a80'],['tep','Tệp','📁','#81c784']];
   b.innerHTML='<div class="om"><div class="omh">'+P.map(x=>'<div class="omc" data-p="'+x[0]+'" style="--c:'+x[3]+'"><i>'+x[2]+'</i><b>'+x[1]+'</b><button class="btn omo" type="button">Mở</button><button class="btn omu" type="button">\u2B06 Tải lên</button></div>').join('')+'</div><div class="omw" hidden></div></div>';
   const home=$('.omh',b), host=$('.omw',b);
@@ -2275,7 +2281,7 @@ function buildDrive3Stub(b,w){
     try{A.omemOpen(p,!!up)}catch(e){return}
     if(!api){
       home.hidden=true; host.hidden=false;
-      api=buildWebApp(host,w,'omem','https://drive.google.com/drive/my-drive','Ổ mềm',{close:true});
+      api=buildWebApp(host,w,'omem','https://drive.google.com/drive/my-drive','Ổ mềm',{close:true,compact:true});
       const bar=$('.bar',host), t=$('.t',bar);
       if(t){
         const chips=document.createElement('span'); chips.className='omchips';
