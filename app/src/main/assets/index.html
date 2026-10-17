@@ -4803,5 +4803,52 @@ if(window.AndroidLauncher){(function(){
 })()}
 
 })();
+
+/* Tự tắt bàn phím ảo khi con trỏ không còn ở ô nhập nào: chạm ra ngoài ô, ô bị ẩn/xóa (đóng cửa sổ, đổi tab...), hoặc mất focus */
+(function(){
+  const A=window.AndroidLauncher; if(!A||!A.hideKeyboardIfIdle)return;
+  const isEd=el=>{
+    if(!el||el.nodeType!==1)return false;
+    const t=el.tagName;
+    if(t==='TEXTAREA'||el.isContentEditable)return !el.disabled&&!el.readOnly;
+    if(t==='INPUT'){
+      const ty=(el.getAttribute('type')||'text').toLowerCase();
+      if(['button','checkbox','radio','range','submit','reset','color','file','image'].indexOf(ty)>=0)return false;
+      return !el.disabled&&!el.readOnly;
+    }
+    return false;
+  };
+  let tm=0;
+  const check=d=>{
+    clearTimeout(tm);
+    tm=setTimeout(()=>{
+      const a=document.activeElement;
+      if(isEd(a)&&a.offsetParent!==null&&!a.closest('[hidden]'))return; /* vẫn đang gõ trong ô hợp lệ */
+      if(isEd(a)){try{a.blur()}catch(e){}}
+      try{A.hideKeyboardIfIdle()}catch(e){}
+    },d);
+  };
+  /* mất focus khỏi ô nhập mà không chuyển sang ô nhập khác */
+  document.addEventListener('focusout',()=>check(120),true);
+  /* chạm/bấm ra ngoài ô nhập: bỏ focus ô đang gõ rồi tắt bàn phím */
+  document.addEventListener('pointerdown',e=>{
+    const a=document.activeElement;
+    if(!isEd(a))return;
+    if(e.target===a||(e.target.closest&&e.target.closest('label')))return;
+    if(isEd(e.target))return;
+    check(60);
+  },true);
+  /* ô nhập đang focus bị xóa/ẩn khỏi trang (focusout không bắn trong trường hợp này) */
+  let had=false;
+  new MutationObserver(()=>{
+    const a=document.activeElement, ed=isEd(a);
+    if(ed){had=true;return}
+    if(had){had=false;check(100)}
+  }).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','style','class']});
+  document.addEventListener('focusin',e=>{had=isEd(e.target)},true);
+  /* mở lại app / đổi cửa sổ */
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)check(0)});
+})();
+
 </script>
 </body></html>
