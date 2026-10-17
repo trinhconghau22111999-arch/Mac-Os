@@ -842,6 +842,8 @@ public class MainActivity extends Activity {
     }
     @Override protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
+        /* Đang xem video toàn màn hình mà bấm app khác / Launchpad / thanh menu ở Dock nổi: thoát toàn màn hình trước để app mới hiện lên TRÊN CÙNG (không bị video che) */
+        extHideFull();
         if (i != null && i.getBooleanExtra("openMS", false)) { web.evaluateJavascript("window.nativeMS&&window.nativeMS()", null); return; } /* vuốt lên từ thanh Desktop */
         String mc = i == null ? null : i.getStringExtra("mbClick");
         if (mc != null) {   /* chạm vào thanh menu nổi: bấm nút tương ứng của thanh menu HTML */
