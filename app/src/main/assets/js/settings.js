@@ -15,7 +15,9 @@ function buildSettings(b,w,arg){
   const sld=(id,v,lo,hi)=>'<input type="range" class="rg" data-s="'+id+'" min="'+lo+'" max="'+hi+'" value="'+v+'" aria-label="'+id+'">';
   b.innerHTML='<div class="sset"><nav class="side"></nav><div class="main"><div class="bar"><strong class="t pt"></strong></div><div class="pane"></div></div></div>';
   const nav=$('.side',b), pane=$('.pane',b), pt=$('.pt',b); let key=(arg&&arg.pane)||'ap';
-  NAV.forEach(n=>{
+  /* Ẩn khỏi danh sách bên trái: 'Màn hình nền và Dock' (dk) và 'Mật khẩu màn hình' (lk); phần xử lý bên trong giữ nguyên */
+  const HIDE_NAV=['dk','lk'];
+  NAV.filter(n=>HIDE_NAV.indexOf(n[0])<0).forEach(n=>{
     const s=document.createElement('button'); s.className='si'; s.dataset.p=n[0];
     s.innerHTML='<i class="sq" style="--c:'+n[2]+'"></i><span>'+n[1]+'</span>';
     s.addEventListener('click',()=>{key=n[0];render()});
