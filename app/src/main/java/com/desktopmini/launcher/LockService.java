@@ -248,7 +248,7 @@ public class LockService extends AccessibilityService {
         h.removeCallbacks(topTick);
         if (topBar == null) return;
         boolean fs = videoFull || externalFullscreenTop();
-        if (fs != topHidden) setTopHidden(fs);
+        if (fs != topHidden && android.os.SystemClock.uptimeMillis() >= topPeekUntil) setTopHidden(fs); /* đang hiện tạm (kéo từ trên xuống) thì để bộ đếm 2 giây tự ẩn */
         topBar.invalidate();
         h.postDelayed(topTick, 1000);
     } };
@@ -871,7 +871,7 @@ public class LockService extends AccessibilityService {
         @Override public boolean onTouchEvent(MotionEvent ev) {
             switch (ev.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN: down = at(ev.getX(), ev.getY()); return true;
-                case MotionEvent.ACTION_UP: { String id = at(ev.getX(), ev.getY()); if (id != null && id.equals(down)) menuTap(id); down = null; return true; }
+                case MotionEvent.ACTION_UP: { String id = at(ev.getX(), ev.getY()); if (id != null && id.equals(down)) { menuTap(id); topTapDone(); } down = null; return true; }
                 case MotionEvent.ACTION_CANCEL: down = null; return true;
             }
             return true;
@@ -897,12 +897,60 @@ public class LockService extends AccessibilityService {
         catch (Exception e) { topBar = null; topLp = null; }
     }
     private void removeTopBar() {
-        dismissPop(); dismissSpot(); h.removeCallbacks(topTick); topHidden = false;
+        dismissPop(); dismissSpot(); h.removeCallbacks(topTick); h.removeCallbacks(topPeekEnd); topPeekUntil = 0; hideTopHot(); topHidden = false;
         if (topBar != null) { try { wm.removeView(topBar); } catch (Exception e) { } topBar = null; topLp = null; }
+    }
+    /* ---- Đang xem toàn màn hình: kéo từ mép trên xuống thì thanh menu hiện ngay, giữ 2 giây rồi tự ẩn (hoặc ẩn sau khi bấm xong) ---- */
+    private android.view.View topHot;
+    private long topPeekUntil = 0;
+    private final Runnable topPeekEnd = new Runnable() { public void run() {
+        h.removeCallbacks(topPeekEnd);
+        if (!popId.isEmpty()) { topPeekUntil = android.os.SystemClock.uptimeMillis() + 1000; h.postDelayed(topPeekEnd, 1000); return; } /* menu đang mở: chờ đóng rồi mới ẩn */
+        topPeekUntil = 0;
+        if (topBar != null && (videoFull || barHide || externalFullscreenTop())) setTopHidden(true);
+    } };
+    private void peekTop() {
+        if (topBar == null || topLp == null) return;
+        topPeekUntil = android.os.SystemClock.uptimeMillis() + 2000;
+        setTopHidden(false);
+        h.removeCallbacks(topPeekEnd); h.postDelayed(topPeekEnd, 2000);
+    }
+    /** Vừa bấm xong một nút trên thanh đang hiện tạm: ẩn lại ngay (sau một nhịp ngắn), không chờ đủ 2 giây. */
+    private void topTapDone() {
+        if (android.os.SystemClock.uptimeMillis() >= topPeekUntil) return;
+        h.removeCallbacks(topPeekEnd); h.postDelayed(topPeekEnd, 300);
+    }
+    private void showTopHot() {
+        if (topHot != null || wm == null || topBar == null || barHide) return;
+        final android.view.View v = new android.view.View(this);
+        v.setOnTouchListener(new android.view.View.OnTouchListener() {
+            float y0 = -1; boolean fired;
+            public boolean onTouch(android.view.View x, MotionEvent e) {
+                switch (e.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN: y0 = e.getRawY(); fired = false; break;
+                    case MotionEvent.ACTION_MOVE: if (!fired && y0 >= 0 && e.getRawY() - y0 > dp(14)) { fired = true; peekTop(); } break;
+                    case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL: y0 = -1; break;
+                }
+                return true;
+            }
+        });
+        Point real = realSize();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(14),
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = 0;
+        try { wm.addView(v, lp); topHot = v; } catch (Exception e) { topHot = null; }
+    }
+    private void hideTopHot() {
+        if (topHot != null) { try { wm.removeView(topHot); } catch (Exception e) { } }
+        topHot = null;
     }
     /** Ẩn (chỉ còn dải 1dp, không nhận chạm) khi app ngoài toàn màn hình; hiện lại đủ chiều cao khi hết. */
     private void setTopHidden(boolean b) {
         topHidden = b;
+        if (b) showTopHot(); else hideTopHot();
         if (topBar == null || topLp == null || wm == null) return;
         try {
             topLp.height = b ? dp(1) : statusBarHeight();
