@@ -19,7 +19,7 @@ function buildSettings(b,w,arg){
   const HIDE_NAV=['dk','lk'];
   NAV.filter(n=>HIDE_NAV.indexOf(n[0])<0).forEach(n=>{
     const s=document.createElement('button'); s.className='si'; s.dataset.p=n[0];
-    s.innerHTML='<i class="sq" style="--c:'+n[2]+'"></i><span>'+n[1]+'</span>';
+    s.innerHTML='<i class="sq" style="--c:'+n[2]+'">'+sqIcon(SQG[n[0]])+'</i><span>'+n[1]+'</span>';
     s.addEventListener('click',()=>{key=n[0];render()});
     nav.appendChild(s);
   });
