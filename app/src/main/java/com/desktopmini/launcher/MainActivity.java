@@ -141,6 +141,25 @@ public class MainActivity extends Activity {
         } catch (Exception e) { }
         return UA_DESK;
     }
+    /** Google còn nhận ra WebView qua "client hints" (Sec-CH-UA có nhãn "Android WebView", platform "Android", mobile ?1) và navigator.userAgentData,
+     *  lệch với UA máy tính ở trên. Đặt lại cho khớp một trình duyệt Chrome trên Linux máy tính để trang đăng nhập Google không chặn. */
+    private void applyChromeHints(WebSettings s) {
+        try {
+            if (!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.USER_AGENT_METADATA)) return;
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("Chrome/((\\d+)[\\d.]*)").matcher(WebSettings.getDefaultUserAgent(this));
+            if (!m.find()) return;
+            String full = m.group(1), major = m.group(2);
+            java.util.List<androidx.webkit.UserAgentMetadata.BrandVersion> brands = new java.util.ArrayList<androidx.webkit.UserAgentMetadata.BrandVersion>();
+            brands.add(new androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand("Chromium").setMajorVersion(major).setFullVersion(full).build());
+            brands.add(new androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand("Google Chrome").setMajorVersion(major).setFullVersion(full).build());
+            brands.add(new androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand("Not-A.Brand").setMajorVersion("99").setFullVersion("99.0.0.0").build());
+            androidx.webkit.UserAgentMetadata md = new androidx.webkit.UserAgentMetadata.Builder()
+                .setBrandVersionList(brands).setFullVersion(full)
+                .setPlatform("Linux").setPlatformVersion("6.5.0").setMobile(false)
+                .setModel("").setArchitecture("x86").setBitness(64).setWow64(false).build();
+            androidx.webkit.WebSettingsCompat.setUserAgentMetadata(s, md);
+        } catch (Throwable e) { }
+    }
     private static final String UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
 
     /** Đẩy sự kiện từ service nền vào giao diện HTML. */
@@ -1309,6 +1328,7 @@ public class MainActivity extends Activity {
                 s.setUserAgentString(om ? cleanDeskUa() : ("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms) ? UA_DESK : UA);
                 if (ms || om) { /* Microsoft / Ổ mềm (Google): bỏ X-Requested-With để trang đăng nhập không coi là "ứng dụng không an toàn" */
                     s.setJavaScriptCanOpenWindowsAutomatically(true);   // đăng nhập Microsoft/Google có thể mở cửa sổ phụ
+                    if (om) applyChromeHints(s);
                     try {
                         if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST))
                             androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, new java.util.HashSet<String>());
