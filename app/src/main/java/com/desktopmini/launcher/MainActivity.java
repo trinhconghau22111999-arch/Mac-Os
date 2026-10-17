@@ -1588,7 +1588,10 @@ public class MainActivity extends Activity {
             gkZoom = getSharedPreferences("dm_zoom", MODE_PRIVATE).getFloat("gecko", 1f);
             if (Math.abs(gkZoom - 1f) > 0.01f) gkApplyZoom();
         }
-        gkUrl = GK_HOME; gkBackOk = false; gkFwdOk = false; gkProg = 0;
+        /* Mở lại app: vào đúng trang đã xem lần trước (nếu có), chưa có thì về Google */
+        String gkLast = getSharedPreferences("gk_state", MODE_PRIVATE).getString("last", null);
+        final String gkStart = (gkLast != null && (gkLast.startsWith("http://") || gkLast.startsWith("https://"))) ? gkLast : GK_HOME;
+        gkUrl = gkStart; gkBackOk = false; gkFwdOk = false; gkProg = 0;
         gkView = new org.mozilla.geckoview.GeckoView(this);
         /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
         gkView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
@@ -1621,7 +1624,15 @@ public class MainActivity extends Activity {
         se.setProgressDelegate(new org.mozilla.geckoview.GeckoSession.ProgressDelegate() {
             @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) gkUrl = url; gkProg = 5; gkPush(); }
             @Override public void onProgressChange(org.mozilla.geckoview.GeckoSession s, int p) { gkProg = p; gkPush(); }
-            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) { gkProg = 0; gkPush(); if (success) CrashLog.clearMark(MainActivity.this); }
+            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) {
+                gkProg = 0; gkPush();
+                if (success) {
+                    CrashLog.clearMark(MainActivity.this);
+                    String u = gkUrl;   /* nhớ trang cuối để lần sau mở lại đúng trang này */
+                    if (u != null && (u.startsWith("http://") || u.startsWith("https://")))
+                        getSharedPreferences("gk_state", MODE_PRIVATE).edit().putString("last", u).apply();
+                }
+            }
         });
         se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
             @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { gkBackOk = can; gkPush(); }
@@ -1635,7 +1646,7 @@ public class MainActivity extends Activity {
         gkView.setSession(se);
         gkView.setVisibility(View.GONE);
         root.addView(gkView, new FrameLayout.LayoutParams(1, 1));
-        se.loadUri(GK_HOME);
+        se.loadUri(gkStart);
     }
     void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
 

@@ -2903,7 +2903,7 @@ window.nativeGkDl=o=>{
 };
 function buildGecko(b,w,arg){
   const A=window.AndroidLauncher;
-  b.innerHTML='<div class="wa gk"><div class="bar"><button class="ib gbk" type="button" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button><button class="ib gfw" type="button" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button><button class="ib grl" type="button" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nhập địa chỉ hoặc tìm kiếm" aria-label="Địa chỉ"><button class="ib ggo" type="button">Đi</button><button class="ib gdl" type="button" aria-label="Tải xuống"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" hidden></i></button></div><div class="gkp"><i></i></div><div class="wab"><div class="gdp" hidden></div></div></div>';
+  b.innerHTML='<div class="wa gk"><div class="bar"><button class="ib gbk" type="button" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button><button class="ib gfw" type="button" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button><button class="ib grl" type="button" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nhập địa chỉ hoặc tìm kiếm" aria-label="Địa chỉ"><button class="ib gdl" type="button" aria-label="Tải xuống"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" hidden></i></button></div><div class="gkp"><i></i></div><div class="wab"><div class="gdp" hidden></div></div></div>';
   const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b), dlb=$('.gdl',b), dot=$('.gdot',b), dp=$('.gdp',b); let last='', timer=null;
   const sz=n=>typeof fmtSize==='function'?fmtSize(n):Math.round(n/1024)+' KB';
   function renderDl(){
@@ -2942,7 +2942,6 @@ function buildGecko(b,w,arg){
   bk.addEventListener('click',()=>A.gkBack());
   fw.addEventListener('click',()=>A.gkForward());
   $('.grl',b).addEventListener('click',()=>A.gkReload());
-  $('.ggo',b).addEventListener('click',go);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
   inp.addEventListener('focus',()=>inp.select());
   GK.ui(); renderDl(); NSYNC.add(sync); nsStart(); sync();
