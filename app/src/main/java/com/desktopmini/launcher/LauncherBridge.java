@@ -169,6 +169,7 @@ public class LauncherBridge {
         }
         /** Ẩn bàn phím ảo khi con trỏ không còn trong ô nhập nào của trang chính. Chỉ ẩn nếu WebView chính đang giữ focus,
          *  để không đóng nhầm bàn phím của app nhúng (Gecko/WebView ngoài) vừa nhận focus. */
+        @JavascriptInterface public void setHtmlEditing(boolean on) { act.htmlEditing = on; }
         @JavascriptInterface public void hideKeyboardIfIdle() {
             act.runOnUiThread(new Runnable() { public void run() {
                 try {

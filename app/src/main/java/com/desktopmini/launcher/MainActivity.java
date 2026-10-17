@@ -1241,6 +1241,7 @@ public class MainActivity extends Activity {
         if (omView != null) return;
         omView = new org.mozilla.geckoview.GeckoView(this);
         omView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);   /* nằm đúng thứ tự trên giao diện HTML */
+        kbGuard(omView);
         omView.setVisibility(View.GONE);
         root.addView(omView, new FrameLayout.LayoutParams(1, 1));
     }
@@ -1728,6 +1729,22 @@ public class MainActivity extends Activity {
         }
         return gkRuntime;
     }
+    /** JS báo ô nhập HTML của giao diện chính đang được gõ (để biết bàn phím ảo đang thuộc về ô HTML, không phải trang Gecko). */
+    volatile boolean htmlEditing = false;
+    /** Chạm vào view Gecko (trang web nhúng, native nằm đè lên giao diện HTML) khi bàn phím đang thuộc ô HTML (vd thanh địa chỉ):
+     *  ô HTML không nhận được sự kiện nào nên bàn phím kẹt lại -> bỏ focus ô HTML và tắt bàn phím. Chạm vào ô của trang Gecko thì Gecko tự bật lại. */
+    void kbGuard(View v) {
+        v.setOnTouchListener(new View.OnTouchListener() {
+            @Override public boolean onTouch(View view, android.view.MotionEvent e) {
+                if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN && htmlEditing) {
+                    htmlEditing = false;
+                    try { if (web != null) web.evaluateJavascript("try{var a=document.activeElement;if(a&&a.blur)a.blur()}catch(e){}", null); } catch (Throwable t) { }
+                    try { ((android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(view.getWindowToken(), 0); } catch (Throwable t) { }
+                }
+                return false;
+            }
+        });
+    }
     void gkEnsure() {
         if (gkView != null) return;
         CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)");
@@ -1739,6 +1756,7 @@ public class MainActivity extends Activity {
         gkView = new org.mozilla.geckoview.GeckoView(this);
         /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
         gkView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
+        kbGuard(gkView);
         /* Ctrl + lăn chuột / Ctrl + - 0: đổi cỡ chữ cả trang (lưu lại); 2 ngón dùng zoom gốc của Gecko */
         gkView.setOnGenericMotionListener(new View.OnGenericMotionListener() {
             @Override public boolean onGenericMotion(View view, android.view.MotionEvent e) {
