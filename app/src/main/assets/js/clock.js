@@ -69,11 +69,9 @@ function buildClock(b,w){
       const rtg=$('.alr .tg',body);
       rtg.addEventListener('click',()=>{rep=!rep;rtg.setAttribute('aria-checked',String(rep))});
       const snl=$('.snl',body);
-      const drawSnd=()=>{snl.innerHTML=SND.map((x,i)=>'<li data-i="'+i+'" aria-selected="'+(i===sel)+'"><span class="rd"></span><span class="sn">'+esc(x.name)+'</span><button type="button" class="apv" data-p="'+i+'" aria-label="Nghe thử">▶</button></li>').join('')};
+      const drawSnd=()=>{snl.innerHTML=SND.map((x,i)=>'<li data-i="'+i+'" aria-selected="'+(i===sel)+'"><span class="rd"></span><span class="sn">'+esc(x.name)+'</span></li>').join('')};
       drawSnd();
       snl.addEventListener('click',e=>{
-        const pv=e.target.closest('.apv');
-        if(pv){const n=NA2();const u=SND[+pv.dataset.p].uri;if(n&&n.previewSound)n.previewSound(u);else beep();return}
         const li=e.target.closest('li[data-i]'); if(li){sel=+li.dataset.i;drawSnd()}
       });
       const all=$('.all',body);
