@@ -1409,19 +1409,22 @@ function extReg(pkg,label,icon,save){
   return id;
 }
 Object.keys(EXTINFO).forEach(k=>{const o=EXTINFO[k];if(o)extReg(k,o.label,o.icon)});
-const LP_APPS=['files','downloads','browser','webbrowser','youtube','mail','calendar','photos','camera','music','notes','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','omem','drive','zalo','facebook','settings','trash'];
-const DOCK_DEF=['launchpad','files','webbrowser','youtube','mail','photos','camera','notes','omem','zalo','facebook','settings'];
+/* Chỉ còn Drive web: mọi app dựng sẵn khác không hiện trên Desktop / Dock / Launchpad nữa (định nghĩa vẫn giữ trong APPS để các chức năng nội bộ như Cài đặt, Giới thiệu còn chạy) */
+const LP_APPS=['drive'];
+const DOCK_DEF=['launchpad','drive'];
+const isGone=id=>{const a=APPS[id];return !!a&&!a.ext&&!a.hidden&&id!=='drive'};
 /* Dock và màn hình desktop do người dùng tự sắp xếp (lưu lại để mở app lần sau vẫn giữ) */
 const DOCK_GONE=['browser','calendar','music','typing','msword','msexcel','msppt','msoffice','calc','clock','recorder','drive','downloads'];
 const DOCK=(()=>{let s=jget('dm-dock',null);if(Array.isArray(s)&&!jget('dm-dock-v2',false)){s=s.filter(id=>DOCK_GONE.indexOf(id)<0);jset('dm-dock',s);jset('dm-dock-v2',true)}
 /* Thứ tự do người dùng sắp xếp ở Dock nổi được Android lưu cố định (kể cả khi giao diện này không chạy): ưu tiên dùng */
 try{const A=window.AndroidLauncher,n=A&&A.getDockOrder?JSON.parse(A.getDockOrder()||'null'):null;if(Array.isArray(n)&&n.length)s=n}catch(e){}
-if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||APPS[id]);if(l.indexOf('launchpad')<0)l.unshift('launchpad');return l})();
+if(!Array.isArray(s))return DOCK_DEF.slice();const l=s.filter(id=>id==='launchpad'||(APPS[id]&&!isGone(id)));if(l.indexOf('launchpad')<0)l.unshift('launchpad');if(l.length<2&&l.indexOf('drive')<0)l.push('drive');return l})();
 const saveDock=()=>{jset('dm-dock',DOCK);try{const A=window.AndroidLauncher;A&&A.setDockOrder&&A.setDockOrder(JSON.stringify(DOCK))}catch(e){}};
+saveDock(); /* ghi đè danh sách Dock cũ (cả bên Android) bằng danh sách đã lọc */
 let DESKAPPS=jget('dm-deskapps',null);
 /* Thùng rác lên màn hình Desktop: máy đã có danh sách icon lưu sẵn thì thêm một lần (sau đó xóa icon đi thì không tự thêm lại) */
 if(Array.isArray(DESKAPPS)&&!lsGet('dm-trashdesk1')){lsSet('dm-trashdesk1','1');if(DESKAPPS.indexOf('trash')<0){DESKAPPS=DESKAPPS.concat('trash');jset('dm-deskapps',DESKAPPS)}}
-const deskApps=()=>(Array.isArray(DESKAPPS)?DESKAPPS:LP_APPS).filter(id=>APPS[id]);
+const deskApps=()=>(Array.isArray(DESKAPPS)?DESKAPPS:LP_APPS).filter(id=>APPS[id]&&!isGone(id));
 const saveDeskApps=l=>{DESKAPPS=l;jset('dm-deskapps',l)};
 /* Tệp / ảnh / video / thư mục kéo từ app Tệp ra màn hình desktop: mỗi mục là một lối tắt (không sao chép tệp), đổi tên nhãn được */
 let DESKFILES=jget('dm-deskfiles',[]); if(!Array.isArray(DESKFILES))DESKFILES=[];
@@ -1536,7 +1539,7 @@ function removeTempDock(id){
   unmagnify(); try{window.__syncDock&&window.__syncDock()}catch(e){}
 }
 function addToDock(id){
-  if(!APPS[id]||DOCK.indexOf(id)>=0)return;
+  if(!APPS[id]||isGone(id)||DOCK.indexOf(id)>=0)return;
   const ti=TEMP.indexOf(id);
   if(ti>=0){ /* đang chạy ở icon tạm: ghim luôn, giữ nguyên icon, đưa lên trước nhóm icon tạm */
     TEMP.splice(ti,1); DOCK.push(id); saveDock();
@@ -1558,7 +1561,7 @@ function removeFromDock(id){
 /* Dock nổi (Android) đổi chỗ / xóa / ghim icon: áp dụng thứ tự mới vào Dock trong giao diện và lưu lại */
 function applyDockOrder(list){
   if(!Array.isArray(list))return;
-  const want=list.filter((x,i)=>(x==='launchpad'||APPS[x])&&list.indexOf(x)===i);
+  const want=list.filter((x,i)=>(x==='launchpad'||(APPS[x]&&!isGone(x)))&&list.indexOf(x)===i);
   if(want.indexOf('launchpad')<0)want.unshift('launchpad');
   DOCK.slice().forEach(id=>{if(want.indexOf(id)<0)removeFromDock(id)});
   want.forEach(id=>{if(DOCK.indexOf(id)<0)addToDock(id)});
@@ -1574,7 +1577,7 @@ function pullDockOrder(){try{const A=window.AndroidLauncher;if(!A||!A.getDockOrd
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)pullDockOrder()});
 window.addEventListener('focus',pullDockOrder);
 function addToDesk(id){
-  const l=deskApps().slice(); if(!APPS[id]||l.indexOf(id)>=0)return;
+  const l=deskApps().slice(); if(!APPS[id]||isGone(id)||l.indexOf(id)>=0)return;
   l.push(id); saveDeskApps(l);
   const p=deskLayout(deskRows())[id]; if(p){DESKPOS[id]=p; saveDeskPos()}
   renderDesk();
@@ -3606,7 +3609,7 @@ sq.addEventListener('keydown',e=>{
       }
       case 'desktop':{aiClose();closeAllPopups();if(typeof lpOn!=='undefined'&&lpOn)closeLP();return}
       case 'openapp':{
-        const own=Object.keys(APPS).filter(id=>!APPS[id].hidden&&!APPS[id].ext);
+        const own=Object.keys(APPS).filter(id=>!APPS[id].hidden&&!APPS[id].ext&&!isGone(id));
         const dev=devApps();
         const list=own.map(id=>({own:id,label:APPS[id].name})).concat(dev.map(a=>({pkg:a.pkg,label:a.label})));
         const idx=rank(list.map(x=>aiN(x.label)),c.name);

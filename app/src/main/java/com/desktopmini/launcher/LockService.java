@@ -928,14 +928,14 @@ public class LockService extends AccessibilityService {
             public boolean onTouch(android.view.View x, MotionEvent e) {
                 switch (e.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN: y0 = e.getRawY(); fired = false; break;
-                    case MotionEvent.ACTION_MOVE: if (!fired && y0 >= 0 && e.getRawY() - y0 > dp(14)) { fired = true; peekTop(); } break;
+                    case MotionEvent.ACTION_MOVE: if (!fired && y0 >= 0 && e.getRawY() - y0 > dp(3)) { fired = true; peekTop(); } break;
                     case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL: y0 = -1; break;
                 }
                 return true;
             }
         });
         Point real = realSize();
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(14),
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(real.x, dp(28),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                 | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
