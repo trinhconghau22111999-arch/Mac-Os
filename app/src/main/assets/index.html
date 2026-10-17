@@ -957,6 +957,13 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .wa .bar .wbk::before,.wa .bar .gbk::before,.br .bbar .bk::before,.wa .bar .wfw::before,.wa .bar .gfw::before,.br .bbar .fw::before{font-size:40px;line-height:1;font-weight:500}
 .wa .bar .wrl svg,.wa .bar .grl svg,.br .bbar .rl svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .wa .bar .whm{width:52px;height:52px;font-size:30px;line-height:1}
+/* Trình duyệt (Gecko): lùi / tiến / tải lại / tải xuống dùng cùng một kiểu icon SVG, cùng khung 52×52, cùng độ đậm nét và nằm đúng giữa thanh (ký tự ‹ › dạng chữ bị lệch dòng nên bỏ). Tải lại nhỏ lại một chút. */
+.gk .bar{align-items:center}
+.gk .bar .gbk,.gk .bar .gfw,.gk .bar .grl,.gk .bar .gdl{width:52px;height:52px;flex:none;display:grid;place-items:center;padding:0;line-height:0}
+.gk .bar .gbk::before,.gk .bar .gfw::before{content:none}
+.gk .bar .gbk svg,.gk .bar .gfw svg{display:block;width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.gk .bar .grl svg,.gk .bar .gdl svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.gk .bar .gdot{top:12px;right:12px}
 .om{height:100%;background:var(--win)}.omh{display:flex;gap:12px;height:100%;padding:16px 16px 16px 16px;box-sizing:border-box}.omw{height:100%}.omw[hidden],.omh[hidden]{display:none}
 .omc{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:22px;background:linear-gradient(var(--c),rgba(0,0,0,.35));color:#fff;padding:12px}
 .omc i{font-style:normal;font-size:38px}.omc b{font-size:20px}.omc .btn{width:100%;max-width:150px}
