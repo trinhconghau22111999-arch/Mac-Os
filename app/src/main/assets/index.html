@@ -1002,7 +1002,7 @@ body.native .stage{border-radius:0;min-height:0}
 /* Đang ở đa nhiệm: ẩn hẳn các cửa sổ app đang mở (chỉ còn thẻ trong lớp đa nhiệm) */
 .stage.ms .wins{visibility:hidden}
 @keyframes mswin{from{opacity:0}to{opacity:1}}
-.mst{display:flex;align-items:center;gap:26px;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-block:18px 0}
+.mst{display:flex;align-items:center;gap:26px;width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-block:56px 0}
 .mst::-webkit-scrollbar{display:none}
 .msp{flex:none;height:1px}
 .msc{flex:none;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;touch-action:pan-x;transition:transform .22s ease,opacity .22s ease;cursor:pointer}
@@ -4222,7 +4222,7 @@ function openMS(){
   if(!ids.length&&!extRun.length)return;
   msOn=true; stage.classList.add('ms'); msw.hidden=false; mst.innerHTML='';
   const sr=stage.getBoundingClientRect(), base=parseFloat(getComputedStyle(stage).getPropertyValue('--base'))||54;
-  const H=Math.max(130,sr.height-base-215), maxW=sr.width*.6;
+  const H=Math.max(130,sr.height-base-253), maxW=sr.width*.6; /* thẻ hạ thấp 38px: tên app không bị thanh menu nổi che */
   const lead=document.createElement('div'); lead.className='msp'; mst.appendChild(lead);
   let firstW=0,lastW=0;
   ids.forEach((id,k)=>{
