@@ -3129,7 +3129,27 @@ function notify(n){
   if(pref('dnd',false))return;
   const el=document.createElement('button'); el.className='bn';
   el.innerHTML=nIcon(n)+'<span><small>'+esc(n.app)+'</small><b>'+esc(n.title)+'</b><em>'+esc(n.body||'')+'</em></span>';
-  el.addEventListener('click',()=>{el.remove();if(n.fn)n.fn();else if(n.icon)openApp(n.icon)});
+  el.addEventListener('click',()=>{if(el._sw){el._sw=false;return}el.remove();if(n.fn)n.fn();else if(n.icon)openApp(n.icon)});
+  /* Vuốt thông báo sang phải để ẩn bỏ ngay (kéo quá ~70px hoặc vuốt nhanh thì bay đi, chưa đủ thì bật về chỗ cũ) */
+  {let sx=0,sy=0,dx=0,t0=0,pid=null,drag=false;
+  el.style.touchAction='pan-y';
+  el.addEventListener('pointerdown',e=>{if(e.button>0)return;sx=e.clientX;sy=e.clientY;dx=0;t0=performance.now();pid=e.pointerId;drag=false});
+  el.addEventListener('pointermove',e=>{
+    if(e.pointerId!==pid)return;
+    const x=e.clientX-sx,y=e.clientY-sy;
+    if(!drag){if(x>8&&x>Math.abs(y)*1.2){drag=true;try{el.setPointerCapture(pid)}catch(_){}el.style.animation='none';el.style.transition='none'}else return}
+    dx=Math.max(0,x);el.style.transform='translateX('+dx+'px)';el.style.opacity=String(Math.max(.15,1-dx/260));
+  });
+  const end=e=>{
+    if(e.pointerId!==pid)return; pid=null;
+    if(!drag)return;
+    el._sw=true;setTimeout(()=>{el._sw=false},350);
+    const fast=dx/Math.max(1,performance.now()-t0)>0.6;
+    el.style.transition='transform .22s ease,opacity .22s ease';
+    if(dx>70||(fast&&dx>25)){el.style.transform='translateX(110%)';el.style.opacity='0';setTimeout(()=>el.remove(),230)}
+    else{el.style.transform='';el.style.opacity=''}
+  };
+  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);}
   $('#banners').appendChild(el);
   setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),320)},n.ms||5200);
 }
