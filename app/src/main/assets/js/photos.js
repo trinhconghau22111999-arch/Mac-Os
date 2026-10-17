@@ -145,8 +145,11 @@ function buildPhotos(b,w,arg){
     const l=ids(), pos=l.indexOf(view);
     $('.pvx',pv).addEventListener('click',()=>{view=-1;renderViewer()});
     $('.pvf',pv).addEventListener('click',e=>{const k=fav.indexOf(view);if(k>=0)fav.splice(k,1);else fav.push(view);jset('dm-pfav',fav);e.currentTarget.setAttribute('aria-pressed',String(fav.indexOf(view)>=0));renderGrid()});
-    $('.pvp',pv).addEventListener('click',()=>{view=l[(pos-1+l.length)%l.length];renderViewer()});
-    $('.pvn',pv).addEventListener('click',()=>{view=l[(pos+1)%l.length];renderViewer()});
+    /* Xem hết thì dừng: không quay vòng từ ảnh cuối về ảnh đầu (và ngược lại) */
+    const bp=$('.pvp',pv), bn=$('.pvn',pv), first=pos<=0, last=pos<0||pos>=l.length-1;
+    bp.disabled=first; bn.disabled=last; bp.style.opacity=first?'.3':''; bn.style.opacity=last?'.3':'';
+    bp.addEventListener('click',()=>{if(pos>0){view=l[pos-1];renderViewer()}});
+    bn.addEventListener('click',()=>{if(pos>=0&&pos<l.length-1){view=l[pos+1];renderViewer()}});
     $('.pvt',pv).addEventListener('click',e=>{const b=e.target.closest('button[data-t]');if(b)tool(b.dataset.t)});
     $('.pvmb',pv).addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(b)barAct(b.dataset.a)});
     loadEd();
@@ -320,8 +323,8 @@ function buildPhotos(b,w,arg){
   const kd=e=>{
     if(!w.isConnected||view<0)return;
     const l=ids(), pos=l.indexOf(view);
-    if(e.key==='ArrowRight'){view=l[(pos+1)%l.length];renderViewer()}
-    else if(e.key==='ArrowLeft'){view=l[(pos-1+l.length)%l.length];renderViewer()}
+    if(e.key==='ArrowRight'){if(pos>=0&&pos<l.length-1){view=l[pos+1];renderViewer()}}
+    else if(e.key==='ArrowLeft'){if(pos>0){view=l[pos-1];renderViewer()}}
     else if(e.key==='Escape'){if(ED&&ED.mode){exitMode();syncBar()}else{view=-1;renderViewer()}}
   };
   document.addEventListener('keydown',kd);

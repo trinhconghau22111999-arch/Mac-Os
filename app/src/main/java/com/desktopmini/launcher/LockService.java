@@ -1228,7 +1228,7 @@ public class LockService extends AccessibilityService {
     /** Ẩn Dock một lúc (ShotService gọi sau khi hộp thoại xin quyền đóng). */
     public static void quietDock(final long ms) {
         final LockService s = inst; if (s == null) return;
-        s.h.post(new Runnable() { public void run() { s.dockQuietUntil = android.os.SystemClock.uptimeMillis() + ms + 800; s.hideDockBar(); } });
+        /* Không còn ẩn Dock khi chụp màn hình (theo yêu cầu): giữ hàm cho nơi gọi cũ nhưng không làm gì */
     }
     private void toastShot(String m) { try { android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show(); } catch (Throwable t) { } }
     /** Lấy ảnh toàn màn hình (Android 11+: API trợ năng; máy cũ như Android 7: MediaProjection, xin quyền một lần). */
@@ -1268,9 +1268,7 @@ public class LockService extends AccessibilityService {
     private android.view.View selView;
     private void dockShotRegion() {
         if (selView != null) return;
-        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 20000;
-        hideDockBar();
-        final Point real = realSize();
+        final Point real = realSize(); /* Dock vẫn hiện nguyên trong lúc chọn vùng và có trong ảnh chụp */
         final float dens = getResources().getDisplayMetrics().density;
         final RectF sel = new RectF(); final boolean[] has = {false};
         final Paint dim = new Paint(); dim.setColor(0x80000000);
@@ -1299,8 +1297,7 @@ public class LockService extends AccessibilityService {
                         final RectF r = new RectF(sel); int[] loc = new int[2]; view.getLocationOnScreen(loc);
                         r.offset(loc[0], loc[1]); /* toạ độ trong cửa sổ -> toạ độ màn hình thật */
                         closeSel();
-                        if (r.width() < 16 * dens || r.height() < 16 * dens) { dockQuietUntil = 0; return true; }
-                        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 2500;
+                        if (r.width() < 16 * dens || r.height() < 16 * dens) return true;
                         h.postDelayed(new Runnable() { public void run() {
                             grabScreen(new ShotService.Cb() { public void done(Bitmap b) {
                                 if (b == null) { toastShot("Không chụp được màn hình"); return; }
@@ -1315,7 +1312,7 @@ public class LockService extends AccessibilityService {
                         } }, 250);
                         return true;
                     }
-                    case MotionEvent.ACTION_CANCEL: closeSel(); dockQuietUntil = 0; return true;
+                    case MotionEvent.ACTION_CANCEL: closeSel(); return true;
                 }
                 return true;
             }
@@ -1325,7 +1322,7 @@ public class LockService extends AccessibilityService {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = 0;
-        try { wm.addView(v, lp); selView = v; h.postDelayed(kill[0], 15000); } catch (Throwable t) { dockQuietUntil = 0; }
+        try { wm.addView(v, lp); selView = v; h.postDelayed(kill[0], 15000); } catch (Throwable t) { }
     }
     private void closeSel() {
         if (selView != null) { try { wm.removeView(selView); } catch (Throwable t) { } selView = null; }
