@@ -1164,6 +1164,8 @@ public class LockService extends AccessibilityService {
         /** Chạm chỗ trống trên Dock: về màn hình Desktop, thu hết app đang mở (MainActivity.onNewIntent không kèm extra -> nativeHome). */
         @JavascriptInterface public void home() { h.post(new Runnable() { public void run() { dismissPop(); goHome(); } }); }
         @JavascriptInterface public void multitask() { h.post(new Runnable() { public void run() { openMultitask(); } }); }
+        /** Chạm 2 lần vùng trống bên trái Dock: Back (quay lại như phím Back hệ thống). */
+        @JavascriptInterface public void back() { h.post(new Runnable() { public void run() { dismissPop(); try { performGlobalAction(GLOBAL_ACTION_BACK); } catch (Exception e) { } } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
         @JavascriptInterface public void shotRegion() { h.post(new Runnable() { public void run() { dockShotRegion(); } }); }

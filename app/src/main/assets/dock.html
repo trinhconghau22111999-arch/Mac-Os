@@ -87,15 +87,27 @@ function fitIcons(){
 window.addEventListener('resize',function(){setTimeout(fitIcons,50)});
 /* rê/chạm vào Dock: báo cho dịch vụ giữ Dock hiện (khi bật tự ẩn) */
 ['pointerdown','pointermove'].forEach(function(t){pill.addEventListener(t,function(){try{DockApp.touch()}catch(x){}},{passive:true})});
-/* Chạm 2 lần vào chỗ trống trên Dock (không trúng icon/nút) = mở đa nhiệm, giống chạm 2 lần chỗ trống trên Desktop */
-var tapDn=null,lastTap=null;
+/* Chạm 2 lần vào chỗ trống trên Dock (không trúng icon/nút):
+   - vùng trống BÊN PHẢI (giữa icon và nút chụp màn hình) = mở đa nhiệm
+   - vùng trống BÊN TRÁI (giữa nút AI và icon) = Back
+   Chạm 1 lần chỗ trống = về Desktop (bên trái chờ một nhịp để phân biệt với chạm 2 lần). */
+var tapDn=null,lastTap=null,homeT=0;
+function tapSide(x){var r=apps.getBoundingClientRect();return x<r.left+r.width/2?'L':'R'}
 pill.addEventListener('pointerdown',function(e){tapDn=e.target.closest('.dk,.sb')?null:{x:e.clientX,y:e.clientY,t:Date.now()}});
 pill.addEventListener('pointerup',function(e){
   var d=tapDn;tapDn=null;if(!d)return;var now=Date.now();
   if(now-d.t>350||Math.abs(e.clientX-d.x)>14||Math.abs(e.clientY-d.y)>14){lastTap=null;return}
-  if(lastTap&&now-lastTap.t<450&&Math.abs(e.clientX-lastTap.x)<48&&Math.abs(e.clientY-lastTap.y)<48){lastTap=null;setTimeout(function(){try{DockApp.multitask()}catch(x){}},400);return} /* chờ các cửa sổ thu xong rồi mới mở đa nhiệm */
-  lastTap={x:e.clientX,y:e.clientY,t:now};
-  try{DockApp.home()}catch(x){} /* chạm 1 lần chỗ trống = về Desktop, thu hết các app đang mở xuống */
+  var side=tapSide(e.clientX);
+  if(lastTap&&lastTap.s===side&&now-lastTap.t<450&&Math.abs(e.clientX-lastTap.x)<48&&Math.abs(e.clientY-lastTap.y)<48){
+    lastTap=null;
+    if(homeT){clearTimeout(homeT);homeT=0}
+    if(side==='R'){setTimeout(function(){try{DockApp.multitask()}catch(x){}},400)} /* chờ các cửa sổ thu xong rồi mới mở đa nhiệm */
+    else{try{DockApp.back()}catch(x){}}
+    return;
+  }
+  lastTap={x:e.clientX,y:e.clientY,t:now,s:side};
+  if(side==='R'){try{DockApp.home()}catch(x){}} /* chạm 1 lần chỗ trống = về Desktop, thu hết các app đang mở xuống */
+  else{if(homeT)clearTimeout(homeT);homeT=setTimeout(function(){homeT=0;try{DockApp.home()}catch(x){}},320)}
 });
 var shotT=0;
 document.addEventListener('click',function(e){
