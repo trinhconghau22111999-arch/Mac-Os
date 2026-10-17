@@ -93,8 +93,9 @@ pill.addEventListener('pointerdown',function(e){tapDn=e.target.closest('.dk,.sb'
 pill.addEventListener('pointerup',function(e){
   var d=tapDn;tapDn=null;if(!d)return;var now=Date.now();
   if(now-d.t>350||Math.abs(e.clientX-d.x)>14||Math.abs(e.clientY-d.y)>14){lastTap=null;return}
-  if(lastTap&&now-lastTap.t<450&&Math.abs(e.clientX-lastTap.x)<48&&Math.abs(e.clientY-lastTap.y)<48){lastTap=null;try{DockApp.multitask()}catch(x){}return}
+  if(lastTap&&now-lastTap.t<450&&Math.abs(e.clientX-lastTap.x)<48&&Math.abs(e.clientY-lastTap.y)<48){lastTap=null;setTimeout(function(){try{DockApp.multitask()}catch(x){}},400);return} /* chờ các cửa sổ thu xong rồi mới mở đa nhiệm */
   lastTap={x:e.clientX,y:e.clientY,t:now};
+  try{DockApp.home()}catch(x){} /* chạm 1 lần chỗ trống = về Desktop, thu hết các app đang mở xuống */
 });
 var shotT=0;
 document.addEventListener('click',function(e){

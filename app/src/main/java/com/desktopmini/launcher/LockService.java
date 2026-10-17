@@ -315,6 +315,13 @@ public class LockService extends AccessibilityService {
                 .putExtra("mbClick", id).putExtra("mbFront", launcherFront));
         } catch (Exception e) { }
     }
+    private void goHome() {
+        MainActivity.leaveFullscreen(); videoFull = false;
+        try {
+            startActivity(new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+        } catch (Exception e) { }
+    }
     private void openInLauncher(String app) { openInLauncher(app, false); }
     /** toggle = bấm icon trên Dock nổi: nếu Desktop Mini đang ở trước và app đó đang mở ở trên cùng thì thu xuống (như nút −). */
     private void openInLauncher(String app, boolean toggle) {
@@ -1105,6 +1112,8 @@ public class LockService extends AccessibilityService {
     }
     private class DockJs {
         @JavascriptInterface public void open(final String id) { h.post(new Runnable() { public void run() { dismissPop(); openInLauncher(id, true); } }); }
+        /** Chạm chỗ trống trên Dock: về màn hình Desktop, thu hết app đang mở (MainActivity.onNewIntent không kèm extra -> nativeHome). */
+        @JavascriptInterface public void home() { h.post(new Runnable() { public void run() { dismissPop(); goHome(); } }); }
         @JavascriptInterface public void multitask() { h.post(new Runnable() { public void run() { openMultitask(); } }); }
         @JavascriptInterface public void ai() { h.post(new Runnable() { public void run() { forward("aib"); } }); }
         @JavascriptInterface public void shot() { h.post(new Runnable() { public void run() { dockShot(); } }); }
