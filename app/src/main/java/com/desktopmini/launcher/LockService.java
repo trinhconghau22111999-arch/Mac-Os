@@ -1169,8 +1169,7 @@ public class LockService extends AccessibilityService {
         ShotService.capture(this, cb);
     }
     private void dockShot() {
-        dockQuietUntil = android.os.SystemClock.uptimeMillis() + 2500;
-        hideDockBar();
+        /* Không ẩn/đụng gì tới Dock khi chụp toàn màn hình: Dock giữ nguyên và có trong ảnh chụp */
         h.postDelayed(new Runnable() { public void run() {
             if (Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT < 30) {
                 try { performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT); } catch (Throwable t) { }

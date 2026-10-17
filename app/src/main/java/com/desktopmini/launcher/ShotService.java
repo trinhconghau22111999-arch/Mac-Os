@@ -154,7 +154,6 @@ public class ShotService extends Service {
         if (cb != null) {
             if (proj == null) cb.done(null);
             else {
-                LockService.quietDock(1500); /* hộp thoại xin quyền vừa đóng: ẩn Dock rồi chụp để Dock không lọt vào ảnh */
                 final Context c = this;
                 H.postDelayed(new Runnable() { public void run() { grab(c, cb); } }, 700);
             }
