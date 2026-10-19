@@ -2900,7 +2900,7 @@ function buildRealFiles(b,w,arg,mode){
     }
     if(tries>0)setTimeout(()=>{M={};render();selectByName(nm,tries-1)},700);
   }
-  /* Tự cập nhật: có tệp / ảnh mới (Android báo qua nativeReload) hoặc cứ ~3 giây khi cửa sổ đang mở và đang hiện (tắt khi thu nhỏ / app ra nền) thì so dấu hiệu danh sách, đổi mới mới vẽ lại, giữ nguyên vị trí cuộn và phần đang chọn */
+  /* Tự cập nhật: có tệp / ảnh mới (Android báo qua nativeReload; không thăm dò định kỳ để nhẹ RAM) thì so dấu hiệu danh sách, đổi mới mới vẽ lại, giữ nguyên vị trí cuộn và phần đang chọn */
   let lastSig='';
   const sigNow=()=>{
     try{
@@ -2916,14 +2916,9 @@ function buildRealFiles(b,w,arg,mode){
     if(st)setTimeout(()=>{list.scrollTop=st},80);
   }
   live(w,'filesnew',softRefresh);
-  const autoT=setInterval(()=>{
-    if(!w.isConnected){clearInterval(autoT);return}
-    if(document.hidden||w.classList.contains('min')||w._leaving)return;
-    softRefresh();
-  },3000);
   render(); lastSig=sigNow();
   if(!files&&arg&&arg.select)selectByName(arg.select,3);
-  return {destroy(){clearInterval(autoT)},open(a){
+  return {open(a){
     if(a&&a.path)go(a.path);
     if(!files&&a&&a.select){if(path!==home)go(home); selectByName(a.select,3)}
   }};
