@@ -3282,7 +3282,7 @@ function buildMusic(b,w,arg){
     $$('.tr',pls).forEach((e,i)=>{e.setAttribute('aria-current',String(i===MUS.idx));e.classList.toggle('on',i===MUS.idx&&MUS.playing)});
     if(document.activeElement!==vr)vr.value=pref('vol',60);
   }
-  $('.pl',b).addEventListener('click',()=>musToggle());
+  $('.pl',b).addEventListener('click',musToggle);
   $('.mpv',b).addEventListener('click',()=>{if(MUS.idx<0)musPlay(0);else musPrev()});
   $('.mn2',b).addEventListener('click',()=>{if(MUS.idx<0)musPlay(0);else musNext()});
   msk.addEventListener('input',()=>{MUS.drag=true;MUS.pos=+msk.value;m1.textContent=mmss(MUS.pos)});   /* kéo thanh: chỉ đổi số, thả tay mới tua thật */
@@ -3466,7 +3466,7 @@ $('#t-dark').addEventListener('click',()=>setTheme(isDark()?'light':'dark'));
 $('#t-rot').addEventListener('click',()=>{toggleRot();syncCC()});
 $('#bright').addEventListener('input',e=>setPref('bright',+e.target.value));
 $('#vol').addEventListener('input',e=>setPref('vol',+e.target.value));
-$('#np-b').addEventListener('click',()=>musToggle());
+$('#np-b').addEventListener('click',musToggle);
 
 /* Có bàn phím thật thì các ô tìm kiếm chỉ nhận phím thật, không bật bàn phím ảo; không có bàn phím thật mới dùng bàn phím ảo */
 function kbPolicy(inp){
