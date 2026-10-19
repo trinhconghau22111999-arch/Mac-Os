@@ -393,6 +393,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         tabRow.addView(bmBtn, LinearLayout.LayoutParams(dp(44), MATCH))
         starBtn = bmBtn
         tabRowView = tabRow
+        attachTabDrop(tabRow); attachTabDrop(scroll); attachTabDrop(plus)
         col.addView(tabRow, LinearLayout.LayoutParams(MATCH, dp(38)))
 
         // Noi dung
@@ -667,18 +668,80 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         wv.setOnLongClickListener { v ->
             if (oneTapOn) return@setOnLongClickListener false
             val view = v as WebView
-            val type = view.hitTestResult.type
+            val hit = view.hitTestResult
+            val type = hit.type
             if (type == WebView.HitTestResult.SRC_ANCHOR_TYPE || type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
                 val handler = Handler(Looper.getMainLooper()) { m ->
                     val u = m.data?.getString("url")
-                    if (!u.isNullOrEmpty()) showLinkDialog(u)
+                    if (!u.isNullOrEmpty()) startLinkDrag(view, u)
                     true
                 }
                 view.requestFocusNodeHref(handler.obtainMessage())
                 true
+            } else if (type == WebView.HitTestResult.IMAGE_TYPE) {
+                val u = hit.extra
+                if (!u.isNullOrEmpty() && (u.startsWith("http://") || u.startsWith("https://"))) { startLinkDrag(view, u); true } else false
             } else false
         }
         return wv
+    }
+
+    // Keo link/anh tu trang len thanh tab (hoac nut +) de mo tab moi, nhu Chrome.
+    // Nhan giu link: bat dau keo; tha ngoai thanh tab thi hien hop thoai chon nhu cu.
+    private var dragDropped = false
+    private fun startLinkDrag(src: View, url: String) {
+        dragDropped = false
+        val clip = ClipData.newPlainText("link", url)
+        val shadow = object : View.DragShadowBuilder(src) {
+            override fun onProvideShadowMetrics(size: android.graphics.Point, touch: android.graphics.Point) {
+                size.set(dp(150), dp(34)); touch.set(dp(20), dp(17))
+            }
+            override fun onDrawShadow(canvas: Canvas) {
+                val bg = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6222222.toInt() }
+                canvas.drawRoundRect(0f, 0f, dp(150).toFloat(), dp(34).toFloat(), dp(8).toFloat(), dp(8).toFloat(), bg)
+                val tp = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = dp(12).toFloat() }
+                val t = TextUtils.ellipsize(url.removePrefix("https://").removePrefix("http://"), android.text.TextPaint(tp), dp(130).toFloat(), TextUtils.TruncateAt.END).toString()
+                canvas.drawText(t, dp(10).toFloat(), dp(22).toFloat(), tp)
+            }
+        }
+        src.setOnDragListener { _, e ->
+            if (e.action == android.view.DragEvent.ACTION_DRAG_ENDED) {
+                src.setOnDragListener(null)
+                if (!dragDropped && !e.result) showLinkDialog(url)
+            }
+            true
+        }
+        val ok = if (Build.VERSION.SDK_INT >= 24) src.startDragAndDrop(clip, shadow, null, 0)
+                 else @Suppress("DEPRECATION") src.startDrag(clip, shadow, null, 0)
+        if (!ok) { src.setOnDragListener(null); showLinkDialog(url) }
+    }
+
+    private fun clipUrl(e: android.view.DragEvent): String? {
+        val cd = e.clipData ?: return null
+        for (i in 0 until cd.itemCount) {
+            val it = cd.getItemAt(i)
+            val t = (it.uri?.toString() ?: it.text?.toString() ?: "").trim()
+            if (t.startsWith("http://") || t.startsWith("https://")) return t.lines().first().trim()
+        }
+        return null
+    }
+
+    private fun attachTabDrop(v: View) {
+        v.setOnDragListener { _, e ->
+            when (e.action) {
+                android.view.DragEvent.ACTION_DRAG_STARTED ->
+                    e.clipDescription?.hasMimeType("text/plain") == true || e.clipDescription?.hasMimeType("text/uri-list") == true
+                android.view.DragEvent.ACTION_DRAG_ENTERED -> { tabRowView.alpha = 0.7f; true }
+                android.view.DragEvent.ACTION_DRAG_EXITED, android.view.DragEvent.ACTION_DRAG_ENDED -> { tabRowView.alpha = 1f; true }
+                android.view.DragEvent.ACTION_DROP -> {
+                    tabRowView.alpha = 1f
+                    val u = clipUrl(e)
+                    if (u != null) { dragDropped = true; newTab(u) }
+                    u != null
+                }
+                else -> true
+            }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")

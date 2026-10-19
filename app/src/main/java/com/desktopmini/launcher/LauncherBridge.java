@@ -792,6 +792,13 @@ public class LauncherBridge {
             } catch (Exception e) { return false; }
         }
 
+        /** Chạy nền: chỉ gỡ icon khỏi Dock nổi, không tắt tiến trình ứng dụng. */
+        @JavascriptInterface public boolean forgetExtApp(String pkg) {
+            if (pkg == null || pkg.equals(act.getPackageName())) return false;
+            LockService.forgetExt(pkg);
+            return true;
+        }
+
         /* ---- Nhạc thật trong máy ---- */
         static MediaPlayer mp; private boolean ended = false;
         /* Tiêu đề bài đang phát (để dựng lại thông báo khi nút Phát/Dừng được bấm từ thông báo lúc app chạy nền) */
@@ -1449,7 +1456,7 @@ public class LauncherBridge {
         @JavascriptInterface public void gkClose() {
             act.runOnUiThread(new Runnable() { public void run() {
                 if (act.gkView == null) return;
-                try { act.gkSession.close(); } catch (Exception e) { }
+                try { act.gkCloseAll(); } catch (Exception e) { }
                 try { act.root.removeView(act.gkView); } catch (Exception e) { }
                 act.gkView = null; act.gkSession = null;
             }});
@@ -1460,6 +1467,9 @@ public class LauncherBridge {
             }});
         }
         @JavascriptInterface public void gkCancelDl(final int id) { act.gkCancelDl(id); }
+        @JavascriptInterface public void gkNewTab(final String url) { act.runOnUiThread(new Runnable() { public void run() { try { act.gkEnsure(); String t = url == null ? "" : url.trim(); act.gkNewTab(t.length() == 0 ? MainActivity.GK_HOME : act.gkToUrl(t), true); } catch (Throwable e) { } } }); }
+        @JavascriptInterface public void gkSelectTab(final int i) { act.runOnUiThread(new Runnable() { public void run() { act.gkSelect(i); } }); }
+        @JavascriptInterface public void gkCloseTab(final int i) { act.runOnUiThread(new Runnable() { public void run() { act.gkCloseTab(i); } }); }
         @JavascriptInterface public void gkBack() { act.runOnUiThread(new Runnable() { public void run() { if (act.gkSession != null) act.gkSession.goBack(); } }); }
         @JavascriptInterface public void gkForward() { act.runOnUiThread(new Runnable() { public void run() { if (act.gkSession != null) act.gkSession.goForward(); } }); }
         @JavascriptInterface public void gkReload() { act.runOnUiThread(new Runnable() { public void run() { if (act.gkSession != null) act.gkSession.reload(); } }); }
