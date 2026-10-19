@@ -2009,19 +2009,83 @@ public class MainActivity extends Activity {
     }
     void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
 
-    /** Giao diện cần WebView (Chrome) từ bản 105 trở lên; máy Android 7 thường phải cập nhật Android System WebView. */
+    /** Giao diện cần WebView (Chrome) từ bản 105 trở lên; máy Android 7 thường phải cập nhật Android System WebView.
+     *  WebView quá cũ (vd sau khi gỡ cập nhật về bản gốc của máy): hiện hộp thoại gốc của Android (không phụ thuộc giao diện HTML đang lỗi)
+     *  với nút cài thẳng bản WebView đi kèm trong app (assets/webview/*.apk); chưa đóng gói thì mở trang cập nhật trên Google Play. */
     private void warnOldWebView() {
         try {
             String ua = web.getSettings().getUserAgentString();
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("Chrome/(\\d+)").matcher(ua == null ? "" : ua);
             if (!m.find()) return;
             int v = Integer.parseInt(m.group(1));
-            android.content.SharedPreferences w = getSharedPreferences("wvwarn", 0);
-            if (v < 105 && w.getInt("shown", 0) != v) {
-                w.edit().putInt("shown", v).apply();
-                android.widget.Toast.makeText(this, "WebView hệ thống (Chrome " + v + ") quá cũ, giao diện có thể lỗi. Hãy cập nhật \"Android System WebView\" trong Google Play.", android.widget.Toast.LENGTH_LONG).show();
-            }
+            if (v < 105) showOldWebViewDialog(v);
         } catch (Throwable e) { }
+    }
+    /** Tên tệp APK WebView đóng gói sẵn trong assets/webview/ (null nếu chưa có). */
+    private String bundledWebViewApk() {
+        try {
+            String[] l = getAssets().list("webview");
+            if (l != null) for (String n : l) if (n.toLowerCase(java.util.Locale.ROOT).endsWith(".apk")) return n;
+        } catch (Throwable t) { }
+        return null;
+    }
+    private void showOldWebViewDialog(int v) {
+        final String apk = bundledWebViewApk();
+        String msg = "Giao diện Desktop Mini chạy trên \"Android System WebView\". Máy đang dùng bản Chrome " + v
+            + " (cần từ 105 trở lên) nên giao diện có thể bị lỗi, văng hoặc trắng màn hình.\n\n"
+            + (apk != null
+                ? "Bấm \"Cài WebView ngay\" để cài bản WebView đi kèm trong app, xong mở lại Desktop Mini.\n\nNếu máy báo không cho cài từ nguồn này, hãy bật quyền cho Desktop Mini rồi bấm lại."
+                : "Bấm \"Mở trang cập nhật\" để cập nhật \"Android System WebView\" trên Google Play, xong mở lại Desktop Mini.");
+        try {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("WebView của máy quá cũ")
+                .setMessage(msg)
+                .setPositiveButton(apk != null ? "Cài WebView ngay" : "Mở trang cập nhật", new android.content.DialogInterface.OnClickListener() {
+                    @Override public void onClick(android.content.DialogInterface d, int w) { installWebView(apk); }
+                })
+                .setNegativeButton("Để sau", null)
+                .show();
+        } catch (Throwable e) { }
+    }
+    private void installWebView(final String apk) {
+        if (apk == null) { openWebViewStore(); return; }
+        new Thread(new Runnable() { public void run() {
+            try {
+                java.io.File dir = new java.io.File(getCacheDir(), "shared"); dir.mkdirs();
+                final java.io.File f = new java.io.File(dir, "webview.apk");
+                java.io.InputStream in = getAssets().open("webview/" + apk);
+                java.io.FileOutputStream out = new java.io.FileOutputStream(f);
+                try { byte[] buf = new byte[65536]; int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n); }
+                finally { try { in.close(); } catch (Throwable t) { } try { out.close(); } catch (Throwable t) { } }
+                runOnUiThread(new Runnable() { public void run() { launchApkInstall(f); } });
+            } catch (Throwable e) {
+                runOnUiThread(new Runnable() { public void run() {
+                    android.widget.Toast.makeText(MainActivity.this, "Không chép được tệp WebView, mở trang cập nhật trên Google Play.", android.widget.Toast.LENGTH_LONG).show();
+                    openWebViewStore();
+                } });
+            }
+        } }, "webview-install").start();
+    }
+    private void launchApkInstall(java.io.File f) {
+        try {
+            if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+                android.widget.Toast.makeText(this, "Hãy bật \"Cho phép từ nguồn này\" cho Desktop Mini rồi bấm Cài WebView lại.", android.widget.Toast.LENGTH_LONG).show();
+                startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:" + getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            }
+            android.net.Uri u = androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".files", f);
+            startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(u, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Throwable e) {
+            android.widget.Toast.makeText(this, "Không mở được trình cài đặt, mở trang cập nhật trên Google Play.", android.widget.Toast.LENGTH_LONG).show();
+            openWebViewStore();
+        }
+    }
+    private void openWebViewStore() {
+        try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=com.google.android.webview")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
+        catch (Throwable e) {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.webview")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Throwable t) { }
+        }
     }
 
     volatile String appsCache;
