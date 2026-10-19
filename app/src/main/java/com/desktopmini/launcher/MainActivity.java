@@ -2021,49 +2021,89 @@ public class MainActivity extends Activity {
             if (v < 105) showOldWebViewDialog(v);
         } catch (Throwable e) { }
     }
-    /** Tên tệp APK WebView đóng gói sẵn trong assets/webview/ (null nếu chưa có). */
-    private String bundledWebViewApk() {
+    /** Các mảnh (webview-1.part, webview-2.part...) của tệp zip chứa APK WebView, đóng gói sẵn trong assets/webview/. Rỗng nếu chưa có.
+     *  Chia mảnh vì GitHub không nhận tệp trên 100 MB; app ghép lại rồi giải nén ra APK khi cài. */
+    private java.util.List<String> bundledWebViewParts() {
+        java.util.ArrayList<String> r = new java.util.ArrayList<String>();
         try {
             String[] l = getAssets().list("webview");
-            if (l != null) for (String n : l) if (n.toLowerCase(java.util.Locale.ROOT).endsWith(".apk")) return n;
+            if (l != null) for (String n : l) if (n.endsWith(".part")) r.add(n);
+            java.util.Collections.sort(r, new java.util.Comparator<String>() {
+                @Override public int compare(String x, String y) { return partNo(x) - partNo(y); }
+            });
         } catch (Throwable t) { }
-        return null;
+        return r;
+    }
+    private static int partNo(String n) {
+        try { return Integer.parseInt(n.replaceAll("\\D+", "")); } catch (Throwable t) { return 0; }
     }
     private void showOldWebViewDialog(int v) {
-        final String apk = bundledWebViewApk();
+        final java.util.List<String> parts = bundledWebViewParts();
+        final boolean has = !parts.isEmpty();
         String msg = "Giao diện Desktop Mini chạy trên \"Android System WebView\". Máy đang dùng bản Chrome " + v
             + " (cần từ 105 trở lên) nên giao diện có thể bị lỗi, văng hoặc trắng màn hình.\n\n"
-            + (apk != null
+            + (has
                 ? "Bấm \"Cài WebView ngay\" để cài bản WebView đi kèm trong app, xong mở lại Desktop Mini.\n\nNếu máy báo không cho cài từ nguồn này, hãy bật quyền cho Desktop Mini rồi bấm lại."
                 : "Bấm \"Mở trang cập nhật\" để cập nhật \"Android System WebView\" trên Google Play, xong mở lại Desktop Mini.");
         try {
             new android.app.AlertDialog.Builder(this)
                 .setTitle("WebView của máy quá cũ")
                 .setMessage(msg)
-                .setPositiveButton(apk != null ? "Cài WebView ngay" : "Mở trang cập nhật", new android.content.DialogInterface.OnClickListener() {
-                    @Override public void onClick(android.content.DialogInterface d, int w) { installWebView(apk); }
+                .setPositiveButton(has ? "Cài WebView ngay" : "Mở trang cập nhật", new android.content.DialogInterface.OnClickListener() {
+                    @Override public void onClick(android.content.DialogInterface d, int w) { installWebView(parts); }
                 })
                 .setNegativeButton("Để sau", null)
                 .show();
         } catch (Throwable e) { }
     }
-    private void installWebView(final String apk) {
-        if (apk == null) { openWebViewStore(); return; }
+    private void installWebView(final java.util.List<String> parts) {
+        if (parts == null || parts.isEmpty()) { openWebViewStore(); return; }
+        final java.io.File dir = new java.io.File(getCacheDir(), "shared"); dir.mkdirs();
+        final java.io.File f = new java.io.File(dir, "webview.apk");
+        if (f.exists() && f.length() > 200L * 1024 * 1024) { launchApkInstall(f); return; }   /* đã giải nén lần trước */
+        if (dir.getUsableSpace() < 330L * 1024 * 1024) {
+            android.widget.Toast.makeText(this, "Không đủ bộ nhớ trống (cần khoảng 330 MB) để giải nén WebView. Hãy dọn bớt rồi thử lại.", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        final android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
+        pd.setMessage("Đang chuẩn bị WebView (khoảng 260 MB), vui lòng chờ…");
+        pd.setCancelable(false);
+        try { pd.show(); } catch (Throwable t) { }
         new Thread(new Runnable() { public void run() {
+            boolean ok = false;
+            java.io.File tmp = new java.io.File(dir, "webview.apk.tmp");
             try {
-                java.io.File dir = new java.io.File(getCacheDir(), "shared"); dir.mkdirs();
-                final java.io.File f = new java.io.File(dir, "webview.apk");
-                java.io.InputStream in = getAssets().open("webview/" + apk);
-                java.io.FileOutputStream out = new java.io.FileOutputStream(f);
-                try { byte[] buf = new byte[65536]; int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n); }
-                finally { try { in.close(); } catch (Throwable t) { } try { out.close(); } catch (Throwable t) { } }
-                runOnUiThread(new Runnable() { public void run() { launchApkInstall(f); } });
-            } catch (Throwable e) {
-                runOnUiThread(new Runnable() { public void run() {
-                    android.widget.Toast.makeText(MainActivity.this, "Không chép được tệp WebView, mở trang cập nhật trên Google Play.", android.widget.Toast.LENGTH_LONG).show();
+                java.util.Vector<java.io.InputStream> v = new java.util.Vector<java.io.InputStream>();
+                for (String n : parts) v.add(getAssets().open("webview/" + n));
+                java.util.zip.ZipInputStream zin = new java.util.zip.ZipInputStream(new java.io.BufferedInputStream(new java.io.SequenceInputStream(v.elements()), 1 << 16));
+                java.io.FileOutputStream out = null;
+                try {
+                    java.util.zip.ZipEntry e;
+                    while ((e = zin.getNextEntry()) != null) {
+                        if (e.isDirectory() || !e.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".apk")) continue;
+                        out = new java.io.FileOutputStream(tmp);
+                        byte[] buf = new byte[1 << 16]; int n;
+                        while ((n = zin.read(buf)) > 0) out.write(buf, 0, n);
+                        out.flush(); out.close(); out = null;
+                        ok = tmp.length() > 100L * 1024 * 1024;
+                        break;
+                    }
+                } finally {
+                    try { if (out != null) out.close(); } catch (Throwable t) { }
+                    try { zin.close(); } catch (Throwable t) { }
+                }
+                if (ok) { f.delete(); ok = tmp.renameTo(f); }
+            } catch (Throwable e) { ok = false; }
+            if (!ok) { try { tmp.delete(); } catch (Throwable t) { } }
+            final boolean done = ok;
+            runOnUiThread(new Runnable() { public void run() {
+                try { pd.dismiss(); } catch (Throwable t) { }
+                if (done) launchApkInstall(f);
+                else {
+                    android.widget.Toast.makeText(MainActivity.this, "Không giải nén được WebView đi kèm, mở trang cập nhật trên Google Play.", android.widget.Toast.LENGTH_LONG).show();
                     openWebViewStore();
-                } });
-            }
+                }
+            } });
         } }, "webview-install").start();
     }
     private void launchApkInstall(java.io.File f) {
