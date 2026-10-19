@@ -1850,11 +1850,35 @@ public class MainActivity extends Activity {
             }
         } catch (Throwable t) { }
     }
+    /** Giảm RAM của Gecko (máy 32-bit, Android 7: Gecko + WebView giao diện chung một tiến trình, dễ hết không gian địa chỉ -> WebView văng).
+     *  Chỉ 1 tiến trình trang, không nạp trước tiến trình, bộ nhớ đệm và ảnh giải mã nhỏ hơn. Gọi bằng reflection như gkNoOverscroll. */
+    private static void gkLightPrefs() {
+        gkSetPref("dom.ipc.processCount", 1);
+        gkSetPref("dom.ipc.processPrelaunch.enabled", false);
+        gkSetPref("browser.cache.memory.capacity", 16384);
+        gkSetPref("image.mem.max_decoded_image_kb", 40960);
+    }
+    private static void gkSetPref(String name, Object val) {
+        try {
+            Class<?> c = Class.forName("org.mozilla.geckoview.GeckoPreferenceController");
+            Class<?> want = val instanceof Boolean ? boolean.class : int.class;
+            for (java.lang.reflect.Method m : c.getMethods()) {
+                if (!"setGeckoPref".equals(m.getName()) || !java.lang.reflect.Modifier.isStatic(m.getModifiers())) continue;
+                Class<?>[] t = m.getParameterTypes();
+                if (t.length == 3 && t[0] == String.class && t[1] == want && t[2] == int.class) {
+                    for (int br = 0; br <= 1; br++) { try { m.invoke(null, name, val, br); } catch (Throwable x) { } }
+                } else if (t.length == 2 && t[0] == String.class && t[1] == want) {
+                    try { m.invoke(null, name, val); } catch (Throwable x) { }
+                }
+            }
+        } catch (Throwable t) { }
+    }
     /** Nhân Gecko dùng chung cho trình duyệt và Ổ mềm (tạo một lần). */
     org.mozilla.geckoview.GeckoRuntime gkRt() {
         if (gkRuntime == null) {
             gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
             gkNoOverscroll();
+            gkLightPrefs();
             /* cho phép 2 ngón zoom cả trang cấm zoom; nạp mức zoom chữ đã lưu */
             try { org.mozilla.geckoview.GeckoRuntimeSettings.class.getMethod("setForceUserScalableEnabled", boolean.class).invoke(gkRuntime.getSettings(), true); } catch (Throwable t) { }
             gkZoom = getSharedPreferences("dm_zoom", MODE_PRIVATE).getFloat("gecko", 1f);
@@ -1900,8 +1924,16 @@ public class MainActivity extends Activity {
         /* Lần mở Gecko trước chưa tải xong trang nào mà app đã bị tắt (dấu vết còn nguyên): không mở lại đúng trang cũ nữa mà về trang chủ, tránh văng lặp lại ở cùng một trang */
         String prevStage = getSharedPreferences("dm_crash", MODE_PRIVATE).getString("stage", null);
         boolean gkDiedBefore = prevStage != null && prevStage.contains("gkEnsure");
-        if (gkDiedBefore) getSharedPreferences("gk_state", MODE_PRIVATE).edit().remove("last").apply();
-        CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)");
+        /* Đếm số lần Gecko làm app văng LIÊN TIẾP (reset khi có bản app mới hoặc khi một trang tải xong):
+         *  lần 1: về trang chủ; lần 2: chế độ nhẹ (SurfaceView thay TextureView); từ lần 3: tạm khóa để app không văng lặp mãi */
+        android.content.SharedPreferences gs = getSharedPreferences("gk_state", MODE_PRIVATE);
+        int ver = 0; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Throwable t) { }
+        if (gs.getInt("deathsVer", 0) != ver) gs.edit().putInt("deathsVer", ver).putInt("deaths", 0).apply();
+        int deaths = gs.getInt("deaths", 0);
+        if (gkDiedBefore) { deaths++; gs.edit().putInt("deaths", deaths).remove("last").apply(); CrashLog.clearMark(this); }
+        if (deaths >= 3) throw new IllegalStateException("Trình duyệt Gecko đã làm app văng " + deaths + " lần liên tiếp trên máy này nên tạm khóa để app không văng nữa. Hãy dùng app \"Duyệt web\"; khi cài bản app mới, trình duyệt này sẽ tự được thử lại.");
+        final boolean gkSafe = deaths >= 2;
+        CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)" + (gkSafe ? " [chế độ nhẹ]" : ""));
         gkRt();
         /* Mở lại app: vào đúng trang đã xem lần trước (nếu có), chưa có thì về Google */
         String gkLast = getSharedPreferences("gk_state", MODE_PRIVATE).getString("last", null);
@@ -1909,7 +1941,7 @@ public class MainActivity extends Activity {
         gkUrl = gkStart; gkBackOk = false; gkFwdOk = false; gkProg = 0;
         gkView = new org.mozilla.geckoview.GeckoView(this);
         /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
-        gkView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
+        gkView.setViewBackend(gkSafe ? org.mozilla.geckoview.GeckoView.BACKEND_SURFACE_VIEW : org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
         kbGuard(gkView);
         gkView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         /* Ctrl + lăn chuột / Ctrl + - 0: đổi cỡ chữ cả trang (lưu lại); 2 ngón dùng zoom gốc của Gecko */
@@ -1954,7 +1986,7 @@ public class MainActivity extends Activity {
                     CrashLog.clearMark(MainActivity.this);
                     String u = t.url;   /* nhớ trang cuối để lần sau mở lại đúng trang này */
                     if (u != null && (u.startsWith("http://") || u.startsWith("https://")))
-                        getSharedPreferences("gk_state", MODE_PRIVATE).edit().putString("last", u).apply();
+                        getSharedPreferences("gk_state", MODE_PRIVATE).edit().putString("last", u).putInt("deaths", 0).apply();
                 }
             }
         });
