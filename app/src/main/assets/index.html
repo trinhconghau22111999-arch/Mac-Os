@@ -3238,7 +3238,10 @@ function musNote(midi,len,type){
   o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+len+.05);
 }
 function musTick(){
-  const tr=TRK[MUS.idx], st=60000/tr.bpm/2;
+  const tr=TRK[MUS.idx];
+  /* Danh sách bài đã đổi sang nhạc thật (không có nốt tổng hợp) khi vòng đếm tổng hợp còn chạy: dừng vòng đếm, không báo lỗi lặp mỗi nhịp */
+  if(!tr||!tr.sc||!tr.bpm){clearInterval(MUS.timer);MUS.timer=null;return}
+  const st=60000/tr.bpm/2;
   const s=MUS.step, deg=SEQ[s%8], oct=Math.floor(s/8)%2?12:0;
   musNote(tr.root+tr.sc[deg]+oct,(st/1000)*2.4,tr.wave);
   if(s%8===0)musNote(tr.root-12+tr.sc[0],(st/1000)*6,'sine');
@@ -4931,6 +4934,7 @@ if(window.AndroidLauncher){(function(){
   function loadTracks(){
     const l=safe(()=>JSON.parse(A.getTracks()),[]);
     if(l.length===TRK.length&&TRK.length&&TRK[0].real)return;
+    if(MUS.timer){clearInterval(MUS.timer);MUS.timer=null;if(!(TRK[0]&&TRK[0].real)){MUS.playing=false;MUS.idx=-1;MUS.pos=0}}   /* dừng nhạc tổng hợp cũ trước khi đổi sang nhạc thật */
     TRK.length=0; l.forEach(t=>TRK.push({t:t.t,a:t.a,id:t.id,dur:t.dur,real:true,c:grad(t.t)}));
   }
   loadTracks();
