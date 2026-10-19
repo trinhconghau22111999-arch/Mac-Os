@@ -968,42 +968,6 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .gk .bar .gbk svg,.gk .bar .gfw svg{display:block;width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .gk .bar .grl svg,.gk .bar .gdl svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .gk .bar .gdot{top:12px;right:12px}
-
-/* Trình duyệt (Gecko): giao diện giống app Duyệt web — thanh tím, ô địa chỉ bo tròn, thanh tab sáng, nút ⋮ chỉ có Lịch sử */
-.gx .gxb{background:#2B1B4A;color:#fff;gap:2px;padding-top:6px;padding-bottom:6px;padding-right:6px}
-.gx .gxb .ib{color:#fff;border-radius:50%}
-.gx .gxb .ib:hover{background:rgba(255,255,255,.12)}
-.gx .gxb .gbk,.gx .gxb .gfw,.gx .gxb .grl,.gx .gxb .gdl,.gx .gxb .gmn,.gx .gxb .gst{width:40px;height:40px}
-.gx .gxb .gbk svg,.gx .gxb .gfw svg{width:22px;height:22px}
-.gx .gxb .grl svg,.gx .gxb .gdl svg{width:20px;height:20px}
-.gx .gxb .gmn svg{width:20px;height:20px;fill:currentColor;stroke:none;display:block}
-.gx .gxb .gst svg{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
-.gx .gxb .gst.on svg{fill:#ffd24a;stroke:#ffd24a}
-.gx .gxb .gdot{top:8px;right:8px}
-.gx .gku{height:38px;border-radius:20px;border:none;background:#F2EEFA;color:#1E1633;padding:0 16px;font-size:14px;margin:0 4px}
-.gx .gku::placeholder{color:#8A80A6}
-.gx .gku:focus{box-shadow:0 0 0 2px #9c7be0}
-.gx .gkp{background:#2B1B4A}
-.gx .gkp i{background:#b79cff}
-.gx .gxt{display:flex;align-items:stretch;height:34px;flex:none;background:#E9E3F5}
-.gx .gxs{flex:1;min-width:0;display:flex;align-items:stretch;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-.gx .gxs::-webkit-scrollbar{display:none}
-.gx .gxtl{display:flex;align-items:stretch;flex:none}
-.gx .gxtb{display:flex;align-items:center;max-width:170px;min-width:70px;padding:0 4px 0 12px;color:#5A4A7A;font-size:13px;cursor:default;white-space:nowrap}
-.gx .gxtb.on{background:#fff;color:#2B1B4A}
-.gx .gxn{overflow:hidden;text-overflow:ellipsis;flex:1}
-.gx .gxx{flex:none;font-weight:400;font-size:12px;padding:6px 8px;border-radius:50%;color:#5A4A7A}
-.gx .gxx:hover{background:rgba(90,74,122,.18)}
-.gx .gxp{flex:none;width:40px;border:none;background:transparent;color:#2B1B4A;font-size:20px;padding:0}
-.gx .gbm{flex:none;width:44px;height:34px;color:#2B1B4A;border-radius:0;padding:0;display:grid;place-items:center}
-.gx .gbm svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
-.gx .gxm{position:absolute;left:78px;top:50px;z-index:5;min-width:170px;background:#fff;color:#1E1633;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.3);padding:4px 0}
-.gx .gxmi{display:block;width:100%;text-align:left;border:none;background:none;color:inherit;font-size:14px;padding:10px 16px}
-.gx .gxmi:hover{background:#F2EEFA}
-.gk .gli{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(128,128,128,.25);cursor:pointer}
-.gk .glt{flex:1;min-width:0;display:flex;flex-direction:column}
-.gk .glt b{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gk .glt small{opacity:.65;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .om{height:100%;background:var(--win)}.omh{display:flex;gap:12px;height:100%;padding:16px 16px 16px 16px;box-sizing:border-box}.omw{height:100%}.omw[hidden],.omh[hidden]{display:none}
 .omc{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:22px;background:linear-gradient(var(--c),rgba(0,0,0,.35));color:#fff;padding:12px}
 .omc i{font-style:normal;font-size:38px}.omc b{font-size:20px}.omc .btn{width:100%;max-width:150px}
@@ -2990,13 +2954,12 @@ window.nativeGkDl=o=>{
 function buildGecko(b,w,arg){
   const A=window.AndroidLauncher;
   w._nat=true;
-  b.innerHTML='<div class="wa gk gx"><div class="bar gxb"><button class="ib gmn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg></button><button class="ib gbk" type="button" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button><button class="ib gfw" type="button" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button><button class="ib grl" type="button" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Địa chỉ"><button class="ib gst" type="button" aria-label="Dấu trang"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.3 6.6 20.2l1.1-6.1L3.2 9.9l6.1-.8z"/></svg></button><button class="ib gdl" type="button" aria-label="Tải xuống"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" hidden></i></button></div><div class="gkp"><i></i></div><div class="gxt"><div class="gxs"><div class="gxtl"></div><button class="gxp" type="button" aria-label="Tab mới">\uFF0B</button></div><button class="ib gbm" type="button" aria-label="Dấu trang đã lưu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.3 6.6 20.2l1.1-6.1L3.2 9.9l6.1-.8z"/></svg></button></div><div class="wab"><div class="gdp" hidden></div></div></div>';
-  const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b), dlb=$('.gdl',b), dot=$('.gdot',b), dp=$('.gdp',b), tl=$('.gxtl',b), plusB=$('.gxp',b), menuB=$('.gmn',b), starB=$('.gst',b), bmB=$('.gbm',b); let last='', timer=null, tsig='', menuEl=null;
+  b.innerHTML='<div class="wa gk"><div class="bar"><button class="ib gbk" type="button" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button><button class="ib gfw" type="button" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button><button class="ib grl" type="button" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nhập địa chỉ hoặc tìm kiếm" aria-label="Địa chỉ"><button class="ib gdl" type="button" aria-label="Tải xuống"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" hidden></i></button></div><div class="gkp"><i></i></div><div class="wab"><div class="gdp" hidden></div></div></div>';
+  const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b), dlb=$('.gdl',b), dot=$('.gdot',b), dp=$('.gdp',b); let last='', timer=null;
   const sz=n=>typeof fmtSize==='function'?fmtSize(n):Math.round(n/1024)+' KB';
   function renderDl(){
     dot.hidden=!GKDL.some(x=>x.state==='run');
     if(!GK.dlOpen)return;
-    if(GK.panel&&GK.panel!=='dl'){renderList();return}
     dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>Tải xuống</b><button class="btn gdc" type="button"'+(GKDL.some(x=>x.state!=='run')?'':' disabled')+'>Xoá lịch sử</button></div>'+(GKDL.length?GKDL.map((x,i)=>{
       const pct=x.total>0?Math.min(100,Math.round(x.got*100/x.total)):(x.state==='ok'?100:0);
       const st=x.state==='run'?(x.total>0?sz(x.got)+' / '+sz(x.total)+' · '+pct+'%':sz(x.got)+' · đang tải…'):x.state==='ok'?'Đã tải xong · '+sz(x.got||0):'Lỗi: '+esc(x.msg||'không tải được');
@@ -3004,9 +2967,8 @@ function buildGecko(b,w,arg){
     }).join(''):'<div class="gdn">Chưa có tệp nào được tải xuống</div>');
   }
   function setDl(on){
-    GK.dlOpen=on; dp.hidden=!on; last=''; if(!on)GK.panel='dl'; if(on)renderDl(); sync();
+    GK.dlOpen=on; dp.hidden=!on; last=''; if(on)renderDl(); sync();
   }
-  function openPanel(k){closeMenu();GK.panel=k;setDl(true)}
   GK.closeDl=()=>setDl(false);
   GK.dlui=renderDl;
   dlb.addEventListener('click',()=>setDl(!GK.dlOpen));
@@ -3020,70 +2982,14 @@ function buildGecko(b,w,arg){
     const o=e.target.closest('.gdo'); if(!o)return;
     const it=GKDL[+o.dataset.i]; if(it)openApp('downloads',{select:it.name});
   });
-  /* ---- Lịch sử / Dấu trang (lưu trong máy) ---- */
-  const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return u}};
-  const getH=()=>{const l=jget('dm-gkhist',[]);return Array.isArray(l)?l:[]};
-  const getB=()=>{const l=jget('dm-gkbm',[]);return Array.isArray(l)?l:[]};
-  const curTitle=()=>{const t=GK.tabs&&GK.tabs[GK.cur];return (t&&t.t)||''};
-  function recHist(){
-    const u=GK.url; if(GK.p!==0||!u||!/^https?:/.test(u))return;
-    const h=getH();
-    if(h.length&&h[0].u===u){ if(!h[0].t&&curTitle()){h[0].t=curTitle();jset('dm-gkhist',h)} return }
-    h.unshift({t:curTitle(),u:u,d:Date.now()}); if(h.length>300)h.length=300; jset('dm-gkhist',h);
-  }
-  function toggleBm(){
-    const u=GK.url; if(!u||!/^https?:/.test(u))return;
-    let l=getB(); const i=l.findIndex(x=>x.u===u);
-    if(i>=0)l.splice(i,1); else l.unshift({t:curTitle()||hostOf(u),u:u});
-    jset('dm-gkbm',l); GK.ui&&GK.ui(); if(GK.dlOpen&&GK.panel==='bm')renderList();
-  }
-  function renderList(){
-    const hist=GK.panel==='hist', l=hist?getH():getB();
-    dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>'+(hist?'Lịch sử':'Dấu trang')+'</b>'+(hist?'<button class="btn glc" type="button"'+(l.length?'':' disabled')+'>Xoá hết</button>':'')+'</div>'+
-      (l.length?l.map((x,i)=>'<div class="gli" data-i="'+i+'"><div class="glt"><b>'+esc(x.t||hostOf(x.u))+'</b><small>'+esc(x.u)+'</small></div><button class="btn gld" type="button" data-i="'+i+'" aria-label="Xoá">✕</button></div>').join(''):'<div class="gdn">'+(hist?'Chưa có lịch sử duyệt web':'Chưa có dấu trang nào')+'</div>');
-  }
-  dp.addEventListener('click',e=>{
-    if(GK.panel==='dl'||!GK.panel)return;
-    const hist=GK.panel==='hist';
-    if(e.target.closest('.glc')){jset('dm-gkhist',[]);renderList();return}
-    const d=e.target.closest('.gld');
-    if(d){const l=hist?getH():getB();l.splice(+d.dataset.i,1);jset(hist?'dm-gkhist':'dm-gkbm',l);renderList();return}
-    const it=e.target.closest('.gli');
-    if(it){const x=(hist?getH():getB())[+it.dataset.i]; if(x){setDl(false);A.gkGo(x.u)}}
-  });
-  /* ---- Menu ⋮: chỉ có Lịch sử ---- */
-  function closeMenu(){if(menuEl){menuEl.remove();menuEl=null;last='';sync()}}
-  menuB.addEventListener('click',e=>{
-    e.stopPropagation();
-    if(menuEl){closeMenu();return}
-    const m=document.createElement('div'); m.className='gxm';
-    m.innerHTML='<button type="button" class="gxmi">Lịch sử</button>';
-    $('.gx',b).appendChild(m); menuEl=m; sync();
-    m.querySelector('.gxmi').addEventListener('click',()=>openPanel('hist'));
-    setTimeout(()=>{const off=ev=>{if(!menuEl){document.removeEventListener('pointerdown',off,true);return}if(!menuEl.contains(ev.target)&&ev.target!==menuB&&!menuB.contains(ev.target)){document.removeEventListener('pointerdown',off,true);closeMenu()}};document.addEventListener('pointerdown',off,true)},0);
-  });
-  starB.addEventListener('click',toggleBm);
-  bmB.addEventListener('click',()=>{if(GK.dlOpen&&GK.panel==='bm')setDl(false);else openPanel('bm')});
-  plusB.addEventListener('click',()=>{if(GK.dlOpen)setDl(false);A.gkNewTab('')});
-  function renderTabs(){
-    const t=GK.tabs||[], sig=JSON.stringify([t,GK.cur]); if(sig===tsig)return; tsig=sig;
-    tl.innerHTML=t.map((x,i)=>'<div class="gxtb'+(i===GK.cur?' on':'')+'" data-i="'+i+'"><span class="gxn">'+esc(x.t||(x.u?hostOf(x.u):'Tab mới'))+'</span><b class="gxx" data-i="'+i+'" aria-label="Đóng tab">✕</b></div>').join('');
-    const on=tl.querySelector('.on'); if(on&&on.scrollIntoView)try{on.scrollIntoView({block:'nearest',inline:'nearest'})}catch(e){}
-  }
-  tl.addEventListener('click',e=>{
-    const x=e.target.closest('.gxx'); if(x){A.gkCloseTab(+x.dataset.i);return}
-    const t=e.target.closest('.gxtb'); if(t){if(GK.dlOpen)setDl(false);A.gkSelectTab(+t.dataset.i)}
-  });
   GK.ui=()=>{
     bk.disabled=!GK.back; fw.disabled=!GK.fwd; bar.style.width=(GK.p||0)+'%';
     if(document.activeElement!==inp&&GK.url)inp.value=GK.url;
-    renderTabs(); recHist();
-    starB.classList.toggle('on',!!GK.url&&getB().some(x=>x.u===GK.url));
   };
   const blocked=()=>(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||(typeof msOn!=='undefined'&&msOn)||['#spot','#nc','#cc','#ql','#lock','#off','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
   function sync(){
     if(!w.isConnected)return;
-    const vis=(w.classList.contains('focus')||winFree(w))&&!w.classList.contains('min')&&!w._leaving&&!blocked()&&!GK.dlOpen&&!menuEl;
+    const vis=(w.classList.contains('focus')||winFree(w))&&!w.classList.contains('min')&&!w._leaving&&!blocked()&&!GK.dlOpen;
     if(!vis){if(last!=='hide'){A.gkHide();last='hide'}return}
     const r=area.getBoundingClientRect(), sig=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
     if(sig!==last){last=sig;A.gkShow(r.left,r.top,r.width,r.height)}
@@ -3096,7 +3002,7 @@ function buildGecko(b,w,arg){
   inp.addEventListener('focus',()=>inp.select());
   GK.ui(); renderDl(); NSYNC.add(sync); nsStart(); sync();
   if(typeof arg==='string'&&arg)A.gkGo(arg); else if(arg&&arg.url)A.gkGo(arg.url);
-  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){NSYNC.delete(sync);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.panel='dl';GK.tabs=[];GK.cur=-1;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
+  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){NSYNC.delete(sync);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
 }
 
 /* =========================================================
