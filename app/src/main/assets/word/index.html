@@ -305,13 +305,6 @@ window.__loadLib = (function(){
   }
   .page-gap-band::before { top: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.25), transparent); }
   .page-gap-band::after { bottom: 0; background: linear-gradient(to top, rgba(0,0,0,0.25), transparent); }
-
-  /* ===== Thanh trượt trang ở cạnh phải ===== */
-  #pgScroll{position:fixed;right:0;width:26px;z-index:40;touch-action:none;-webkit-user-select:none;user-select:none}
-  #pgScroll .pgt{position:absolute;right:4px;width:8px;border-radius:4px;background:rgba(43,87,154,.55);min-height:36px}
-  #pgScroll.on .pgt,#pgScroll:hover .pgt{background:rgba(43,87,154,.9);width:12px}
-  #pgBubble{position:fixed;right:34px;z-index:41;background:#2b579a;color:#fff;font-size:13px;padding:5px 10px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
-  #pgBubble.on{opacity:1}
   .page-num-label {
     position: absolute; left: 50%; transform: translateX(-50%);
     font-size: 10px; color: #666; background: rgba(255,255,255,0.85); padding: 1px 8px; border-radius: 8px;
@@ -584,7 +577,7 @@ window.__loadLib = (function(){
     min-height: 900px;
     font-size: 15px; line-height: 1.5; color: #000;
     outline: none;
-    font-family: "Times New Roman", Times, serif;
+    font-family: "Calibri", "Segoe UI", sans-serif;
   }
   .page:focus { outline: none; }
   .page ul, .page ol { margin: 0 0 0 24px; padding: 0; }
@@ -700,7 +693,7 @@ window.__loadLib = (function(){
             <select class="rsel" id="fontNameSel" title="Phông chữ">
               <option>Calibri</option>
               <option>Arial</option>
-              <option selected>Times New Roman</option>
+              <option>Times New Roman</option>
               <option>Verdana</option>
               <option>Georgia</option>
               <option>Courier New</option>
@@ -964,7 +957,7 @@ window.__loadLib = (function(){
         <div class="rows">
           <button class="rbtn big" id="btnDesignFonts" title="Cặp phông chữ"><i class="fa-solid fa-font"></i><span class="txt">Fonts</span></button>
           <div id="designFontsMenu" class="dd-menu" hidden style="min-width:200px;">
-            <div class="dd-item" data-heading="Times New Roman" data-body="Times New Roman">Office — Calibri / Calibri</div>
+            <div class="dd-item" data-heading="Calibri" data-body="Calibri">Office — Calibri / Calibri</div>
             <div class="dd-item" data-heading="Georgia" data-body="'Times New Roman'">Georgia / Times New Roman</div>
             <div class="dd-item" data-heading="Arial" data-body="Arial">Arial / Arial</div>
             <div class="dd-item" data-heading="'Segoe UI'" data-body="'Segoe UI'">Segoe UI / Segoe UI</div>
@@ -1717,7 +1710,7 @@ window.__loadLib = (function(){
   <!-- STATUS BAR -->
   <div class="statusbar">
     <div class="left">
-      <span id="pageInfo" style="display:none">Trang 1/1</span>
+      <span id="pageInfo">Trang 1/1</span>
       <span id="wordCount">0 từ</span>
       <span class="spellcheck-status" id="spellcheckStatus" title="Không có lỗi chính tả nào được phát hiện">
         <i class="fa-solid fa-circle-check"></i>
@@ -4230,7 +4223,7 @@ function getPageContentHeightPx() {
 
 let lastPaginationSig = '';
 let lastTotalPages = 1;
-const PAGE_GAP_PX = 14; // khoảng hở giữa các "tờ giấy" - dùng thống nhất cho cả dải xám lẫn tính vị trí
+const PAGE_GAP_PX = 60; // khoảng hở giữa các "tờ giấy" - dùng thống nhất cho cả dải xám lẫn tính vị trí
 
 function renderPagination() {
   fixPageBreaks();
@@ -4271,7 +4264,12 @@ function renderPagination() {
     gapBand.style.height = PAGE_GAP_PX + 'px';
     pageOverlay.appendChild(gapBand);
 
-    // (Đã bỏ nhãn "Trang X / Y" trên dải ngăn trang; số trang xem ở thanh trượt bên phải)
+    // Nhãn số trang nổi giữa khoảng hở
+    const numLabel = document.createElement('div');
+    numLabel.className = 'page-num-label';
+    numLabel.style.top = (pageEndTop + PAGE_GAP_PX / 2 - 9) + 'px';
+    numLabel.textContent = 'Trang ' + p + ' / ' + totalPages;
+    pageOverlay.appendChild(numLabel);
 
     // Bản sao Header của trang kế tiếp (hiện ngay dưới dải xám)
     if (headerShown) {
@@ -4334,46 +4332,6 @@ workspaceEl.addEventListener('scroll', () => {
   requestAnimationFrame(() => { scrollRafPending = false; updatePageIndicatorOnly(); });
 }, { passive: true });
 window.addEventListener('resize', schedulePagination);
-
-/* ---------- Thanh trượt trang cạnh phải: kéo để lên/xuống, hiện "Trang X/Y" ---------- */
-(function(){
-  const track=document.createElement('div'); track.id='pgScroll'; track.innerHTML='<div class="pgt"></div>';
-  const bub=document.createElement('div'); bub.id='pgBubble';
-  document.body.appendChild(track); document.body.appendChild(bub);
-  const thumb=track.firstChild; let hideT=0, drag=false;
-  function place(){
-    const r=workspaceEl.getBoundingClientRect(); track.style.top=r.top+'px'; track.style.height=r.height+'px';
-    const sh=workspaceEl.scrollHeight, ch=workspaceEl.clientHeight;
-    if(sh<=ch+4){track.style.display='none';return false}
-    track.style.display='block';
-    const th=Math.max(36,r.height*ch/sh), max=sh-ch, ratio=max>0?workspaceEl.scrollTop/max:0;
-    thumb.style.height=th+'px'; thumb.style.top=(ratio*(r.height-th))+'px';
-    return {r,th};
-  }
-  function show(){
-    const g=place(); if(!g)return;
-    const total=lastTotalPages||1, cur=Math.min(total,currentVisiblePage(total,getPageContentHeightPx()));
-    bub.textContent='Trang '+cur+'/'+total;
-    const top=g.r.top+parseFloat(thumb.style.top)+g.th/2-14;
-    bub.style.top=Math.max(g.r.top,Math.min(g.r.bottom-30,top))+'px';
-    bub.classList.add('on'); track.classList.add('on');
-    clearTimeout(hideT); hideT=setTimeout(()=>{if(!drag){bub.classList.remove('on');track.classList.remove('on')}},1000);
-  }
-  function setFromY(y){
-    const r=workspaceEl.getBoundingClientRect(), th=parseFloat(thumb.style.height)||36;
-    const ratio=Math.max(0,Math.min(1,(y-r.top-th/2)/Math.max(1,r.height-th)));
-    workspaceEl.scrollTop=ratio*(workspaceEl.scrollHeight-workspaceEl.clientHeight); show();
-  }
-  track.addEventListener('pointerdown',e=>{drag=true;track.setPointerCapture(e.pointerId);setFromY(e.clientY);e.preventDefault()});
-  track.addEventListener('pointermove',e=>{if(drag)setFromY(e.clientY)});
-  const up=()=>{drag=false;show()};
-  track.addEventListener('pointerup',up); track.addEventListener('pointercancel',up);
-  workspaceEl.addEventListener('scroll',()=>{if(!drag)show()},{passive:true});
-  window.addEventListener('resize',place);
-  doc.addEventListener('input',()=>setTimeout(place,300));
-  setInterval(()=>{if(!drag&&!bub.classList.contains('on'))place()},1500);
-  place();
-})();
 
 /* Gắn renderRuler + renderPagination vào applyPageLayout đã có sẵn */
 const _origApplyPageLayout = applyPageLayout;
@@ -4471,12 +4429,12 @@ schedulePagination();
 
 /* ---------- DESIGN: Style Set gallery ---------- */
 const STYLE_SETS = {
-  'default':      { headingFont: 'Times New Roman', bodyFont: 'Times New Roman', headingColor: '#2b579a', bodyAlign: '', headingBg: '' },
+  'default':      { headingFont: 'Calibri', bodyFont: 'Calibri', headingColor: '#2b579a', bodyAlign: '', headingBg: '' },
   'basic-simple': { headingFont: 'Arial', bodyFont: 'Arial', headingColor: '#333333', bodyAlign: '', headingBg: '' },
   'elegant':      { headingFont: 'Georgia', bodyFont: "'Times New Roman'", headingColor: '#555555', bodyAlign: '', headingBg: '', headingItalic: true },
-  'lines':        { headingFont: 'Times New Roman', bodyFont: 'Times New Roman', headingColor: '#2b579a', bodyAlign: '', headingBg: '', headingBorder: true },
+  'lines':        { headingFont: 'Calibri', bodyFont: 'Calibri', headingColor: '#2b579a', bodyAlign: '', headingBg: '', headingBorder: true },
   'minimalist':   { headingFont: "'Segoe UI'", bodyFont: "'Segoe UI'", headingColor: '#888888', bodyAlign: '', headingBg: '', headingUpper: true },
-  'shaded':       { headingFont: 'Times New Roman', bodyFont: 'Times New Roman', headingColor: '#2b579a', bodyAlign: '', headingBg: '#eef2f8' },
+  'shaded':       { headingFont: 'Calibri', bodyFont: 'Calibri', headingColor: '#2b579a', bodyAlign: '', headingBg: '#eef2f8' },
   'centered':     { headingFont: 'Georgia', bodyFont: 'Georgia', headingColor: '#333333', bodyAlign: 'center', headingBg: '' },
   'bw':           { headingFont: "'Times New Roman'", bodyFont: "'Times New Roman'", headingColor: '#000000', bodyAlign: '', headingBg: '' }
 };
@@ -5787,7 +5745,7 @@ function chk(id, label, on) {
 
 function openFontDialog() {
   focusDoc();
-  var f = formatAtCaret() || { font: 'Times New Roman', sizePt: 12 };
+  var f = formatAtCaret() || { font: 'Calibri', sizePt: 12 };
   var fonts = Array.from(document.getElementById('fontNameSel').options).map(function (o) { return o.value || o.text; });
   var sizes = Array.from(document.getElementById('fontSizeSel').options).map(function (o) { return o.value || o.text; });
   var body = '<label>Phông chữ</label><select id="fdFont">' + selectOptions(fonts, f.font) + '</select>' +
@@ -6881,247 +6839,6 @@ document.addEventListener('keydown', function (e) {
     e.preventDefault();
   }, true);
   document.addEventListener('mouseup', function () { st = null; }, true);
-})();
-
-/* ================= BỔ SUNG (Android): thước cố định, cỡ bút, chỉnh cỡ ảnh 4 cạnh, bảng 4 góc, chọn cột/hàng để xoá ================= */
-(function () {
-  'use strict';
-  var ws = document.getElementById('workspace'), rb = document.getElementById('rulerBar');
-  var st = document.createElement('style');
-  st.textContent =
-    '#rulerBar{z-index:30 !important}' +
-    '#xOv{position:fixed;left:0;top:0;width:0;height:0;z-index:9000;pointer-events:none}' +
-    '#xOv .xh{position:fixed;width:13px;height:13px;margin:-6px 0 0 -6px;background:#fff;border:2px solid #2b579a;border-radius:3px;pointer-events:auto;touch-action:none;box-sizing:border-box}' +
-    '#xOv .xh.c{border-radius:50%;background:#2b579a}' +
-    '#xOv .xh.n,#xOv .xh.s{cursor:ns-resize}#xOv .xh.e,#xOv .xh.w{cursor:ew-resize}' +
-    '#xOv .xh.nw,#xOv .xh.se{cursor:nwse-resize}#xOv .xh.ne,#xOv .xh.sw{cursor:nesw-resize}' +
-    '#xOv .xt{position:fixed;background:#d9dde6;border:1px solid #9aa3b5;border-radius:3px;pointer-events:auto;touch-action:none;box-sizing:border-box;cursor:pointer}' +
-    '#xOv .xt:hover,#xOv .xt.on{background:#2b579a;border-color:#2b579a}' +
-    '#xBar{position:fixed;z-index:9001;display:flex;gap:6px;background:#fff;border:1px solid #9aa3b5;border-radius:8px;padding:5px;box-shadow:0 4px 14px rgba(0,0,0,.3)}' +
-    '#xBar button{border:1px solid #c5cad6;background:#f4f6fa;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}' +
-    '#xBar button.del{background:#e53935;color:#fff;border-color:#e53935}' +
-    '#doc td.tx-sel,#doc th.tx-sel{background-color:#cfe3ff !important}' +
-    '#penPop{position:fixed;z-index:9100;background:#fff;border:1px solid #9aa3b5;border-radius:10px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.3);width:230px;font-size:13px}' +
-    '#penPop .pv{height:36px;display:flex;align-items:center;justify-content:center;margin-top:6px}' +
-    '#penPop .pv i{display:block;border-radius:50%;background:#000}' +
-    '#penPop input[type=range]{width:100%}';
-  document.head.appendChild(st);
-
-  /* ---- 1. Thước ngang cố định (không trôi khi cuộn) ---- */
-  function pinRuler() {
-    if (!ws || !rb) return;
-    rb.style.transform = '';
-    var off = ws.getBoundingClientRect().top - rb.getBoundingClientRect().top;
-    if (off > 0.5) rb.style.transform = 'translateY(' + Math.round(off) + 'px)';
-  }
-  if (ws) {
-    var rafR = 0;
-    ws.addEventListener('scroll', function () { if (rafR) return; rafR = requestAnimationFrame(function () { rafR = 0; pinRuler(); }); }, { passive: true });
-    window.addEventListener('resize', pinRuler);
-    setInterval(pinRuler, 600);
-    pinRuler();
-  }
-
-  /* ---- 2. Nút chỉnh cỡ đầu bút (tab Vẽ) ---- */
-  var penOverride = 0, pop = null;
-  var er = document.getElementById('drawEraser');
-  if (er && er.parentNode) {
-    var pb = document.createElement('button');
-    pb.className = 'rbtn big'; pb.id = 'btnPenSize'; pb.type = 'button'; pb.title = 'Chỉnh cỡ đầu bút';
-    pb.innerHTML = '<i class="fa-solid fa-circle-dot"></i><span class="txt">Cỡ bút</span>';
-    er.parentNode.insertBefore(pb, er.nextSibling);
-    pb.addEventListener('mousedown', function (e) { e.preventDefault(); });
-    pb.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (pop) { pop.remove(); pop = null; return; }
-      var cur = penOverride || (typeof currentDrawWidth === 'number' ? currentDrawWidth : 2);
-      pop = document.createElement('div'); pop.id = 'penPop';
-      pop.innerHTML = '<div>Cỡ đầu bút: <b id="penPopV">' + cur + '</b></div><input type="range" id="penPopR" min="1" max="30" step="0.5" value="' + cur + '"><div class="pv"><i id="penPopD"></i></div>';
-      document.body.appendChild(pop);
-      var r = pb.getBoundingClientRect();
-      pop.style.left = Math.max(6, Math.min(r.left, window.innerWidth - 246)) + 'px';
-      pop.style.top = (r.bottom + 6) + 'px';
-      var rng = pop.querySelector('#penPopR'), val = pop.querySelector('#penPopV'), dot = pop.querySelector('#penPopD');
-      function upd() {
-        var v = parseFloat(rng.value); penOverride = v; currentDrawWidth = v;
-        val.textContent = v; var d = Math.max(2, v * 1.6); dot.style.width = d + 'px'; dot.style.height = d + 'px';
-        try { dot.style.background = (typeof currentDrawColor === 'string' && currentDrawColor.length >= 7) ? currentDrawColor.slice(0, 7) : '#000'; } catch (_) {}
-      }
-      rng.addEventListener('input', upd); upd();
-      setTimeout(function () {
-        var off = function (ev) { if (pop && !pop.contains(ev.target) && ev.target !== pb && !pb.contains(ev.target)) { pop.remove(); pop = null; document.removeEventListener('pointerdown', off, true); } };
-        document.addEventListener('pointerdown', off, true);
-      }, 0);
-    });
-    /* chọn bút khác thì vẫn giữ cỡ đã chỉnh (chỉ cho bút, không đổi bút dạ quang / tẩy) */
-    document.querySelectorAll('.draw-tool').forEach(function (b) {
-      b.addEventListener('click', function () {
-        if (penOverride && b.dataset.tool === 'pen') setTimeout(function () { currentDrawWidth = penOverride; }, 0);
-      });
-    });
-  }
-
-  /* ---- Lớp phủ chung cho tay nắm ---- */
-  var ov = document.createElement('div'); ov.id = 'xOv'; document.body.appendChild(ov);
-  var bar = null, sel = null; // sel = {type:'c'|'r', idx, table}
-  function scaleOf(el) { var w = el.offsetWidth; return w ? el.getBoundingClientRect().width / w : 1; }
-  function save() { try { if (typeof scheduleSave === 'function') scheduleSave(); } catch (_) {} }
-  function mkH(cls, x, y, onDown) {
-    var h = document.createElement('div'); h.className = 'xh ' + cls; h.style.left = x + 'px'; h.style.top = y + 'px';
-    h.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); try { h.setPointerCapture(e.pointerId); } catch (_) {} onDown(e, h); });
-    ov.appendChild(h); return h;
-  }
-  function dragWith(e, h, move, end) {
-    var mv = function (ev) { ev.preventDefault(); move(ev); };
-    var up = function (ev) { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); if (end) end(ev); save(); lastSig = ''; schedule(); };
-    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
-  }
-  var busy = false;
-
-  /* ---- 3. Ảnh / hình: chỉnh cỡ bằng 4 cạnh ---- */
-  function imgHandles(o) {
-    var r = o.getBoundingClientRect(); if (r.width < 4) return;
-    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    [['n', cx, r.top], ['s', cx, r.bottom], ['w', r.left, cy], ['e', r.right, cy]].forEach(function (d) {
-      mkH(d[0], d[1], d[2], function (e, h) {
-        busy = true;
-        var sc = scaleOf(o), w0 = o.offsetWidth, h0 = o.offsetHeight, x0 = e.clientX, y0 = e.clientY, k = d[0];
-        dragWith(e, h, function (ev) {
-          var dx = (ev.clientX - x0) / sc, dy = (ev.clientY - y0) / sc, nw = w0, nh = h0;
-          if (k === 'e') nw = w0 + dx; else if (k === 'w') nw = w0 - dx;
-          if (k === 's') nh = h0 + dy; else if (k === 'n') nh = h0 - dy;
-          nw = Math.max(20, Math.min(2400, Math.round(nw))); nh = Math.max(20, Math.round(nh));
-          o.style.maxWidth = 'none'; o.style.width = nw + 'px'; o.style.height = nh + 'px';
-          o.setAttribute('width', nw); o.setAttribute('height', nh);
-          var wi = document.getElementById('picWidthInput'), hi = document.getElementById('picHeightInput');
-          if (wi) wi.value = nw; if (hi) hi.value = nh;
-          var rr = o.getBoundingClientRect(), ccx = rr.left + rr.width / 2, ccy = rr.top + rr.height / 2;
-          var hs = ov.querySelectorAll('.xh');
-          hs.forEach(function (q) {
-            if (q.classList.contains('n')) { q.style.left = ccx + 'px'; q.style.top = rr.top + 'px'; }
-            else if (q.classList.contains('s')) { q.style.left = ccx + 'px'; q.style.top = rr.bottom + 'px'; }
-            else if (q.classList.contains('w')) { q.style.left = rr.left + 'px'; q.style.top = ccy_(rr) + 'px'; }
-            else if (q.classList.contains('e')) { q.style.left = rr.right + 'px'; q.style.top = ccy_(rr) + 'px'; }
-          });
-        }, function () { busy = false; });
-      });
-    });
-  }
-  function ccy_(r) { return r.top + r.height / 2; }
-
-  /* ---- 4. Bảng: 4 góc để chỉnh cỡ + tab chọn cột/hàng để xoá ---- */
-  function activeTbl() {
-    var t = null;
-    try { t = (typeof currentTable === 'function') ? currentTable() : null; } catch (_) {}
-    if (t && document.getElementById('doc').contains(t)) return t;
-    if (sel && sel.table && document.getElementById('doc').contains(sel.table)) return sel.table;
-    return null;
-  }
-  function clearSelCells() { document.querySelectorAll('#doc .tx-sel').forEach(function (c) { c.classList.remove('tx-sel'); }); }
-  function closeBar() { if (bar) { bar.remove(); bar = null; } }
-  function selectLine(type, idx, t) {
-    clearSelCells(); closeBar(); sel = { type: type, idx: idx, table: t };
-    if (type === 'c') Array.prototype.forEach.call(t.rows, function (r) { if (r.cells[idx]) r.cells[idx].classList.add('tx-sel'); });
-    else if (t.rows[idx]) Array.prototype.forEach.call(t.rows[idx].cells, function (c) { c.classList.add('tx-sel'); });
-    lastSig = ''; schedule();
-  }
-  function delSel() {
-    if (!sel) return; var t = sel.table, i = sel.idx, type = sel.type;
-    if (!t || !t.parentNode) { sel = null; return; }
-    clearSelCells();
-    if (type === 'c') {
-      var cols = t.rows[0] ? t.rows[0].cells.length : 0;
-      if (cols <= 1) t.remove();
-      else Array.prototype.forEach.call(t.rows, function (r) { if (r.cells[i]) r.deleteCell(i); });
-    } else {
-      if (t.rows.length <= 1) t.remove(); else t.deleteRow(i);
-    }
-    sel = null; closeBar(); save(); lastSig = ''; schedule();
-  }
-  function tblHandles(t) {
-    var tr = t.getBoundingClientRect(); if (tr.width < 4) return;
-    /* 4 góc */
-    [['nw', tr.left, tr.top], ['ne', tr.right, tr.top], ['sw', tr.left, tr.bottom], ['se', tr.right, tr.bottom]].forEach(function (d) {
-      mkH('c ' + d[0], d[1] + (d[0].indexOf('w') >= 0 ? -3 : 3), d[2] + (d[0].indexOf('n') >= 0 ? -3 : 3), function (e, h) {
-        busy = true;
-        var sc = scaleOf(t), w0 = t.offsetWidth, h0 = t.offsetHeight, x0 = e.clientX, y0 = e.clientY, k = d[0];
-        var ml0 = parseFloat(t.style.marginLeft) || 0;
-        var rows = Array.prototype.map.call(t.rows, function (r) { return r.offsetHeight; });
-        dragWith(e, h, function (ev) {
-          var dx = (ev.clientX - x0) / sc, dy = (ev.clientY - y0) / sc;
-          var nw = k.indexOf('e') >= 0 ? w0 + dx : w0 - dx;
-          var nh = k.indexOf('s') >= 0 ? h0 + dy : h0 - dy;
-          nw = Math.max(60, Math.min(2400, Math.round(nw))); nh = Math.max(24 * rows.length, Math.round(nh));
-          t.style.width = nw + 'px';
-          if (k.indexOf('w') >= 0) t.style.marginLeft = Math.max(0, Math.round(ml0 + (w0 - nw))) + 'px';
-          var f = nh / h0;
-          Array.prototype.forEach.call(t.rows, function (r, i) { r.style.height = Math.max(20, Math.round(rows[i] * f)) + 'px'; });
-        }, function () { busy = false; });
-      });
-    });
-    /* tab chọn cột (trên) và hàng (trái) */
-    var r0 = t.rows[0]; if (!r0) return;
-    Array.prototype.forEach.call(r0.cells, function (c, j) {
-      var cr = c.getBoundingClientRect(), d = document.createElement('div');
-      d.className = 'xt' + (sel && sel.type === 'c' && sel.idx === j && sel.table === t ? ' on' : '');
-      d.title = 'Chọn cột ' + (j + 1);
-      d.style.left = (cr.left + 2) + 'px'; d.style.top = (tr.top - 17) + 'px'; d.style.width = Math.max(8, cr.width - 4) + 'px'; d.style.height = '11px';
-      d.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); selectLine('c', j, t); });
-      ov.appendChild(d);
-    });
-    Array.prototype.forEach.call(t.rows, function (r, i) {
-      var rr = r.getBoundingClientRect(), d = document.createElement('div');
-      d.className = 'xt' + (sel && sel.type === 'r' && sel.idx === i && sel.table === t ? ' on' : '');
-      d.title = 'Chọn hàng ' + (i + 1);
-      d.style.left = (tr.left - 30) + 'px'; d.style.top = (rr.top + 2) + 'px'; d.style.width = '11px'; d.style.height = Math.max(8, rr.height - 4) + 'px';
-      d.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); selectLine('r', i, t); });
-      ov.appendChild(d);
-    });
-    /* thanh thao tác khi đang chọn cột/hàng */
-    if (sel && sel.table === t) {
-      closeBar();
-      bar = document.createElement('div'); bar.id = 'xBar';
-      bar.innerHTML = '<button type="button" class="del">' + (sel.type === 'c' ? 'Xoá cột' : 'Xoá hàng') + '</button><button type="button" class="no">Bỏ chọn</button>';
-      var bx, by;
-      if (sel.type === 'c' && r0.cells[sel.idx]) { var cc = r0.cells[sel.idx].getBoundingClientRect(); bx = cc.left; by = tr.top - 56; }
-      else { var rw = t.rows[sel.idx].getBoundingClientRect(); bx = tr.left; by = rw.top - 46; }
-      bar.style.left = Math.max(6, Math.min(bx, window.innerWidth - 190)) + 'px'; bar.style.top = Math.max(6, by) + 'px';
-      bar.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); });
-      bar.querySelector('.del').addEventListener('click', delSel);
-      bar.querySelector('.no').addEventListener('click', function () { sel = null; clearSelCells(); closeBar(); lastSig = ''; schedule(); });
-      document.body.appendChild(bar);
-    }
-  }
-  document.addEventListener('keydown', function (e) {
-    if (sel && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); e.stopPropagation(); delSel(); }
-  }, true);
-  document.getElementById('doc').addEventListener('pointerdown', function () {
-    if (sel) { sel = null; clearSelCells(); closeBar(); lastSig = ''; schedule(); }
-  }, true);
-
-  /* ---- Vẽ lại lớp phủ khi cần ---- */
-  var lastSig = '', rafO = 0;
-  function render() {
-    rafO = 0; if (busy) return;
-    var docEl = document.getElementById('doc');
-    var o = (typeof selectedObject !== 'undefined') ? selectedObject : null;
-    var t = activeTbl();
-    var isImg = o && docEl.contains(o) && o.tagName === 'IMG';
-    var sig = '';
-    if (isImg) { var r = o.getBoundingClientRect(); sig = 'i' + [r.left, r.top, r.width, r.height].map(Math.round).join(','); }
-    else if (t) { var q = t.getBoundingClientRect(); sig = 't' + [q.left, q.top, q.width, q.height, t.rows.length, t.rows[0] ? t.rows[0].cells.length : 0].map(Math.round).join(',') + (sel ? sel.type + sel.idx : ''); }
-    if (sig === lastSig) return; lastSig = sig;
-    ov.innerHTML = ''; if (!sel) closeBar();
-    if (!sig) return;
-    if (isImg) imgHandles(o); else if (t) tblHandles(t);
-  }
-  function schedule() { if (!rafO) rafO = requestAnimationFrame(render); }
-  document.addEventListener('selectionchange', schedule);
-  window.addEventListener('scroll', schedule, true);
-  window.addEventListener('resize', schedule);
-  document.getElementById('doc').addEventListener('input', schedule);
-  document.getElementById('doc').addEventListener('click', function () { setTimeout(schedule, 0); });
-  setInterval(schedule, 400);
 })();
 </script>
 </body>

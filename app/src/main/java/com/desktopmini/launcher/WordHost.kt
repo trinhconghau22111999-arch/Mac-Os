@@ -202,7 +202,7 @@ class WordHost(
         try {
             val safe = safeName(name)
             if (Build.VERSION.SDK_INT >= 29) {
-                val rel = Environment.DIRECTORY_DOWNLOADS + "/"
+                val rel = Environment.DIRECTORY_DOWNLOADS + "/GoVanBan/"
                 val col = MediaStore.Downloads.EXTERNAL_CONTENT_URI
                 // Lưu đè nếu tệp cùng tên (do app tạo) đã có, tránh sinh "Document1 (1).docx"
                 var existing: Uri? = null
@@ -222,22 +222,16 @@ class WordHost(
                     val v = ContentValues().apply {
                         put(MediaStore.Downloads.DISPLAY_NAME, safe)
                         put(MediaStore.Downloads.MIME_TYPE, mime)
-                        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/GoVanBan")
                     }
                     val uri = act.contentResolver.insert(col, v)!!
                     act.contentResolver.openOutputStream(uri)!!.use { it.write(bytes) }
                 }
             } else {
-                // Android < 10: ghi thẳng vào thư mục "Download" thật (cùng thư mục app Tải xuống đọc); không được thì dùng thư mục riêng của app
-                try {
-                    val pub = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).also { it.mkdirs() }
-                    File(pub, safe).writeBytes(bytes)
-                } catch (e: Exception) {
-                    val dir = File(act.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "GoVanBan").also { it.mkdirs() }
-                    File(dir, safe).writeBytes(bytes)
-                }
+                val dir = File(act.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "GoVanBan").also { it.mkdirs() }
+                File(dir, safe).writeBytes(bytes)
             }
-            val where = "Tải xuống"
+            val where = if (Build.VERSION.SDK_INT >= 29) "Download/GoVanBan" else "Android/data/${act.packageName}/files/Download/GoVanBan"
             toast("Đã lưu $safe vào $where")
         } catch (e: Exception) {
             toast("Lỗi lưu file: ${e.message}")
