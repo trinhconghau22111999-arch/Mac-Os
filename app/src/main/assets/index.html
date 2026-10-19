@@ -75,6 +75,10 @@
 .cm .cmsh:active i{transform:scale(.88)}
 .cm .cmsw{width:48px;height:48px;border-radius:50%;border:2px solid #ffffff;color:#ffffff;display:flex;align-items:center;justify-content:center}
 .cm .cmsw svg{width:24px;height:24px}
+.cm .cmrc{width:48px;height:48px;border-radius:50%;border:2px solid #ffffff;background:transparent;display:flex;align-items:center;justify-content:center;padding:0}
+.cm .cmrc i{display:block;width:26px;height:26px;border-radius:50%;background:#ff3b30;transition:border-radius .12s,width .12s,height .12s}
+.cm .cmrc.rec i{width:18px;height:18px;border-radius:4px}
+.cm .cmsw:disabled{opacity:.4}
 @media (max-height:560px){.cm{padding:34px 14px 10px}.cm h2{margin:0 0 6px;font-size:15px}.cm .cmst{margin-top:6px}.cm .cmbt{margin-top:8px}}
 </style>
 <title>Desktop Mini</title>
@@ -2603,7 +2607,7 @@ function buildRealFiles(b,w,arg,mode){
         const f=items[+x.dataset.i]; if(!f)return;
         const nm=f.n||'(không tên)', touch=e.pointerType!=='mouse';
         D={x:x,full:x.dataset.full,nm:nm,isDir:false,m:true,entry:{n:nm,k:kind,mid:f.id,p:f.p||''},menu:null,sx:e.clientX,sy:e.clientY,cx:e.clientX,cy:e.clientY,active:false,touch:touch,hot:null,g:null,t:null,sc:null};
-        if(touch)D.t=setTimeout(dBegin,350);
+        D.t=setTimeout(dBegin,touch?350:450);   /* chuột: nhấn giữ trái ~0,45 giây rồi thả tại chỗ = chọn (như app Ảnh); kéo ngay = kéo thả */
         window.addEventListener('pointermove',dMove); window.addEventListener('pointerup',dUp); window.addEventListener('pointercancel',dEnd);
       });
       wrap.addEventListener('contextmenu',e=>e.preventDefault());
@@ -2792,7 +2796,7 @@ function buildRealFiles(b,w,arg,mode){
       if(e.button!==0||D||!A.moveFile)return;
       const touch=e.pointerType!=='mouse';
       D={x:x,full:full,nm:nm,isDir:!!isDir,entry:{n:nm,k:isDir?'dir':'file',p:full},menu:menu,sx:e.clientX,sy:e.clientY,cx:e.clientX,cy:e.clientY,active:false,touch:touch,hot:null,g:null,t:null,sc:null};
-      if(touch)D.t=setTimeout(dBegin,350);
+      D.t=setTimeout(dBegin,touch?350:450);   /* chuột: nhấn giữ trái ~0,45 giây rồi thả tại chỗ = chọn (như app Ảnh); kéo ngay = kéo thả */
       window.addEventListener('pointermove',dMove); window.addEventListener('pointerup',dUp); window.addEventListener('pointercancel',dEnd);
     });
   }
@@ -2986,6 +2990,7 @@ window.nativeGkDl=o=>{
   let it=GKDL.find(x=>x.nid===o.id);
   if(!it){it={nid:o.id,t:Date.now()};GKDL.unshift(it)}
   const was=it.state;
+  if(o.state==='cancel'){GKDL.splice(GKDL.indexOf(it),1);gkdlSave();if(GK.dlui)GK.dlui();return}
   it.name=o.name; it.state=o.state; it.got=o.got; it.total=o.total; it.msg=o.msg;
   if(o.state!=='run')gkdlSave();
   if(o.state==='ok'&&was!=='ok')notify({app:'Trình duyệt',title:'Đã tải xong',body:o.name,icon:'downloads'});
@@ -3004,7 +3009,7 @@ function buildGecko(b,w,arg){
     dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>Tải xuống</b><button class="btn gdc" type="button"'+(GKDL.some(x=>x.state!=='run')?'':' disabled')+'>Xoá lịch sử</button></div>'+(GKDL.length?GKDL.map((x,i)=>{
       const pct=x.total>0?Math.min(100,Math.round(x.got*100/x.total)):(x.state==='ok'?100:0);
       const st=x.state==='run'?(x.total>0?sz(x.got)+' / '+sz(x.total)+' · '+pct+'%':sz(x.got)+' · đang tải…'):x.state==='ok'?'Đã tải xong · '+sz(x.got||0):'Lỗi: '+esc(x.msg||'không tải được');
-      return '<div class="gdr '+x.state+'"><b>'+esc(x.name)+'</b><div class="gdb"><i style="width:'+(x.state==='err'?100:pct)+'%"></i></div><small>'+st+'</small>'+(x.state==='ok'?'<button class="btn gdo" type="button" data-i="'+i+'">Mở trong Tải xuống</button>':'')+'</div>';
+      return '<div class="gdr '+x.state+'"><b>'+esc(x.name)+'</b><div class="gdb"><i style="width:'+(x.state==='err'?100:pct)+'%"></i></div><small>'+st+'</small>'+(x.state==='ok'?'<button class="btn gdo" type="button" data-i="'+i+'">Mở trong Tải xuống</button>':'')+(x.state==='run'?'<button class="btn gdk" type="button" data-nid="'+x.nid+'">Huỷ tải</button>':'')+'</div>';
     }).join(''):'<div class="gdn">Chưa có tệp nào được tải xuống</div>');
   }
   function setDl(on){
@@ -3020,6 +3025,7 @@ function buildGecko(b,w,arg){
       for(let i=GKDL.length-1;i>=0;i--)if(GKDL[i].state!=='run')GKDL.splice(i,1);
       gkdlSave(); renderDl(); return;
     }
+    const k=e.target.closest('.gdk'); if(k){ if(A.gkCancelDl)A.gkCancelDl(+k.dataset.nid); return }
     const o=e.target.closest('.gdo'); if(!o)return;
     const it=GKDL[+o.dataset.i]; if(it)openApp('downloads',{select:it.name});
   });
@@ -3253,7 +3259,7 @@ function buildMusic(b,w,arg){
     mt.textContent=t?t.t:'Chưa chọn bài'; ma.textContent=t?t.a+(t.real?'':' · nhạc tổng hợp trong trình duyệt'):(TRK.length?'Chọn một bài để nghe':'Không có bài hát nào trong máy');
     art.style.background=t?'linear-gradient(135deg,'+t.c[0]+','+t.c[1]+')':'linear-gradient(135deg,#8e8e93,#48484a)';
     m1.textContent=mmss(MUS.pos); m2.textContent=mmss(MUS.dur);
-    if(document.activeElement!==msk)msk.value=MUS.pos;
+    msk.max=Math.max(1,Math.floor(MUS.dur)); if(document.activeElement!==msk&&!MUS.drag)msk.value=MUS.pos;
     pp.setAttribute('d',MUS.playing?'M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z':'M4 2.5v11l9-5.5z');
     $$('.tr',pls).forEach((e,i)=>{e.setAttribute('aria-current',String(i===MUS.idx));e.classList.toggle('on',i===MUS.idx&&MUS.playing)});
     if(document.activeElement!==vr)vr.value=pref('vol',60);
@@ -3261,7 +3267,8 @@ function buildMusic(b,w,arg){
   $('.pl',b).addEventListener('click',musToggle);
   $('.mpv',b).addEventListener('click',()=>{if(MUS.idx<0)musPlay(0);else musPrev()});
   $('.mn2',b).addEventListener('click',()=>{if(MUS.idx<0)musPlay(0);else musNext()});
-  msk.addEventListener('input',()=>musSeek(+msk.value));
+  msk.addEventListener('input',()=>{MUS.drag=true;MUS.pos=+msk.value;m1.textContent=mmss(MUS.pos)});   /* kéo thanh: chỉ đổi số, thả tay mới tua thật */
+  msk.addEventListener('change',()=>{MUS.drag=false;musSeek(+msk.value)});
   vr.addEventListener('input',()=>{P.vol=+vr.value;jset('dm-prefs',P);bus.emit('slider')});
   live(w,'music',update); live(w,'slider',update);
   update();
@@ -4925,15 +4932,29 @@ if(window.AndroidLauncher){(function(){
   window.nativeMedia=c=>{if(c==='prev')musPrev();else if(c==='next')musNext();else if(c==='toggle')musToggle()};
   musPlay=function(i){
     const t=TRK[i]; if(!t)return;
-    MUS.idx=i;MUS.pos=0;MUS.dur=Math.max(1,t.dur);MUS.playing=!!safe(()=>A.playTrack(t.id),false);
+    MUS.idx=i;MUS.pos=0;MUS.dur=0;MUS.drag=false;seekHold=null;MUS.playing=!!safe(()=>A.playTrack(t.id),false);
     clearInterval(poll); if(MUS.playing)poll=setInterval(musPoll,500);
+    musPoll();   /* thời lượng + vị trí lấy từ trình phát thật ngay, không dùng thời lượng metadata */
     msig=''; bus.emit('music');
   };
+  /* Sau khi tua: giữ vị trí người dùng chọn cho tới khi trình phát xác nhận đã tới (hoặc quá 2,5 giây), tránh vòng đếm 500ms ghi đè làm thanh nhảy lại */
+  let seekHold=null;
   function musPoll(){
     const s=safe(()=>JSON.parse(A.getPlayerState()),{});
-    if(s.pos!=null){MUS.pos=s.pos/1000;if(s.dur>0)MUS.dur=s.dur/1000;MUS.playing=!!s.playing}
+    if(s.pos!=null){
+      if(s.dur>0)MUS.dur=s.dur/1000;
+      MUS.playing=!!s.playing;
+      if(seekHold&&(Math.abs(s.pos/1000-seekHold.to)<1.5||Date.now()>seekHold.until))seekHold=null;
+      if(!MUS.drag&&!seekHold)MUS.pos=s.pos/1000;
+    }
     bus.emit('music');
   }
+  /* Nút Phát/Dừng trên thông báo đã đổi trạng thái ở phần gốc: đồng bộ giao diện */
+  window.nativeMediaState=p=>{
+    MUS.playing=!!p; clearInterval(poll); poll=null;
+    if(MUS.playing)poll=setInterval(musPoll,500);
+    msig=MUS.idx+'|'+MUS.playing; musPoll();
+  };
   musToggle=function(){
     if(!TRK.length)return;
     if(MUS.idx<0){musPlay(0);return}
@@ -4943,7 +4964,7 @@ if(window.AndroidLauncher){(function(){
   };
   musNext=function(){if(TRK.length)musPlay((MUS.idx+1)%TRK.length)};
   musPrev=function(){if(!TRK.length)return;if(MUS.pos>4)musPlay(MUS.idx);else musPlay((MUS.idx-1+TRK.length)%TRK.length)};
-  musSeek=function(s){MUS.pos=s;safe(()=>A.seekTo(Math.round(s*1000)));bus.emit('music')};
+  musSeek=function(s){MUS.pos=s;seekHold={to:s,until:Date.now()+2500};safe(()=>A.seekTo(Math.round(s*1000)));bus.emit('music');setTimeout(musPoll,300)};
   musHalt=function(){safe(()=>A.stopMusic());safe(()=>A.mediaStop());MUS.playing=false;msig='';stopPoll();bus.emit('music')};
   /* Ảnh thật trong máy */
   function loadPhotos(){

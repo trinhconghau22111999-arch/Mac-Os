@@ -633,20 +633,31 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         wv.addJavascriptInterface(VoiceBridge(), "AndroidVoice")
 
         wv.setDownloadListener { dlUrl, userAgent, contentDisposition, mimeType, _ ->
-            try {
-                val req = DownloadManager.Request(Uri.parse(dlUrl))
-                val fileName = URLUtil.guessFileName(dlUrl, contentDisposition, mimeType)
-                req.setMimeType(mimeType)
-                req.addRequestHeader("User-Agent", userAgent)
-                CookieManager.getInstance().getCookie(dlUrl)?.let { req.addRequestHeader("Cookie", it) }
-                req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-                val dlId = (getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
-                addDownloadRecord(dlId, fileName)
-                Toast.makeText(this, "Đang tải: $fileName", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(this, "Không tải được: " + e.message, Toast.LENGTH_LONG).show()
+            val fileName = URLUtil.guessFileName(dlUrl, contentDisposition, mimeType)
+            val startIt = {
+                try {
+                    val req = DownloadManager.Request(Uri.parse(dlUrl))
+                    req.setMimeType(mimeType)
+                    req.addRequestHeader("User-Agent", userAgent)
+                    CookieManager.getInstance().getCookie(dlUrl)?.let { req.addRequestHeader("Cookie", it) }
+                    req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+                    val dlId = (getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
+                    addDownloadRecord(dlId, fileName)
+                    Toast.makeText(this, "Đang tải: $fileName", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Không tải được: " + e.message, Toast.LENGTH_LONG).show()
+                }
             }
+            // Cảnh báo khi tải trùng một tệp đang tải: hỏi xác nhận rồi mới tải thêm
+            if (isDownloading(fileName)) {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Tệp đang được tải")
+                    .setMessage("\"$fileName\" đang tải xuống. Bạn có muốn tải thêm một lần nữa không?")
+                    .setPositiveButton("Tải thêm") { _, _ -> startIt() }
+                    .setNegativeButton("Huỷ", null)
+                    .show()
+            } else startIt()
         }
 
         attachPasswordBridge(wv)
@@ -1358,6 +1369,34 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         }
     }
 
+    /** Có mục nào cùng tên đang tải (đang chờ / đang chạy / tạm dừng) trong DownloadManager không. */
+    private fun isDownloading(name: String): Boolean {
+        val ids = readDownloads().filter { it.second == name }.map { it.first }
+        if (ids.isEmpty()) return false
+        return try {
+            val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            var busy = false
+            dm.query(DownloadManager.Query().setFilterById(*ids.toLongArray()))?.use { c ->
+                val iSt = c.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                while (c.moveToNext()) {
+                    val st = c.getInt(iSt)
+                    if (st == DownloadManager.STATUS_RUNNING || st == DownloadManager.STATUS_PENDING || st == DownloadManager.STATUS_PAUSED) busy = true
+                }
+            }
+            busy
+        } catch (e: Exception) { false }
+    }
+
+    /** Huỷ thật một mục đang tải: DownloadManager.remove xoá cả tệp tải dở, rồi bỏ khỏi danh sách. */
+    private fun cancelDownload(id: Long) {
+        try { (getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).remove(id) } catch (e: Exception) { }
+        val list = readDownloads().filter { it.first != id }
+        val arr = JSONArray()
+        for (e in list) arr.put(JSONObject().put("id", e.first).put("name", e.second))
+        prefs.edit().putString("downloads", arr.toString()).apply()
+        populateDownloads()
+    }
+
     private fun readDownloads(): MutableList<Pair<Long, String>> {
         val out = mutableListOf<Pair<Long, String>>()
         try {
@@ -1476,6 +1515,16 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             }
             left.addView(status, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(4) })
             row.addView(left, LinearLayout.LayoutParams(0, WRAP, 1f))
+            val cancel = TextView(this).apply {
+                text = "✕ Huỷ"
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setTextColor(0xFFC62828.toInt())
+                setPadding(dp(10), dp(8), dp(10), dp(8))
+                visibility = View.GONE
+                setOnClickListener { cancelDownload(id) }
+            }
+            row.addView(cancel, LinearLayout.LayoutParams(WRAP, WRAP))
             val folder = TextView(this).apply {
                 text = "📂"
                 textSize = 28f
@@ -1485,7 +1534,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             }
             row.addView(folder, LinearLayout.LayoutParams(dp(56), dp(56)))
             dlRows.addView(row, LinearLayout.LayoutParams(MATCH, WRAP))
-            dlRowViews[id] = DlRow(bar, status, folder)
+            dlRowViews[id] = DlRow(bar, status, folder, cancel)
         }
         refreshDownloads()
     }
@@ -1507,7 +1556,9 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
                     val got = c.getLong(iGot)
                     val tot = c.getLong(iTot)
                     r.folder.visibility = View.GONE
-                    when (c.getInt(iSt)) {
+                    val stNow = c.getInt(iSt)
+                    r.cancel?.visibility = if (stNow == DownloadManager.STATUS_SUCCESSFUL || stNow == DownloadManager.STATUS_FAILED) View.GONE else View.VISIBLE
+                    when (stNow) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             r.bar.visibility = View.GONE
                             r.status.text = "✅ Đã tải xuống"
@@ -1545,6 +1596,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             }
         } catch (e: Exception) { }
         for ((id, r) in dlRowViews) if (id !in seen) {
+            r.cancel?.visibility = View.GONE
             r.bar.visibility = View.GONE
             r.folder.visibility = View.GONE
             r.status.text = "Tệp không còn trong danh sách tải"

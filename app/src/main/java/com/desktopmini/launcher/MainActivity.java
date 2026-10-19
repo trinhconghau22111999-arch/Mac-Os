@@ -176,7 +176,21 @@ public class MainActivity extends Activity {
     private final BroadcastReceiver media = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
             String cmd = i.getStringExtra("cmd");
-            if (cmd != null && web != null) web.evaluateJavascript("window.nativeMedia&&window.nativeMedia('" + cmd + "')", null);
+            if (cmd == null) return;
+            if ("toggle".equals(cmd)) {
+                /* Phát/Dừng xử lý thẳng ở Android (chạy cả khi trang web đang bị tạm dừng), rồi báo giao diện + dựng lại thông báo */
+                int st = LauncherBridge.toggleNative();
+                if (st >= 0) {
+                    final boolean pl = st == 1;
+                    try {
+                        Intent n = new Intent(c, MusicService.class).putExtra("title", LauncherBridge.lastTitle).putExtra("artist", LauncherBridge.lastArtist).putExtra("playing", pl);
+                        if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(n); else c.startService(n);
+                    } catch (Exception e) { }
+                    if (web != null) web.evaluateJavascript("window.nativeMediaState&&window.nativeMediaState(" + pl + ")", null);
+                    return;
+                }
+            }
+            if (web != null) web.evaluateJavascript("window.nativeMedia&&window.nativeMedia('" + cmd + "')", null);
         }
     };
 
@@ -1712,7 +1726,27 @@ public class MainActivity extends Activity {
             } catch (Exception e) { }
         } });
     }
+    /* Tải xuống Gecko đang chạy (id -> tên) và các id bị người dùng huỷ */
+    private final java.util.concurrent.ConcurrentHashMap<Integer, String> gkRunning = new java.util.concurrent.ConcurrentHashMap<Integer, String>();
+    private final java.util.Set<Integer> gkCancelled = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<Integer, Boolean>());
+    void gkCancelDl(int id) { if (gkRunning.containsKey(id)) gkCancelled.add(id); }
+    /* Cảnh báo khi tải trùng một tệp đang tải: hỏi xác nhận rồi mới tải thêm */
     private void gkDownload(final org.mozilla.geckoview.WebResponse r) {
+        final String nm = android.webkit.URLUtil.guessFileName(r.uri, gkHeader(r, "content-disposition"), gkHeader(r, "content-type"));
+        if (!gkRunning.containsValue(nm)) { gkDownloadGo(r); return; }
+        runOnUiThread(new Runnable() { public void run() {
+            try {
+                new android.app.AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Tệp đang được tải")
+                    .setMessage("\"" + nm + "\" đang tải xuống. Bạn có muốn tải thêm một lần nữa không?")
+                    .setPositiveButton("Tải thêm", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { gkDownloadGo(r); hideBars(); } })
+                    .setNegativeButton("Huỷ", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { try { if (r.body != null) r.body.close(); } catch (Exception e) { } hideBars(); } })
+                    .setOnCancelListener(new android.content.DialogInterface.OnCancelListener() { public void onCancel(android.content.DialogInterface d) { try { if (r.body != null) r.body.close(); } catch (Exception e) { } hideBars(); } })
+                    .show();
+            } catch (Throwable e) { gkDownloadGo(r); }
+        } });
+    }
+    private void gkDownloadGo(final org.mozilla.geckoview.WebResponse r) {
         final String name0 = android.webkit.URLUtil.guessFileName(r.uri, gkHeader(r, "content-disposition"), gkHeader(r, "content-type"));
         String ct = gkHeader(r, "content-type");
         if (ct != null) { int sc = ct.indexOf(';'); if (sc >= 0) ct = ct.substring(0, sc); ct = ct.trim(); }
@@ -1721,6 +1755,7 @@ public class MainActivity extends Activity {
         try { String cl = gkHeader(r, "content-length"); if (cl != null) tl = Long.parseLong(cl.trim()); } catch (Exception e) { tl = -1; }
         final long total = tl;
         final int id = ++gkDlSeq;
+        gkRunning.put(id, name0);
         gkDl(id, name0, "run", 0, total, "");
         new Thread(new Runnable() { public void run() {
             Uri mu = null; OutputStream out = null; String finalName = name0, legacyPath = null;
@@ -1756,6 +1791,7 @@ public class MainActivity extends Activity {
                 try {
                     byte[] buf = new byte[16384]; int n;
                     while ((n = in.read(buf)) > 0) {
+                        if (gkCancelled.contains(id)) throw new java.io.IOException("cancel");
                         out.write(buf, 0, n); got += n;
                         long now = System.currentTimeMillis();
                         if (now - lastPush > 250) { lastPush = now; gkDl(id, finalName, "run", got, total, ""); }
@@ -1769,10 +1805,15 @@ public class MainActivity extends Activity {
                 } else if (legacyPath != null) {
                     android.media.MediaScannerConnection.scanFile(MainActivity.this, new String[]{legacyPath}, null, null);
                 }
+                gkRunning.remove(id);
                 gkDl(id, finalName, "ok", got, got, "");
             } catch (Exception e) {
+                boolean cx = gkCancelled.remove(id);
+                gkRunning.remove(id);
                 if (mu != null) { try { getContentResolver().delete(mu, null, null); } catch (Exception x) { } }
-                gkDl(id, finalName, "err", 0, total, String.valueOf(e.getMessage()));
+                if (legacyPath != null) { try { new File(legacyPath).delete(); } catch (Exception x) { } }
+                try { InputStream bi = r.body; if (bi != null) bi.close(); } catch (Exception x) { }
+                gkDl(id, finalName, cx ? "cancel" : "err", 0, total, String.valueOf(e.getMessage()));
             }
         } }).start();
     }

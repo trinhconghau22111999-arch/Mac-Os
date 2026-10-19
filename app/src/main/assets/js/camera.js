@@ -4,13 +4,13 @@ window.__LZ.camera=function(){
 /* ---------- Webcam ---------- */
 function buildCamera(b,w){
   const SWI='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.5-5.8L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.5 5.8L4 15.5M4 20v-4.5h4.5"/></svg>';
-  b.innerHTML='<div class="cm"><h2>Webcam</h2><div class="cmv"><video class="cmvid" playsinline muted autoplay></video><div class="cmmsg" hidden></div><div class="cmblink"></div></div><div class="cmst"></div><div class="cmbt"><button type="button" class="cmth" aria-label="Ảnh vừa chụp"><img alt=""></button><button type="button" class="cmsh" aria-label="Chụp ảnh"><i></i></button><button type="button" class="cmsw" aria-label="Đổi camera trước/sau">'+SWI+'</button></div></div>';
-  const vid=$('.cmvid',b), msg=$('.cmmsg',b), blk=$('.cmblink',b), st=$('.cmst',b), th=$('.cmth',b), thi=$('img',th), sh=$('.cmsh',b), sw=$('.cmsw',b);
+  b.innerHTML='<div class="cm"><h2>Webcam</h2><div class="cmv"><video class="cmvid" playsinline muted autoplay></video><div class="cmmsg" hidden></div><div class="cmblink"></div></div><div class="cmst"></div><div class="cmbt"><button type="button" class="cmth" aria-label="Ảnh vừa chụp"><img alt=""></button><button type="button" class="cmsh" aria-label="Chụp ảnh"><i></i></button><button type="button" class="cmrc" aria-label="Quay video"><i></i></button><button type="button" class="cmsw" aria-label="Đổi camera trước/sau">'+SWI+'</button></div></div>';
+  const vid=$('.cmvid',b), msg=$('.cmmsg',b), blk=$('.cmblink',b), st=$('.cmst',b), th=$('.cmth',b), thi=$('img',th), sh=$('.cmsh',b), sw=$('.cmsw',b), rc=$('.cmrc',b);
   let stream=null, face=lsGet('dm-camface')==='user'?'user':'environment', tok=0, pend=0, saved=false;
   const warn=(t,m)=>notify({app:'Webcam',title:t,body:m,icon:'camera'});
   const say=t=>{msg.textContent=t||'';msg.hidden=!t};
   function stopStream(){
-    tok++;
+    tok++; if(recOn)stopRec();
     if(stream){try{stream.getTracks().forEach(t=>t.stop())}catch(e){}stream=null}
     try{vid.srcObject=null}catch(e){}
   }
@@ -68,8 +68,52 @@ function buildCamera(b,w){
       setTimeout(()=>done(u),0);
     }
   }
+  /* ---------- Quay video (có tiếng): MediaRecorder, ghi từng đoạn thẳng xuống tệp trong thư mục video của máy ---------- */
+  let recOn=false, mr=null, recAud=null, recT0=0, recTm=null, recChain=Promise.resolve(), recMime='', recOk=true;
+  const mmss2=ms=>{const t=Math.floor(ms/1000);return pad(Math.floor(t/60))+':'+pad(t%60)};
+  const b64of=bl=>new Promise(r=>{const f=new FileReader();f.onload=()=>{const x=String(f.result);r(x.slice(x.indexOf(',')+1))};f.onerror=()=>r('');f.readAsDataURL(bl)});
+  async function startRec(){
+    const A=window.AndroidLauncher;
+    if(!stream){warn('Chưa quay được','Camera chưa sẵn sàng.');return}
+    if(!window.MediaRecorder){warn('Không quay được','Thiết bị này không hỗ trợ quay video trong ứng dụng.');return}
+    if(!(A&&A.videoBegin)){warn('Không quay được','Hãy cập nhật ứng dụng.');return}
+    let tracks=stream.getVideoTracks().slice();
+    try{recAud=await navigator.mediaDevices.getUserMedia({audio:true,video:false}); tracks=tracks.concat(recAud.getAudioTracks())}
+    catch(e){recAud=null; warn('Quay không có tiếng','Chưa cấp quyền Micro cho Desktop Mini.')}
+    if(!stream){if(recAud){recAud.getTracks().forEach(t=>t.stop());recAud=null}return}
+    const types=['video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    const mt=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+    try{mr=mt?new MediaRecorder(new MediaStream(tracks),{mimeType:mt}):new MediaRecorder(new MediaStream(tracks))}
+    catch(e){if(recAud){recAud.getTracks().forEach(t=>t.stop());recAud=null}warn('Không quay được','Không khởi tạo được bộ quay video.');return}
+    recMime=mr.mimeType||mt||'video/webm';
+    let began=false; try{began=A.videoBegin(recMime)}catch(e){}
+    if(!began){if(recAud){recAud.getTracks().forEach(t=>t.stop());recAud=null}warn('Không lưu được video','Kiểm tra quyền truy cập tệp rồi thử lại.');return}
+    recChain=Promise.resolve(); recOk=true;
+    mr.ondataavailable=e=>{ if(e.data&&e.data.size){recChain=recChain.then(()=>b64of(e.data)).then(x=>{ if(!x||!A.videoChunk(x))recOk=false }).catch(()=>{recOk=false})} };
+    mr.onstop=()=>{
+      if(recAud){recAud.getTracks().forEach(t=>t.stop());recAud=null}
+      recChain.then(()=>{
+        let p=''; try{p=A.videoEnd()}catch(e){}
+        if(!p||!recOk){warn('Không lưu được video','Kiểm tra quyền truy cập tệp rồi thử lại.');return}
+        notify({app:'Webcam',title:'Đã lưu video',body:'Thư mục Video của máy',icon:'camera'});
+        bus.emit('files');
+      });
+    };
+    mr.start(1000); recOn=true; recT0=Date.now();
+    rc.classList.add('rec'); sw.disabled=true; rc.setAttribute('aria-label','Dừng quay');
+    st.textContent='● '+mmss2(0);
+    recTm=setInterval(()=>{st.textContent='● '+mmss2(Date.now()-recT0)},500);
+  }
+  function stopRec(){
+    if(!recOn)return; recOn=false; clearInterval(recTm); recTm=null;
+    rc.classList.remove('rec'); sw.disabled=false; rc.setAttribute('aria-label','Quay video');
+    st.textContent=face==='user'?'Camera trước':'Camera sau';
+    try{if(mr&&mr.state!=='inactive')mr.stop()}catch(e){}
+    mr=null;
+  }
+  rc.addEventListener('click',()=>{ if(recOn)stopRec(); else startRec() });
   sh.addEventListener('click',shoot);
-  sw.addEventListener('click',()=>{face=face==='user'?'environment':'user';lsSet('dm-camface',face);open()});
+  sw.addEventListener('click',()=>{if(recOn)return;face=face==='user'?'environment':'user';lsSet('dm-camface',face);open()});
   th.addEventListener('click',()=>{if(!th.classList.contains('has')||!saved)return;if(lastId)openApp('photos',{pid:lastId,name:'Ảnh vừa chụp'});else openApp('photos')});
   msg.addEventListener('click',open);
   /* Nhả camera khi app ra nền hoặc cửa sổ bị thu nhỏ để không giữ camera và đèn báo */
@@ -82,6 +126,6 @@ function buildCamera(b,w){
     else if(!mn&&!stream&&!pend&&!document.hidden&&msg.hidden)open();
   },700);
   open();
-  return {destroy(){clearInterval(mon);document.removeEventListener('visibilitychange',onVis);stopStream()}};
+  return {destroy(){clearInterval(mon);if(recOn)stopRec();document.removeEventListener('visibilitychange',onVis);stopStream()}};
 }
 };

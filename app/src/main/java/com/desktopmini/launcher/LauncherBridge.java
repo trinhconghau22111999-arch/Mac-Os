@@ -800,7 +800,17 @@ public class LauncherBridge {
         }
 
         /* ---- Nhạc thật trong máy ---- */
-        private MediaPlayer mp; private boolean ended = false;
+        static MediaPlayer mp; private boolean ended = false;
+        /* Tiêu đề bài đang phát (để dựng lại thông báo khi nút Phát/Dừng được bấm từ thông báo lúc app chạy nền) */
+        static volatile String lastTitle = "", lastArtist = "";
+        /** Phát/Dừng trực tiếp ở phần gốc Android (không phụ thuộc JavaScript đang chạy hay bị tạm dừng). Trả về: 1 đang phát, 0 đang dừng, -1 chưa có bài. */
+        static synchronized int toggleNative() {
+            try {
+                if (mp == null) return -1;
+                if (mp.isPlaying()) { mp.pause(); return 0; }
+                mp.start(); return 1;
+            } catch (Exception e) { return -1; }
+        }
         @JavascriptInterface public String getTracks() {
             JSONArray arr = new JSONArray();
             try {
@@ -839,6 +849,7 @@ public class LauncherBridge {
         }
         /** Thông báo điều khiển nhạc + giữ ứng dụng sống khi phát nền. */
         @JavascriptInterface public void mediaNotify(String title, String artist, boolean playing) {
+            lastTitle = title == null ? "" : title; lastArtist = artist == null ? "" : artist;
             Intent i = new Intent(act, MusicService.class).putExtra("title", title).putExtra("artist", artist).putExtra("playing", playing);
             try { if (Build.VERSION.SDK_INT >= 26) act.startForegroundService(i); else act.startService(i); } catch (Exception e) { }
         }
@@ -1048,6 +1059,68 @@ public class LauncherBridge {
                 if (ok) { try { act.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(t))); } catch (Exception e) { } }
                 return ok;
             } catch (Exception e) { return false; }
+        }
+        /* ---- Quay video (Webcam): JS gửi từng đoạn base64 để không phải dồn cả video vào một chuỗi ---- */
+        private File vidTmp; private String vidMime = "video/webm";
+        @JavascriptInterface public boolean videoBegin(String mime) {
+            try {
+                vidMime = (mime == null || mime.length() == 0) ? "video/webm" : mime;
+                vidTmp = new File(act.getCacheDir(), "rec_" + System.currentTimeMillis() + ".tmp");
+                new FileOutputStream(vidTmp).close();
+                return true;
+            } catch (Exception e) { vidTmp = null; return false; }
+        }
+        @JavascriptInterface public boolean videoChunk(String b64) {
+            try {
+                if (vidTmp == null) return false;
+                byte[] by = Base64.decode(b64, Base64.DEFAULT);
+                FileOutputStream os = new FileOutputStream(vidTmp, true); os.write(by); os.close();
+                return true;
+            } catch (Exception e) { return false; }
+        }
+        /** Chốt video: lưu vào thư mục video của máy (Movies/Desktop Mini) và đưa vào thư viện. Trả đường dẫn/URI, rỗng nếu lỗi. */
+        @JavascriptInterface public String videoEnd() {
+            File tmp = vidTmp; vidTmp = null;
+            try {
+                if (tmp == null || !tmp.exists() || tmp.length() == 0) return "";
+                boolean mp4 = vidMime.contains("mp4");
+                String nm = "VID_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(new java.util.Date()) + (mp4 ? ".mp4" : ".webm");
+                String mt = mp4 ? "video/mp4" : "video/webm";
+                byte[] buf = new byte[65536]; int n;
+                if (Build.VERSION.SDK_INT >= 29) {
+                    ContentValues v = new ContentValues();
+                    v.put(MediaStore.Video.Media.DISPLAY_NAME, nm);
+                    v.put(MediaStore.Video.Media.MIME_TYPE, mt);
+                    v.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/Desktop Mini");
+                    v.put(MediaStore.Video.Media.IS_PENDING, 1);
+                    Uri u = act.getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, v);
+                    if (u == null) return "";
+                    OutputStream os = act.getContentResolver().openOutputStream(u);
+                    java.io.FileInputStream in = new java.io.FileInputStream(tmp);
+                    while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+                    in.close(); os.close();
+                    v.clear(); v.put(MediaStore.Video.Media.IS_PENDING, 0);
+                    act.getContentResolver().update(u, v, null, null);
+                    return u.toString();
+                }
+                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Desktop Mini"); dir.mkdirs();
+                File f = new File(dir, nm);
+                java.io.FileInputStream in2 = new java.io.FileInputStream(tmp);
+                FileOutputStream os2 = new FileOutputStream(f);
+                while ((n = in2.read(buf)) > 0) os2.write(buf, 0, n);
+                in2.close(); os2.close();
+                try {
+                    ContentValues v2 = new ContentValues();
+                    v2.put(MediaStore.Video.Media.DISPLAY_NAME, nm);
+                    v2.put(MediaStore.Video.Media.MIME_TYPE, mt);
+                    v2.put(MediaStore.Video.Media.DATA, f.getAbsolutePath());
+                    Uri u2 = act.getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, v2);
+                    if (u2 != null) return u2.toString();
+                } catch (Exception e2) { }
+                act.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(f)));
+                return f.getAbsolutePath();
+            } catch (Exception e) { return ""; }
+            finally { try { if (tmp != null) tmp.delete(); } catch (Exception x) { } }
         }
         /** Lưu ảnh chụp (dataUrl JPEG) vào thư viện ảnh của máy, thư mục Pictures/Desktop Mini. Trả đường dẫn/URI, rỗng nếu lỗi. */
         @JavascriptInterface public String savePhoto(String dataUrl) {
@@ -1393,6 +1466,7 @@ public class LauncherBridge {
                 try { act.gkEnsure(); String t = text == null ? "" : text.trim(); if (t.length() > 0) act.gkSession.loadUri(act.gkToUrl(t)); } catch (Throwable e) { }
             }});
         }
+        @JavascriptInterface public void gkCancelDl(final int id) { act.gkCancelDl(id); }
         @JavascriptInterface public void gkNewTab(final String url) { act.runOnUiThread(new Runnable() { public void run() { try { act.gkEnsure(); String t = url == null ? "" : url.trim(); act.gkNewTab(t.length() == 0 ? MainActivity.GK_HOME : act.gkToUrl(t), true); } catch (Throwable e) { } } }); }
         @JavascriptInterface public void gkSelectTab(final int i) { act.runOnUiThread(new Runnable() { public void run() { act.gkSelect(i); } }); }
         @JavascriptInterface public void gkCloseTab(final int i) { act.runOnUiThread(new Runnable() { public void run() { act.gkCloseTab(i); } }); }

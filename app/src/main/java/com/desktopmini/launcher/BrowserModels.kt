@@ -27,4 +27,4 @@ internal class PageScripts {
     var yt: ScriptHandler? = null
 }
 
-internal class DlRow(val bar: ProgressBar, val status: TextView, val folder: TextView)
+internal class DlRow(val bar: ProgressBar, val status: TextView, val folder: TextView, val cancel: TextView? = null)
