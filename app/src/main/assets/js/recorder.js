@@ -49,8 +49,8 @@ function buildRecorder(b,w){
       const t=performance.now();
       if(t-lastP>55){lastP=t;let m=0;for(let i=0;i<buf.length;i++){const v=Math.abs(buf[i]-128);if(v>m)m=v}hist.push(m/128);while(hist.length>max)hist.shift()}
     }
-    cx.strokeStyle='rgba(255,255,255,.35)'; cx.lineWidth=d; cx.beginPath(); cx.moveTo(20*d,H/2); cx.lineTo(W-20*d,H/2); cx.stroke();
-    cx.fillStyle='#ffffff'; cx.shadowColor='rgba(255,255,255,.8)'; cx.shadowBlur=8*d;
+    cx.strokeStyle='rgba(180,76,255,.35)'; cx.lineWidth=d; cx.beginPath(); cx.moveTo(20*d,H/2); cx.lineTo(W-20*d,H/2); cx.stroke();
+    cx.fillStyle='#b44cff'; cx.shadowColor='rgba(180,76,255,.8)'; cx.shadowBlur=8*d;
     const x0=W-20*d-hist.length*step;
     hist.forEach((a,i)=>{const h=Math.max(2*d,Math.min(1,a*2.2)*(H-24*d));cx.fillRect(x0+i*step,(H-h)/2,bw,h)});
     cx.shadowBlur=0;

@@ -2,41 +2,41 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{--bl:20px;color-scheme:light}html,body{margin:0}
 /* Ghi âm */
-.rc{position:relative;display:flex;flex-direction:column;height:100%;padding:36px 16px 12px;background:#131218;color:#ffffff;overflow:hidden;container-type:size;-webkit-user-select:none;user-select:none}
+.rc{position:relative;display:flex;flex-direction:column;height:100%;padding:36px 16px 12px;background:#131218;color:#efe9fb;overflow:hidden;container-type:size;-webkit-user-select:none;user-select:none}
 .rc .rcm{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
 .rc .rcx{flex:none;display:flex;flex-direction:column;min-height:0}
 .rc .rcs{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
 .rc .rcl{flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin-inline:-4px;padding-inline:4px}
-.rc h2{margin:0 0 clamp(4px,2.4cqh,14px);text-align:center;font-size:clamp(13px,3.4cqh,18px);letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#ffffff;text-shadow:0 0 14px rgba(255,255,255,.55)}
-.rc .rcw{flex:none;height:clamp(40px,17cqh,120px);border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.25);overflow:hidden}
+.rc h2{margin:0 0 clamp(4px,2.4cqh,14px);text-align:center;font-size:clamp(13px,3.4cqh,18px);letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
+.rc .rcw{flex:none;height:clamp(40px,17cqh,120px);border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
 .rc .rcv{display:block;width:100%;height:100%}
-.rc .rctime{flex:none;margin:clamp(6px,2.6cqh,16px) 0 clamp(4px,2.2cqh,14px);text-align:center;font-size:clamp(24px,6.8cqh,38px);font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#ffffff;text-shadow:0 0 16px rgba(255,255,255,.55)}
+.rc .rctime{flex:none;margin:clamp(6px,2.6cqh,16px) 0 clamp(4px,2.2cqh,14px);text-align:center;font-size:clamp(24px,6.8cqh,38px);font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#efe9fb;text-shadow:0 0 16px rgba(180,76,255,.55)}
 .rc .rcbt{flex:none;display:flex;justify-content:center;gap:24px}
-.rc .rcb{width:clamp(40px,9.5cqh,54px);height:clamp(40px,9.5cqh,54px);border-radius:50%;border:2px solid #ffffff;background:#2a2a31;color:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(255,255,255,.4)}
+.rc .rcb{width:clamp(40px,9.5cqh,54px);height:clamp(40px,9.5cqh,54px);border-radius:50%;border:2px solid #b44cff;background:#22103a;color:#b44cff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(180,76,255,.4)}
 .rc .rcb svg{width:22px;height:22px}
 .rc .rcb:disabled{opacity:.35;box-shadow:none}
-.rc .rcb.rcp{border-color:rgba(255,255,255,.35);box-shadow:none}
+.rc .rcb.rcp{border-color:rgba(180,76,255,.35);box-shadow:none}
 .rc .rcb.rcr i{display:block;width:24px;height:24px;border-radius:50%;background:#ff3860;transition:border-radius .15s,width .15s,height .15s}
 .rc .rcb.rcr.on i{width:18px;height:18px;border-radius:5px}
-.rc .rch{flex:none;margin:clamp(6px,2.4cqh,18px) 0 clamp(4px,1.6cqh,10px);padding-top:clamp(6px,2cqh,14px);border-top:1px solid rgba(255,255,255,.2);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#a0a0a8}
-.rc .rce{padding:14px;text-align:center;font-size:13px;letter-spacing:.08em;color:#a0a0a8}
-.rc .rci{flex:none;margin-bottom:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.25);border-radius:14px;background:rgba(255,255,255,.02)}
-.rc .rcn,.rc .rcin{display:block;width:100%;font-size:14px;line-height:1.3;margin-bottom:8px;color:#ffffff}
+.rc .rch{flex:none;margin:clamp(6px,2.4cqh,18px) 0 clamp(4px,1.6cqh,10px);padding-top:clamp(6px,2cqh,14px);border-top:1px solid rgba(180,76,255,.2);font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#8d84a3}
+.rc .rce{padding:14px;text-align:center;font-size:13px;letter-spacing:.08em;color:#8d84a3}
+.rc .rci{flex:none;margin-bottom:10px;padding:10px 12px;border:1px solid rgba(180,76,255,.25);border-radius:14px;background:rgba(255,255,255,.02)}
+.rc .rcn,.rc .rcin{display:block;width:100%;font-size:14px;line-height:1.3;margin-bottom:8px;color:#efe9fb}
 .rc .rcn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rc .rcin{padding:4px 8px;border:1px solid #ffffff;border-radius:8px;background:#000;font:inherit;font-size:14px;outline:0;-webkit-user-select:text;user-select:text}
+.rc .rcin{padding:4px 8px;border:1px solid #b44cff;border-radius:8px;background:#000;font:inherit;font-size:14px;outline:0;-webkit-user-select:text;user-select:text}
 .rc .rcc{display:flex;align-items:center;gap:10px}
-.rc .rcpl{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid #ffffff;color:#ffffff;display:flex;align-items:center;justify-content:center}
+.rc .rcpl{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid #b44cff;color:#b44cff;display:flex;align-items:center;justify-content:center}
 .rc .rcpl svg{width:14px;height:14px}
 .rc .rcpr{flex:1;height:16px;display:flex;align-items:center;cursor:pointer}
 .rc .rcpr::before{content:"";position:absolute}
 .rc .rcpr{position:relative}
-.rc .rcpr b{display:block;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
-.rc .rcpr i{display:block;height:100%;width:0;background:#ffffff}
+.rc .rcpr b{display:block;width:100%;height:6px;border-radius:3px;background:rgba(180,76,255,.22);overflow:hidden}
+.rc .rcpr i{display:block;height:100%;width:0;background:#b44cff}
 .rc .rctm{flex:none;font-size:12px;color:#a79dbd;font-variant-numeric:tabular-nums}
-.rc .rcsp{flex:none;min-width:38px;padding:4px 7px;border:1px solid #ffffff;border-radius:8px;color:#ffffff;font-size:12px}
-.rc .rcmn{flex:none;width:26px;height:30px;color:#ffffff;font-size:20px;line-height:1}
-.rc .rcmenu{position:absolute;z-index:5;width:190px;padding:4px;border:1px solid #7a35c9;border-radius:12px;background:#14101e;box-shadow:0 0 22px rgba(255,255,255,.35)}
-.rc .rcmenu button{display:block;width:100%;padding:11px 14px;text-align:left;font-size:14px;color:#ffffff;border-radius:8px}
+.rc .rcsp{flex:none;min-width:38px;padding:4px 7px;border:1px solid #b44cff;border-radius:8px;color:#b44cff;font-size:12px}
+.rc .rcmn{flex:none;width:26px;height:30px;color:#b44cff;font-size:20px;line-height:1}
+.rc .rcmenu{position:absolute;z-index:5;width:190px;padding:4px;border:1px solid #7a35c9;border-radius:12px;background:#14101e;box-shadow:0 0 22px rgba(180,76,255,.35)}
+.rc .rcmenu button{display:block;width:100%;padding:11px 14px;text-align:left;font-size:14px;color:#efe9fb;border-radius:8px}
 .rc .rcmenu button.dg{color:#ff4d6d}
 /* Cửa sổ rất thấp: bỏ tiêu đề cho gọn. Cửa sổ ngang (rộng hơn cao): điều khiển bên trái, danh sách bên phải */
 @container (max-height:330px){.rc h2{display:none}}
@@ -57,23 +57,23 @@
 .dgh b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Webcam */
-.cm{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;padding:38px 18px 16px;background:#131218;color:#ffffff;-webkit-user-select:none;user-select:none}
-.cm h2{flex:none;margin:0 0 12px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#ffffff;text-shadow:0 0 14px rgba(255,255,255,.55)}
-.cm .cmv{position:relative;flex:1 1 0;min-height:0;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.25);overflow:hidden}
+.cm{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;padding:38px 18px 16px;background:#131218;color:#efe9fb;-webkit-user-select:none;user-select:none}
+.cm h2{flex:none;margin:0 0 12px;text-align:center;font-size:18px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#b44cff;text-shadow:0 0 14px rgba(180,76,255,.55)}
+.cm .cmv{position:relative;flex:1 1 0;min-height:0;border-radius:16px;background:#000;border:1px solid rgba(180,76,255,.25);overflow:hidden}
 .cm .cmvid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 .cm .cmvid.mir{transform:scaleX(-1)}
-.cm .cmmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:13px;line-height:1.5;color:#d8d8dc;cursor:pointer}
+.cm .cmmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:13px;line-height:1.5;color:#c9bfe0;cursor:pointer}
 .cm .cmblink{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .08s}
 .cm .cmblink.on{opacity:.55}
-.cm .cmst{flex:none;margin:10px 0 0;text-align:center;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#a0a0a8}
+.cm .cmst{flex:none;margin:10px 0 0;text-align:center;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#8d84a3}
 .cm .cmbt{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:0 6px}
-.cm .cmth{width:48px;height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.03);overflow:hidden;padding:0}
+.cm .cmth{width:48px;height:48px;border-radius:10px;border:1px solid rgba(180,76,255,.35);background:rgba(255,255,255,.03);overflow:hidden;padding:0}
 .cm .cmth img{display:none;width:100%;height:100%;object-fit:cover}
 .cm .cmth.has img{display:block}
-.cm .cmsh{width:70px;height:70px;border-radius:50%;border:3px solid #ffffff;background:#2a2a31;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(255,255,255,.45)}
-.cm .cmsh i{display:block;width:52px;height:52px;border-radius:50%;background:#ffffff;transition:transform .08s}
+.cm .cmsh{width:70px;height:70px;border-radius:50%;border:3px solid #b44cff;background:#22103a;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(180,76,255,.45)}
+.cm .cmsh i{display:block;width:52px;height:52px;border-radius:50%;background:#f4efff;transition:transform .08s}
 .cm .cmsh:active i{transform:scale(.88)}
-.cm .cmsw{width:48px;height:48px;border-radius:50%;border:2px solid #ffffff;color:#ffffff;display:flex;align-items:center;justify-content:center}
+.cm .cmsw{width:48px;height:48px;border-radius:50%;border:2px solid #b44cff;color:#b44cff;display:flex;align-items:center;justify-content:center}
 .cm .cmsw svg{width:24px;height:24px}
 .cm .cmrc{width:48px;height:48px;border-radius:50%;border:2px solid #ffffff;background:transparent;display:flex;align-items:center;justify-content:center;padding:0}
 .cm .cmrc i{display:block;width:26px;height:26px;border-radius:50%;background:#ff3b30;transition:border-radius .12s,width .12s,height .12s}
@@ -1243,25 +1243,6 @@ function extKill(pkg){
   extRun=extRun.filter(x=>x.pkg!==pkg); extSave();
   try{const A=window.AndroidLauncher; if(A&&A.killApp)A.killApp(pkg)}catch(e){}
 }
-/* Chạy nền: chỉ gỡ khỏi danh sách đa nhiệm / Dock, KHÔNG tắt tiến trình - ứng dụng vẫn chạy ngầm trong máy */
-function extBg(pkg){
-  extRun=extRun.filter(x=>x.pkg!==pkg); extSave();
-  try{const A=window.AndroidLauncher; if(A&&A.forgetExtApp)A.forgetExtApp(pkg)}catch(e){}
-}
-/* Hỏi: đóng thật (tắt hẳn) hay để chạy nền. fn('kill'|'bg') */
-function extAsk(names,fn){
-  const o=document.createElement('div'); o.className='bpk';
-  o.innerHTML='<div class="bps"><b></b><div style="margin-top:6px;opacity:.7;padding:0 6px;line-height:1.45"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap"><button type="button" class="btn bpc">Huỷ</button><button type="button" class="btn xbg">Chạy nền</button><button type="button" class="btn xk" style="background:#e53935;color:#fff">Đóng hẳn</button></div></div>';
-  const one=names.length===1;
-  $('b',o).textContent=one?'Đóng "'+names[0]+'"?':'Đóng '+names.length+' ứng dụng ngoài?';
-  $('.bps>div',o).textContent='Đóng hẳn: tắt ứng dụng hoàn toàn. Chạy nền: chỉ gỡ khỏi đa nhiệm, ứng dụng vẫn chạy ngầm trong máy.';
-  stage.appendChild(o);
-  $('.bpc',o).addEventListener('click',()=>o.remove());
-  o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
-  $('.xbg',o).addEventListener('click',()=>{o.remove();fn('bg')});
-  $('.xk',o).addEventListener('click',()=>{o.remove();fn('kill')});
-}
-const extName=id=>(APPS[id]&&APPS[id].name)||id.slice(2);
 const jget=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const jset=(k,v)=>lsSet(k,JSON.stringify(v));
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').toLowerCase();
@@ -1583,7 +1564,6 @@ function addDockBtn(id){
         const w=wins[id];
         items.push({t:w?'Hiện cửa sổ':'Mở',fn:()=>openApp(id)});
         if(w){items.push('-',{t:'Thu nhỏ',fn:()=>minWin(w)},{t:'Đóng cửa sổ',fn:()=>closeWin(w)})}
-        if(!w&&id.indexOf('x:')===0){items.push('-',{t:'Đóng ứng dụng…',fn:()=>extAsk([extName(id)],md=>{if(md==='kill')extKill(id.slice(2));else extBg(id.slice(2));try{removeTempDock(id)}catch(e){}})})}
       }
       if(id!=='launchpad')items.push('-',TEMP.indexOf(id)>=0?{t:'Giữ trong Dock',fn:()=>addToDock(id)}:{t:'Xóa khỏi Dock',fn:()=>removeFromDock(id)});
       showCtx(cx,cy,items);
@@ -2247,7 +2227,7 @@ function buildCal(b,w){
       const lu=LUNAR.conv(dn,m+1,y);
       const all=on.map(x=>({t:(x.time?x.time+' ':'')+x.t,on:1})).concat(ev.map(x=>({t:x,on:0})));
       c.innerHTML='<i>'+dn+'</i><small class="lu'+(lu.d===1?' l1':'')+'">'+(lu.d===1?lu.d+'/'+lu.m+(lu.leap?' nhuận':''):lu.d)+'</small>'+all.slice(0,2).map(e=>'<span class="chip'+(e.on?' on':'')+'">'+esc(e.t)+'</span>').join('')+(all.length>2?'<span class="chip more">+'+(all.length-2)+' mục</span>':'')+(all.length?'<span class="dotev"></span>':'');
-      /* Đã bỏ tính năng bấm vào ngày để ghi sự kiện */
+      c.addEventListener('click',()=>{open=key;showPop(c,key,d)});
       g.appendChild(c);
     }
     fit();
@@ -2684,11 +2664,8 @@ function buildRealFiles(b,w,arg,mode){
     list.onscroll=()=>{if(shown<items.length&&list.scrollTop+list.clientHeight>list.scrollHeight-500)add(ROWS_MORE)};
     list.__all=()=>{while(shown<items.length)add(ROWS_MORE)};   /* dựng nốt phần còn lại (khi cần tìm một dòng theo tên) */
   }
-  const AUDX=/\.(mp3|m4a|aac|wav|flac|ogg|opus|wma|amr)$/i;   /* nhạc đã có trong app Nhạc và Tệp/Nhạc nên không hiện ở Tải xuống */
-  const noAud=l=>(l||[]).filter(f=>f.d||!AUDX.test(f.n||''));
   function renderDownloads(){
     let r={list:[]}; try{r=JSON.parse(A.listDownloads())}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
-    r.list=noAud(r.list);
     if(r.error&&!r.list.length){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
     ft.textContent=r.list.length+' mục';
     if(!r.list.length){list.innerHTML='<div class="rnote"><b>Thư mục trống</b></div>';return}
@@ -2706,7 +2683,6 @@ function buildRealFiles(b,w,arg,mode){
   function renderDir(){
     /* Thư mục Tải xuống = thư mục "Download" thật trong quản lý tệp của máy (đọc trực tiếp như mọi thư mục khác, có cả thư mục con); MediaStore chỉ là dự phòng khi không đọc được */
     let r={list:[]}; try{r=JSON.parse(A.listDir(path))}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
-    if(where(path)==='down'||mode==='down')r.list=noAud(r.list);
     if(r.error&&path===R.down&&A.listDownloads){renderDownloads();return}
     if(r.error){list.innerHTML='<div class="rnote"><b>'+esc(r.error)+'</b><button class="btn" data-setup="files">Cấp quyền truy cập tệp</button></div>';ft.textContent='';return}
     ft.textContent=r.list.length+' mục';
@@ -4529,12 +4505,8 @@ function openMS(){
   const tail=document.createElement('div'); tail.className='msp'; mst.appendChild(tail);
   lead.style.width=Math.max(0,(sr.width-firstW)/2-26)+'px'; tail.style.width=Math.max(0,(sr.width-lastW)/2-26)+'px';
 }
-function msClose(id,card,mode){
-  if(id.indexOf('x:')===0&&!mode){extAsk([extName(id)],md=>msClose(id,card,md));return}
-  msClose2(id,card,mode);
-}
-function msClose2(id,card,mode){
-  if(id.indexOf('x:')===0){if(mode==='bg')extBg(id.slice(2));else extKill(id.slice(2))}
+function msClose(id,card){
+  if(id.indexOf('x:')===0)extKill(id.slice(2));
   const w=wins[id];
   if(w){if(id==='music')musHalt();closeWin(w);setTimeout(()=>{try{w.remove()}catch(e){}},300)}
   card.style.transition='transform .2s ease,opacity .2s ease'; card.style.transform='translateY(-130%)'; card.style.opacity='0';
@@ -4543,10 +4515,8 @@ function msClose2(id,card,mode){
 function closeMS(){if(!msOn)return;msOn=false;stage.classList.remove('ms');msw.hidden=true;mst.innerHTML=''}
 $('#msall').addEventListener('click',e=>{
   e.stopPropagation();
-  const cards=$$('.msc',mst), exts=cards.filter(c=>c.dataset.id.indexOf('x:')===0);
-  const run=md=>{cards.forEach((c,i)=>setTimeout(()=>msClose(c.dataset.id,c,c.dataset.id.indexOf('x:')===0?md:undefined),i*70));
-    if(md!=='bg'){try{const A=window.AndroidLauncher; if(A&&A.clearExtDock)A.clearExtDock()}catch(x){}}};
-  if(exts.length)extAsk(exts.map(c=>extName(c.dataset.id)),run); else run();
+  $$('.msc',mst).forEach((c,i)=>setTimeout(()=>msClose(c.dataset.id,c),i*70));
+  try{const A=window.AndroidLauncher; if(A&&A.clearExtDock)A.clearExtDock()}catch(x){}   /* dọn luôn icon app ngoài trên Dock nổi */
 });
 msw.addEventListener('click',e=>{if(e.target===msw||e.target===mst||e.target.classList.contains('msp'))closeMS()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&msOn)closeMS()});

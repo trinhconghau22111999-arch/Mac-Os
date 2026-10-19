@@ -792,13 +792,6 @@ public class LauncherBridge {
             } catch (Exception e) { return false; }
         }
 
-        /** Chạy nền: chỉ gỡ icon khỏi Dock nổi, không tắt tiến trình ứng dụng. */
-        @JavascriptInterface public boolean forgetExtApp(String pkg) {
-            if (pkg == null || pkg.equals(act.getPackageName())) return false;
-            LockService.forgetExt(pkg);
-            return true;
-        }
-
         /* ---- Nhạc thật trong máy ---- */
         static MediaPlayer mp; private boolean ended = false;
         /* Tiêu đề bài đang phát (để dựng lại thông báo khi nút Phát/Dừng được bấm từ thông báo lúc app chạy nền) */
