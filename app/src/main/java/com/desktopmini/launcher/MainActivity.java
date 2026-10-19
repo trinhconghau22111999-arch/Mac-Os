@@ -1897,6 +1897,10 @@ public class MainActivity extends Activity {
     }
     void gkEnsure() {
         if (gkView != null) return;
+        /* Lần mở Gecko trước chưa tải xong trang nào mà app đã bị tắt (dấu vết còn nguyên): không mở lại đúng trang cũ nữa mà về trang chủ, tránh văng lặp lại ở cùng một trang */
+        String prevStage = getSharedPreferences("dm_crash", MODE_PRIVATE).getString("stage", null);
+        boolean gkDiedBefore = prevStage != null && prevStage.contains("gkEnsure");
+        if (gkDiedBefore) getSharedPreferences("gk_state", MODE_PRIVATE).edit().remove("last").apply();
         CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)");
         gkRt();
         /* Mở lại app: vào đúng trang đã xem lần trước (nếu có), chưa có thì về Google */
