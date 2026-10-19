@@ -2901,9 +2901,30 @@ function buildRealFiles(b,w,arg,mode){
     }
     if(tries>0)setTimeout(()=>{M={};render();selectByName(nm,tries-1)},700);
   }
-  render();
+  /* Tự cập nhật: có tệp / ảnh mới (Android báo qua nativeReload) hoặc cứ ~3 giây khi cửa sổ đang mở và đang hiện (tắt khi thu nhỏ / app ra nền) thì so dấu hiệu danh sách, đổi mới mới vẽ lại, giữ nguyên vị trí cuộn và phần đang chọn */
+  let lastSig='';
+  const sigNow=()=>{
+    try{
+      if(path==='@home')return String(A.getMediaCounts());
+      const t=path[0]==='@'?String(A.listMedia(path.slice(1))):String(A.listDir(path));
+      return t.length+'|'+t.slice(0,160)+'|'+t.slice(-80);
+    }catch(e){return ''}
+  };
+  function softRefresh(){
+    if(!w.isConnected||D||SEL.size)return;
+    const g=sigNow(); if(g===lastSig)return; lastSig=g;
+    const st=list.scrollTop; M={}; render();
+    if(st)setTimeout(()=>{list.scrollTop=st},80);
+  }
+  live(w,'filesnew',softRefresh);
+  const autoT=setInterval(()=>{
+    if(!w.isConnected){clearInterval(autoT);return}
+    if(document.hidden||w.classList.contains('min')||w._leaving)return;
+    softRefresh();
+  },3000);
+  render(); lastSig=sigNow();
   if(!files&&arg&&arg.select)selectByName(arg.select,3);
-  return {open(a){
+  return {destroy(){clearInterval(autoT)},open(a){
     if(a&&a.path)go(a.path);
     if(!files&&a&&a.select){if(path!==home)go(home); selectByName(a.select,3)}
   }};
@@ -4992,7 +5013,8 @@ if(window.AndroidLauncher){(function(){
     (n.matches&&n.matches('img.rp')?[n]:[...n.querySelectorAll('img.rp')]).forEach(i=>{if(big_ok(i))q.push(i)});
   }));pump()}).observe(document.body,{childList:true,subtree:true});
   function big_ok(i){return !i.getAttribute('src')}
-  window.nativeReload=function(){loadTracks();loadPhotos();sync();realBatt();insets();if(window.devCalReset)devCalReset()};
+  let phSig='';
+  window.nativeReload=function(){loadTracks();loadPhotos();const sg=PH.length+'|'+(PH[0]&&PH[0].pid);if(sg!==phSig){phSig=sg;bus.emit('photos')}bus.emit('filesnew');sync();realBatt();insets();if(window.devCalReset)devCalReset()};
   /* Thư = Gmail trong cửa sổ */
   APPS.mail.name='Gmail'; const mb=dockBtn('mail'); if(mb){mb.dataset.label='Gmail';mb.setAttribute('aria-label','Gmail')}
   /* Giới thiệu: thông tin máy thật */

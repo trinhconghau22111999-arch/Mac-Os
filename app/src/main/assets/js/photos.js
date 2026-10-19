@@ -336,6 +336,8 @@ function buildPhotos(b,w,arg){
   function openFile(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;tab='all';view=h%PH.length;render()}
   render();
   if(arg&&arg.pid)openPid(arg.pid,arg.name); else if(arg&&arg.file)openFile(arg.file);
+  /* Có ảnh mới (ảnh chụp, ảnh chụp màn hình, tải về...): tự vẽ lại lưới ảnh, trừ khi đang xem một ảnh hoặc đang chọn */
+  live(w,'photos',()=>{if(view>=0||SEL.size)return;renderGrid()});
   return {open(a){if(a&&a.pid)openPid(a.pid,a.name); else if(a&&a.file)openFile(a.file)},destroy(){document.removeEventListener('keydown',kd);window.removeEventListener('resize',onRs);if(pio)pio.disconnect()}};
 }
 };
