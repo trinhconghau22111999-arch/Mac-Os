@@ -1785,7 +1785,7 @@ addEventListener('pointermove',e=>{
   const r=dock.getBoundingClientRect(), pad=70;
   if(e.clientX<r.left-pad||e.clientX>r.right+pad||e.clientY<r.top-pad||e.clientY>r.bottom+pad)mgOff();
 },true);
-setInterval(()=>{if(mgType==='touch'&&!mgDown)mgOff()},300);
+dmEvery(()=>{if(mgType==='touch'&&!mgDown)mgOff()},1000);
 /* Đổi chỗ icon trên Dock: cảm ứng = nhấn giữ rồi kéo ngang (nhả mà không kéo thì hiện menu); chuột = bấm giữ và kéo. Thứ tự được lưu lại */
 let dkDragOn=false, dkH=null, dkPD=null;
 dock.addEventListener('pointerdown',e=>{
@@ -4367,7 +4367,7 @@ let deskDragEnd=0, deskDragOn=false;
   },{passive:true,capture:true}));
   window.addEventListener('blur',()=>force('pointercancel'));
   document.addEventListener('visibilitychange',()=>{ if(document.hidden)force('pointercancel') });
-  setInterval(()=>{   /* lưới an toàn cuối cùng: không có lần kéo nào mà vẫn còn bóng / icon mờ thì xóa */
+  dmEvery(()=>{   /* lưới an toàn cuối cùng: không có lần kéo nào mà vẫn còn bóng / icon mờ thì xóa */
     if(dr&&dr.on)return;
     const g=stage.querySelectorAll('.dghost'); if(g.length)g.forEach(x=>x.remove());
     const m=desk.querySelectorAll('.da.dmov'); if(m.length)m.forEach(x=>x.classList.remove('dmov'));
@@ -4721,10 +4721,10 @@ function otTick(){
   }
   const el=$('#ontimetx'); if(el)el.textContent='OnTime '+otFmt(OT.s);
   const b=$('#ontime'); if(b)b.title='Thời gian sử dụng màn hình hôm nay: '+otFmt(OT.s);
-  if(!OT.native)try{lsSet('dm-ontime',JSON.stringify({d:OT.d,s:Math.round(OT.s)}))}catch(e){}
+  if(!OT.native&&now-(OT.sv||0)>30000){OT.sv=now;try{lsSet('dm-ontime',JSON.stringify({d:OT.d,s:Math.round(OT.s)}))}catch(e){}}
 }
 try{const o=JSON.parse(lsGet('dm-ontime')||'{}'); if(o.d===new Date().toDateString()){OT.d=o.d;OT.s=+o.s||0}}catch(e){}
-otTick(); setInterval(otTick,5000);
+otTick(); dmEvery(()=>{if(!OT.native)otTick()},5000);   /* trên Android: realOT (bên dưới) gọi otTick theo số do hệ thống đo */
 document.addEventListener('visibilitychange',()=>{if(document.hidden){otTick();OT.last=0}else OT.last=Date.now()});
 try{
   if(navigator.getBattery)navigator.getBattery().then(bt=>{
@@ -4784,7 +4784,7 @@ if(window.AndroidLauncher){(function(){
   (function(){
     const st=document.createElement('style'); st.textContent='body.nbar #menubar{visibility:hidden}'; document.head.appendChild(st);
     const sync=()=>{try{document.body.classList.toggle('nbar',!!(A.isMenuBarActive&&A.isMenuBarActive()))}catch(e){}};
-    sync(); setInterval(sync,3000);
+    sync(); dmEvery(sync,3000);
   })();
   /* đẩy sang thanh nổi: tên app đang chọn, chiều cao thanh, và ẩn khi đang khóa màn hình / tắt máy */
   (function(){
@@ -4808,7 +4808,7 @@ if(window.AndroidLauncher){(function(){
   function pushBarWall(){
     try{
       const A=window.AndroidLauncher; if(!A||!A.setBarWall)return;
-      const bi=getComputedStyle(stage).backgroundImage||'';
+      const bi=stage.style.backgroundImage||getComputedStyle(stage).backgroundImage||'';   /* ưu tiên chuỗi inline: tránh đọc lại chuỗi data dài vài MB qua computed style */
       /* không dùng regex trên chuỗi data URL dài vài MB */
       let src='';
       if(/^url\(["']?data:/i.test(bi.slice(0,24))){ const s0=bi.indexOf('data:'); let e=bi.lastIndexOf(')'); if(bi[e-1]==='"'||bi[e-1]==="'")e--; src=bi.slice(s0,e) }
@@ -4817,10 +4817,13 @@ if(window.AndroidLauncher){(function(){
       if(sig===_wsig)return; _wsig=sig; A.setBarWall(src);
     }catch(e){}
   }
-  setInterval(pushBarWall,3000);
+  /* chỉ đẩy khi hình nền thật sự đổi (style / data-wall của stage), gom lại 400ms; không thăm dò định kỳ nữa */
+  let _bwT=0; const bwSoon=()=>{clearTimeout(_bwT);_bwT=setTimeout(pushBarWall,400)};
+  try{new MutationObserver(bwSoon).observe(stage,{attributes:true,attributeFilter:['style','data-wall']})}catch(e){}
+  bwSoon(); setTimeout(pushBarWall,2000);
   let _dd='';
   function markND(){try{const A=window.AndroidLauncher;document.body.classList.toggle('nd',!!(A&&A.dockOverlayLive&&A.dockOverlayLive()&&pref('dockFloat',true)))}catch(e){}}
-  setInterval(markND,2500);
+  dmEvery(markND,2500);
   window.__syncDock=function(){try{syncDockFloat()}catch(e){}};
   function syncDockFloat(){
     const A=window.AndroidLauncher; if(!A||!A.setDockData)return;
