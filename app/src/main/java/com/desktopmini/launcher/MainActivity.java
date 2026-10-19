@@ -428,7 +428,7 @@ public class MainActivity extends Activity {
     }
 
     /** Đóng hẳn các trang nhúng đã ẩn quá EXT_IDLE_MS. Bỏ qua trang đang hiện, "Gõ văn bản" (giữ tài liệu đang soạn) và lúc đang phát nhạc. */
-    private void reapIdleExt() { omemReapIdle(EXT_IDLE_MS); reapExt(EXT_IDLE_MS); }
+    private void reapIdleExt() { omemReapIdle(EXT_IDLE_MS); reapExt(EXT_IDLE_MS); reapGecko(EXT_IDLE_MS); }
 
     /** minIdleMs = 0: đóng NGAY mọi trang nhúng đang ẩn (dùng khi máy sắp hết RAM), không chờ đủ thời gian. */
     private void reapExt(long minIdleMs) {
@@ -454,7 +454,7 @@ public class MainActivity extends Activity {
         /* Máy sắp hết RAM thật (đang chạy mà RAM tới mức "nguy cấp", hoặc app ở nền bị đẩy tới giữa/cuối danh sách bị giết): đóng ngay trang nhúng đang ẩn.
            Cố ý KHÔNG dùng mức UI_HIDDEN (20) và BACKGROUND (40): hai mức này xảy ra mỗi khi mở app khác từ launcher, chưa phải thiếu RAM, đóng thì YouTube/Zalo bị tải lại liên tục. */
         if (browserHost != null) { try { browserHost.onTrimMemory(level); } catch (Exception e) { } }
-        if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) { omemReapIdle(0); reapExt(0); }
+        if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) { omemReapIdle(0); reapExt(0); reapGecko(0); }
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
             for (WebView v : ext.values()) { try { if (v.getVisibility() != View.VISIBLE) v.clearCache(false); } catch (Exception e) { } }
         }
@@ -2007,7 +2007,26 @@ public class MainActivity extends Activity {
         if (t.url.length() > 0) se.loadUri(t.url);
         return t;
     }
-    void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
+    void gkHideNow() { if (gkView != null) { gkView.setVisibility(View.GONE); gkHiddenAt = android.os.SystemClock.elapsedRealtime(); } }
+
+    /* Trình duyệt Gecko ẩn lâu thì giải phóng để trả RAM (Gecko nặng, máy 32-bit dùng chung tiến trình với giao diện).
+     * Giống cách đóng các trang web nhúng khác: đóng các tab, lần mở sau vào lại đúng trang cuối đã xem. */
+    private long gkHiddenAt = 0;
+    /** minIdleMs = 0: đóng ngay (máy sắp hết RAM). Không đụng tới khi đang tải tệp, đang xem toàn màn hình, hoặc (với đóng theo thời gian) đang phát nhạc. */
+    void reapGecko(long minIdleMs) {
+        if (gkView == null) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (gkView.getVisibility() == View.VISIBLE) { gkHiddenAt = 0; return; }
+        if (gkHiddenAt == 0) gkHiddenAt = now;
+        if (!gkRunning.isEmpty()) return;
+        if (minIdleMs > 0) {
+            if (now - gkHiddenAt < minIdleMs) return;
+            try { if (((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive()) return; } catch (Exception e) { }
+        } else if (extFullView != null) return;
+        try { gkCloseAll(); } catch (Throwable e) { }
+        try { root.removeView(gkView); } catch (Throwable e) { }
+        gkView = null; gkSession = null; gkHiddenAt = 0;
+    }
 
     /** Giao diện cần WebView (Chrome) từ bản 105 trở lên; máy Android 7 thường phải cập nhật Android System WebView.
      *  WebView quá cũ (vd sau khi gỡ cập nhật về bản gốc của máy): hiện hộp thoại gốc của Android (không phụ thuộc giao diện HTML đang lỗi)
