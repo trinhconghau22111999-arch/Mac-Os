@@ -1699,7 +1699,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             }
     }
 
-    // ====================== Ngan keo dau trang (ben trai) ======================
+    // ====================== Ngan keo dau trang (ben phai) ======================
 
     private lateinit var drawerScrim: FrameLayout
     private lateinit var drawerPanel: LinearLayout
@@ -1740,7 +1740,7 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
             }
         }
         drawerPanel.addView(drawerList, LinearLayout.LayoutParams(MATCH, 0, 1f))
-        drawerScrim.addView(drawerPanel, FrameLayout.LayoutParams(w, MATCH, Gravity.START))
+        drawerScrim.addView(drawerPanel, FrameLayout.LayoutParams(w, MATCH, Gravity.END))
         rootFrame.addView(drawerScrim, FrameLayout.LayoutParams(MATCH, MATCH))
     }
 
@@ -1749,12 +1749,12 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         drawerList.adapter = rowAdapter(list)
         drawerEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         drawerScrim.visibility = View.VISIBLE
-        drawerPanel.translationX = -dp(300).toFloat()
+        drawerPanel.translationX = dp(300).toFloat()
         drawerPanel.animate().translationX(0f).setDuration(200).start()
     }
 
     private fun closeDrawer() {
-        drawerPanel.animate().translationX(-dp(300).toFloat()).setDuration(180)
+        drawerPanel.animate().translationX(dp(300).toFloat()).setDuration(180)
             .withEndAction { drawerScrim.visibility = View.GONE }.start()
     }
 
