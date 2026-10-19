@@ -1974,7 +1974,7 @@ public class MainActivity extends Activity {
             if (now - gkHiddenAt < minIdleMs) return;
             try { if (((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive()) return; } catch (Exception e) { }
         } else if (extFullView != null) return;
-        try { gkCloseAll(); } catch (Throwable e) { }
+        try { if (gkSession != null) gkSession.close(); } catch (Throwable e) { }
         try { root.removeView(gkView); } catch (Throwable e) { }
         gkView = null; gkSession = null; gkHiddenAt = 0;
     }
