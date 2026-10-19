@@ -1631,7 +1631,7 @@ public class MainActivity extends Activity {
 
 
     /* ================= Trình duyệt Gecko nhúng trong cửa sổ (chép từ repo dang-nhap-github) ================= */
-    private static final String GK_HOME = "https://www.google.com/";
+    static final String GK_HOME = "https://www.google.com/";
     private static final String GK_SEARCH = "https://www.google.com/search?q=";
     private static org.mozilla.geckoview.GeckoRuntime gkRuntime;
     org.mozilla.geckoview.GeckoSession gkSession;
@@ -1640,11 +1640,53 @@ public class MainActivity extends Activity {
     private String gkUrl = "";
     private int gkProg = 0;
 
+    /** Một tab của trình duyệt Gecko (mỗi tab một GeckoSession riêng; lõi vẫn là Gecko). */
+    static class GkTab { org.mozilla.geckoview.GeckoSession s; String url = "", title = ""; boolean back, fwd; int prog; }
+    final java.util.ArrayList<GkTab> gkTabs = new java.util.ArrayList<GkTab>();
+    int gkCur = -1;
+
+    void gkTabPush(GkTab t) {
+        if (gkTabs.indexOf(t) == gkCur) { gkUrl = t.url; gkBackOk = t.back; gkFwdOk = t.fwd; gkProg = t.prog; }
+        gkPush();
+    }
+
+    void gkSelect(int i) {
+        if (i < 0 || i >= gkTabs.size()) return;
+        GkTab t = gkTabs.get(i);
+        gkCur = i; gkSession = t.s; gkUrl = t.url; gkBackOk = t.back; gkFwdOk = t.fwd; gkProg = t.prog;
+        if (gkView != null) {
+            try { gkView.releaseSession(); } catch (Throwable e) { }
+            try { gkView.setSession(t.s); } catch (Throwable e) { CrashLog.log(this, "Gecko: không chuyển được tab (setSession)", e); }
+        }
+        gkPush();
+    }
+
+    void gkCloseTab(int i) {
+        if (i < 0 || i >= gkTabs.size()) return;
+        boolean wasCur = (i == gkCur);
+        GkTab t = gkTabs.get(i);
+        if (wasCur && gkView != null) { try { gkView.releaseSession(); } catch (Throwable e) { } }
+        gkTabs.remove(i);
+        try { t.s.close(); } catch (Throwable e) { }
+        if (gkTabs.isEmpty()) { gkCur = -1; gkSession = null; gkNewTab(GK_HOME, true); return; }
+        if (wasCur) gkSelect(Math.min(i, gkTabs.size() - 1));
+        else { if (i < gkCur) gkCur--; gkPush(); }
+    }
+
+    void gkCloseAll() {
+        if (gkView != null) { try { gkView.releaseSession(); } catch (Throwable e) { } }
+        for (GkTab t : gkTabs) { try { t.s.close(); } catch (Throwable e) { } }
+        gkTabs.clear(); gkCur = -1; gkSession = null;
+    }
+
     void gkPush() {
         if (web == null) return;
         try {
             JSONObject o = new JSONObject();
             o.put("url", gkUrl); o.put("back", gkBackOk); o.put("fwd", gkFwdOk); o.put("p", gkProg);
+            org.json.JSONArray ta = new org.json.JSONArray();
+            for (GkTab t : gkTabs) { JSONObject x = new JSONObject(); x.put("t", t.title == null ? "" : t.title); x.put("u", t.url == null ? "" : t.url); ta.put(x); }
+            o.put("tabs", ta); o.put("cur", gkCur);
             web.evaluateJavascript("window.nativeGk&&window.nativeGk(" + o.toString() + ")", null);
         } catch (Exception e) { }
     }
@@ -1808,9 +1850,9 @@ public class MainActivity extends Activity {
         } catch (Throwable t) { return false; }
     }
     /** Địa chỉ THẬT của trang sau khi chuyển hướng (thanh địa chỉ và trang lưu để mở lại đều dùng cái này). */
-    void gkLoc(String url) {
+    void gkLoc(GkTab t, String url) {
         if (url == null || url.length() == 0 || url.equals("about:blank")) return;
-        gkUrl = url; gkPush();
+        t.url = url; gkTabPush(t);
     }
     void gkEnsure() {
         if (gkView != null) return;
@@ -1844,21 +1886,28 @@ public class MainActivity extends Activity {
                 return false;
             }
         });
+        gkView.setVisibility(View.GONE);
+        root.addView(gkView, new FrameLayout.LayoutParams(1, 1));
+        gkNewTab(gkStart, true);
+    }
+    GkTab gkNewTab(String url, boolean select) {
+        final GkTab t = new GkTab(); t.url = url == null ? "" : url;
         final org.mozilla.geckoview.GeckoSession se = new org.mozilla.geckoview.GeckoSession();
-        gkSession = se;
+        t.s = se;
         se.setContentDelegate(new org.mozilla.geckoview.GeckoSession.ContentDelegate() {
+            public void onTitleChange(org.mozilla.geckoview.GeckoSession s, String title) { t.title = title == null ? "" : title; gkPush(); }
             @Override public void onExternalResponse(org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.WebResponse response) { gkDownload(response); }
             @Override public void onCrash(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Gecko: tiến trình trang web bị văng (onCrash)", new Exception("onCrash")); gkToast("Trang web bị văng. Chi tiết: " + CrashLog.where(MainActivity.this)); }
             @Override public void onKill(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Gecko: tiến trình trang web bị hệ thống tắt, thường do thiếu RAM (onKill)", new Exception("onKill")); gkToast("Trang web bị tắt (có thể thiếu RAM). Chi tiết: " + CrashLog.where(MainActivity.this)); }
         });
         se.setProgressDelegate(new org.mozilla.geckoview.GeckoSession.ProgressDelegate() {
-            @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) gkUrl = url; gkProg = 5; gkPush(); }
-            @Override public void onProgressChange(org.mozilla.geckoview.GeckoSession s, int p) { gkProg = p; gkPush(); }
+            @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) t.url = url; t.prog = 5; gkTabPush(t); }
+            @Override public void onProgressChange(org.mozilla.geckoview.GeckoSession s, int p) { t.prog = p; gkTabPush(t); }
             @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) {
-                gkProg = 0; gkPush();
+                t.prog = 0; gkTabPush(t);
                 if (success) {
                     CrashLog.clearMark(MainActivity.this);
-                    String u = gkUrl;   /* nhớ trang cuối để lần sau mở lại đúng trang này */
+                    String u = t.url;   /* nhớ trang cuối để lần sau mở lại đúng trang này */
                     if (u != null && (u.startsWith("http://") || u.startsWith("https://")))
                         getSharedPreferences("gk_state", MODE_PRIVATE).edit().putString("last", u).apply();
                 }
@@ -1866,20 +1915,20 @@ public class MainActivity extends Activity {
         });
         se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
             /* Không gắn @Override: tùy bản Gecko là chữ ký 2 hay 3 tham số, cái nào có thì được gọi; kiểu List thô để khớp mọi bản */
-            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url, java.util.List perms) { gkLoc(url); }
-            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url) { gkLoc(url); }
-            @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { gkBackOk = can; gkPush(); }
-            @Override public void onCanGoForward(org.mozilla.geckoview.GeckoSession s, boolean can) { gkFwdOk = can; gkPush(); }
+            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url, java.util.List perms) { gkLoc(t, url); }
+            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url) { gkLoc(t, url); }
+            @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { t.back = can; gkTabPush(t); }
+            @Override public void onCanGoForward(org.mozilla.geckoview.GeckoSession s, boolean can) { t.fwd = can; gkTabPush(t); }
             @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession> onNewSession(org.mozilla.geckoview.GeckoSession s, String uri) {
                 /* Link mở tab mới -> mở ngay trong tab hiện tại */
-                se.loadUri(uri); return null;
+                gkNewTab(uri, true); return null;
             }
         });
         se.open(gkRuntime);
-        gkView.setSession(se);
-        gkView.setVisibility(View.GONE);
-        root.addView(gkView, new FrameLayout.LayoutParams(1, 1));
-        se.loadUri(gkStart);
+        gkTabs.add(t);
+        if (select) gkSelect(gkTabs.size() - 1); else gkPush();
+        if (t.url.length() > 0) se.loadUri(t.url);
+        return t;
     }
     void gkHideNow() { if (gkView != null) gkView.setVisibility(View.GONE); }
 
