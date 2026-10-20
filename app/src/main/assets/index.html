@@ -184,11 +184,10 @@ ul,ol{margin:0;padding:0;list-style:none}
 .mb:hover,.mb.open,.sb:hover,.sb.open{background:rgba(255,255,255,.22)}
 .mb.logo{padding-inline:8px}
 .sb{padding-inline:7px}
-#bt svg{width:14.57px;height:14.57px}
 .mb svg,.sb svg{width:16px;height:16px;fill:currentColor;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
 .appname{font-weight:700}
 .sb.off svg{opacity:.45}
-#bt svg{width:19.47px;height:19.47px}
+#bt svg{width:16px;height:16px}   /* bằng nút Wi-Fi */
 .clk{font-variant-numeric:tabular-nums;gap:7px;padding-inline:8px}
 .bram,.bpct{font-size:12px;font-variant-numeric:tabular-nums}
 .bram:empty{display:none}
@@ -2684,7 +2683,7 @@ function buildRealFiles(b,w,arg,mode){
     list.onscroll=()=>{if(shown<items.length&&list.scrollTop+list.clientHeight>list.scrollHeight-500)add(ROWS_MORE)};
     list.__all=()=>{while(shown<items.length)add(ROWS_MORE)};   /* dựng nốt phần còn lại (khi cần tìm một dòng theo tên) */
   }
-  const AUDX=/\.(mp3|m4a|aac|wav|flac|ogg|opus|wma|amr)$/i;   /* nhạc đã có trong app Nhạc và Tệp/Nhạc nên không hiện ở Tải xuống */
+  const AUDX=/\.(mp3|m4a|aac|wav|flac|ogg|opus|wma|amr|mp4|mkv|webm|avi|mov|3gp|m4v|flv|wmv|ts)$/i;   /* nhạc và video đã có trong app Nhạc / Tệp > Nhạc, Tệp > Video nên không hiện ở Tải xuống */
   const noAud=l=>(l||[]).filter(f=>f.d||!AUDX.test(f.n||''));
   function renderDownloads(){
     let r={list:[]}; try{r=JSON.parse(A.listDownloads())}catch(e){r={error:'Lỗi đọc thư mục',list:[]}}
@@ -3397,7 +3396,7 @@ function buildMenu(key){
   const ta=w&&$('textarea',w);
   const nw=id&&NEWMAP[id];
   const M={
-    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},'-',homeItem(),{t:'Khởi động lại…',fn:()=>restartNow()},{t:'Tắt máy…',fn:()=>shutNow()}],
+    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},'-',homeItem(),{t:'Khởi động lại launcher này',fn:()=>restartLauncher()},{t:'Khởi động lại…',fn:()=>restartNow()},{t:'Tắt máy…',fn:()=>shutNow()}],
     app:w?[{t:'Giới thiệu về '+nm,fn:()=>openApp('about')},'-',{t:'Ẩn '+nm,fn:()=>minWin(w)},'-',{t:'Thoát '+nm,fn:()=>{if(id==='music')musHalt();closeWin(w)}}]:[{t:'Mở Tệp',fn:()=>openApp('files')}],
     file:(nw?[{t:nw[0],fn:()=>{const x=$(nw[1],w);if(x)x.click()}},'-']:[]).concat([{t:'Mở Ghi chú',fn:()=>openApp('notes')},'-',{t:'Đóng cửa sổ',fn:()=>closeWin(w),dis:!w}]),
     edit:[{t:'Hoàn tác',dis:true},{t:'Làm lại',dis:true},'-',{t:'Cắt',fn:()=>{ta.focus();document.execCommand('cut')},dis:!ta},{t:'Sao chép',fn:()=>{ta.focus();document.execCommand('copy')},dis:!ta},{t:'Dán',dis:true},'-',{t:'Chọn tất cả',fn:()=>{ta.focus();ta.select()},dis:!ta}],
@@ -4160,6 +4159,7 @@ function showOff(mode){
 }
 function sleepNow(){closeAllPopups();showOff('sleep')}
 function shutNow(){closeAllPopups();musHalt();killAll();showOff('off')}
+function restartLauncher(){closeAllPopups();try{musHalt()}catch(e){} const A=window.AndroidLauncher; if(A&&A.restartLauncher){try{if(A.restartLauncher())return}catch(e){}} location.reload()}
 function restartNow(){closeAllPopups();musHalt();killAll();boot()}
 function boot(){
   lock.hidden=true; off.hidden=false; off.onclick=null; off.dataset.mode='boot';

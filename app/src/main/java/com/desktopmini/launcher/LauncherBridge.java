@@ -1383,6 +1383,22 @@ public class LauncherBridge {
             } catch (Exception e) { return false; }
         }
 
+        /** Khởi động lại riêng launcher này (không khởi động lại máy): hẹn mở lại màn hình chính rồi tắt tiến trình của app. */
+        @JavascriptInterface public boolean restartLauncher() {
+            try {
+                Intent i = new Intent(act, MainActivity.class).setAction(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                android.app.PendingIntent pi = android.app.PendingIntent.getActivity(act, 7311, i, android.app.PendingIntent.FLAG_CANCEL_CURRENT);
+                ((android.app.AlarmManager) act.getSystemService(Context.ALARM_SERVICE)).set(android.app.AlarmManager.RTC, System.currentTimeMillis() + 600, pi);
+                act.runOnUiThread(new Runnable() { public void run() {
+                    try { stopMusic(); act.stopService(new Intent(act, MusicService.class)); } catch (Throwable t) { }
+                    act.finishAndRemoveTask();
+                    new android.os.Handler().postDelayed(new Runnable() { public void run() { android.os.Process.killProcess(android.os.Process.myPid()); } }, 250);
+                } });
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
         /* ---- Tải xuống: toàn bộ tệp trong thư mục Download của máy (kể cả thư mục con), qua MediaStore ---- */
         @JavascriptInterface public String listDownloads() {
             JSONObject res = new JSONObject(); JSONArray arr = new JSONArray();

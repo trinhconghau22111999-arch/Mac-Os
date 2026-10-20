@@ -240,12 +240,26 @@ class BrowserHost(private val act: Activity, private val onClose: () -> Unit) : 
         }
     }
 
+    /** Tắt hẳn âm thanh/video của một trang trước khi hủy (nhạc không được tiếp tục phát sau khi đóng trình duyệt). */
+    private fun silence(wv: WebView) {
+        try {
+            wv.evaluateJavascript("document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();m.removeAttribute('src');m.load()}catch(e){}})", null)
+            wv.stopLoading()
+            wv.loadUrl("about:blank")
+            wv.onPause()
+        } catch (e: Exception) { }
+    }
+
     fun destroy() {
         ui.removeCallbacks(sweep)
-        for (t in tabs) if (!t.discarded) t.webView.destroy()
-        qrWeb?.destroy()
-        camWeb?.destroy()
-        for (t in splitTabs.values) t.webView.destroy()
+        val all = ArrayList<WebView>()
+        for (t in tabs) if (!t.discarded) all.add(t.webView)
+        qrWeb?.let { all.add(it) }
+        camWeb?.let { all.add(it) }
+        for (t in splitTabs.values) all.add(t.webView)
+        for (wv in all) silence(wv)
+        /* hủy sau một nhịp ngắn để lệnh dừng kịp chạy */
+        ui.postDelayed({ for (wv in all) try { (wv.parent as? android.view.ViewGroup)?.removeView(wv); wv.destroy() } catch (e: Exception) { } }, 300)
         synchronized(recordings) {
             for (o in recordings.values) try { o.close() } catch (e: Exception) { }
             recordings.clear()
