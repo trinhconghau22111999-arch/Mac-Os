@@ -11,7 +11,7 @@ import android.widget.LinearLayout;
 
 /** Nút biểu tượng tự vẽ (không dùng ký tự đặc biệt vì font máy cũ có thể thiếu). */
 final class Ic extends View {
-    static final int MENU = 0, BACK = 1, FWD = 2, RELOAD = 3, STAR = 4, DOWN = 5, PLUS = 6, CLOSE = 7, UP = 8;
+    static final int MENU = 0, BACK = 1, FWD = 2, RELOAD = 3, STAR = 4, DOWN = 5, PLUS = 6, CLOSE = 7, UP = 8, STARS = 9;
     private final int kind;
     private boolean on;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -80,6 +80,26 @@ final class Ic extends View {
                 path.reset(); path.moveTo(cx - 6 * u, cy + 2 * u); path.lineTo(cx, cy - 5 * u); path.lineTo(cx + 6 * u, cy + 2 * u); c.drawPath(path, p);
                 c.drawLine(cx - 8 * u, cy + 10 * u, cx + 8 * u, cy + 10 * u, p);
                 break;
+            case STARS: {
+                /* hai ngôi sao lồng vào nhau: sao ngoài rỗng, sao trong nhỏ đặc (như icon ic_stars_nested) */
+                p.setStrokeWidth(GeckoCore.dp(getContext(), 2) * 0.85f);
+                for (int k = 0; k < 2; k++) {
+                    float ro = k == 0 ? 11f : 6.4f, ri = k == 0 ? 4.9f : 2.9f;
+                    path.reset();
+                    for (int i = 0; i < 10; i++) {
+                        double a = -Math.PI / 2 + i * Math.PI / 5;
+                        float rr = (i % 2 == 0 ? ro : ri) * u;
+                        float x = cx + (float) Math.cos(a) * rr, y = cy + 1f * u + (float) Math.sin(a) * rr;
+                        if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
+                    }
+                    path.close();
+                    if (k == 1) { p.setStyle(Paint.Style.FILL_AND_STROKE); p.setColor(0xFFFFB300); } else p.setColor(0xFFFFB300);
+                    c.drawPath(path, p);
+                    p.setStyle(Paint.Style.STROKE);
+                }
+                p.setStrokeWidth(GeckoCore.dp(getContext(), 2));
+                break;
+            }
             case PLUS:
                 c.drawLine(cx - 8 * u, cy, cx + 8 * u, cy, p); c.drawLine(cx, cy - 8 * u, cx, cy + 8 * u, p);
                 break;

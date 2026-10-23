@@ -71,6 +71,7 @@ public class OmemActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFFE9E9EE);
+        root.setPadding(0, GeckoCore.menuBarInset(this), 0, 0);   /* chừa chỗ cho thanh menu nổi của Desktop Mini */
 
         bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL); bar.setGravity(Gravity.CENTER_VERTICAL);

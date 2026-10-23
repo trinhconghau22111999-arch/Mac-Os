@@ -107,4 +107,14 @@ final class GeckoCore {
     }
 
     static int dp(Context c, int v) { return Math.round(v * c.getResources().getDisplayMetrics().density); }
+
+    /** Chiều cao thanh menu nổi của Desktop Mini (phủ lên mép trên màn hình): lấy bằng thanh trạng thái hệ thống, tối thiểu 28dp như thanh menu. App phụ chừa đúng khoảng này để không bị thanh menu che. */
+    static int menuBarInset(Context c) {
+        int hh = 0;
+        try {
+            int id = c.getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (id > 0) hh = c.getResources().getDimensionPixelSize(id);
+        } catch (Exception e) { }
+        return Math.max(hh, dp(c, 28));
+    }
 }

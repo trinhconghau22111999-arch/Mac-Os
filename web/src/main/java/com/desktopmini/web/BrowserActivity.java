@@ -55,7 +55,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
     private LinearLayout tabStrip;
     private HorizontalScrollView tabScroll;
     private EditText addr;
-    private Ic icBack, icFwd, icStar, icDown;
+    private Ic icBack, icFwd, icStar, icDown, icStars;
     private ProgressBar bar;
     private ScrollView panelScroll;
     private LinearLayout panel;
@@ -109,6 +109,8 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFF2B1B4A);
+        /* Thanh menu nổi của Desktop Mini luôn nằm trên cùng: chừa đúng chiều cao của nó, không để thanh công cụ trình duyệt chui xuống dưới */
+        root.setPadding(0, GeckoCore.menuBarInset(this), 0, 0);
 
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -141,11 +143,11 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         alp.leftMargin = dp(4); alp.rightMargin = dp(4);
         icStar = Ic.mkW(this, Ic.STAR, new View.OnClickListener() { public void onClick(View v) { toggleBookmark(); } });
         icDown = Ic.mkW(this, Ic.DOWN, new View.OnClickListener() { public void onClick(View v) { if ("dl".equals(panelKind)) closePanel(); else openPanel("dl"); } });
-        Ic icPlus = Ic.mkW(this, Ic.PLUS, new View.OnClickListener() { public void onClick(View v) { closePanel(); newTab("", true); addr.requestFocus(); } });
+        icStars = Ic.mkW(this, Ic.STARS, new View.OnClickListener() { public void onClick(View v) { if ("bm".equals(panelKind)) closePanel(); else openPanel("bm"); } });
 
         top.addView(menu); top.addView(icBack); top.addView(icFwd); top.addView(icReload);
         top.addView(addr, alp);
-        top.addView(icStar); top.addView(icDown); top.addView(icPlus);
+        top.addView(icStar); top.addView(icDown); top.addView(icStars);
         root.addView(top, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
 
         bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
@@ -328,8 +330,17 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(30));
             lp.rightMargin = dp(4);
             tabStrip.addView(chip, lp);
+            if (i == cur) {
+                /* dấu + mở thẻ mới nằm ngay bên phải thẻ đang xem */
+                Ic plus = Ic.make(this, Ic.PLUS, new View.OnClickListener() { public void onClick(View v) { closePanel(); newTab("", true); addr.requestFocus(); } });
+                plus.tint = 0xFF5A4A7A;
+                LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(dp(32), dp(30));
+                plp.rightMargin = dp(4);
+                plus.setLayoutParams(plp);
+                tabStrip.addView(plus);
+            }
         }
-        if ("dl".equals(panelKind)) renderPanel();
+        if ("dl".equals(panelKind) || "bm".equals(panelKind)) renderPanel();
     }
 
     /* ---------------- Lịch sử / Dấu trang (lưu trong máy) ---------------- */
