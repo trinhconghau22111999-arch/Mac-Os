@@ -227,6 +227,7 @@ public class LauncherBridge {
             if (s.length() > 1 && s.startsWith("\"") && s.endsWith("\"")) s = s.substring(1, s.length() - 1);
             return "<unknown ssid>".equals(s) ? "" : s;
         }
+        private java.util.HashSet<String> savedCache = null; private long savedTs = 0;
         private WifiManager wifiMgr() { return (WifiManager) act.getApplicationContext().getSystemService(Context.WIFI_SERVICE); }
         @JavascriptInterface public void wifiScan() { try { wifiMgr().startScan(); } catch (Exception e) { } }
         @JavascriptInterface public String getWifiInfo() {
@@ -240,7 +241,13 @@ public class LauncherBridge {
                     conn = true; cur = cleanSsid(wi.getSSID()); curLvl = WifiManager.calculateSignalLevel(wi.getRssi(), 4);
                 }
                 java.util.HashSet<String> saved = new java.util.HashSet<String>();
-                try { List<WifiConfiguration> cf = wm.getConfiguredNetworks(); if (cf != null) for (WifiConfiguration c : cf) saved.add(cleanSsid(c.SSID)); } catch (Exception e) { }
+                long nowT = System.currentTimeMillis();
+                if (savedCache == null || nowT - savedTs > 8000) {
+                    java.util.HashSet<String> sv = new java.util.HashSet<String>();
+                    try { List<WifiConfiguration> cf = wm.getConfiguredNetworks(); if (cf != null) for (WifiConfiguration c : cf) sv.add(cleanSsid(c.SSID)); } catch (Exception e) { }
+                    savedCache = sv; savedTs = nowT;
+                }
+                saved.addAll(savedCache);
                 java.util.LinkedHashMap<String, JSONObject> best = new java.util.LinkedHashMap<String, JSONObject>();
                 if (on && locOk()) {
                     List<ScanResult> sr = wm.getScanResults();
@@ -282,14 +289,20 @@ public class LauncherBridge {
         /** Android 10+ không cho ứng dụng tự bật/tắt Wi-Fi: trả về false để mở bảng hệ thống. */
         @JavascriptInterface public boolean setWifi(boolean on) {
             if (Build.VERSION.SDK_INT >= 29) return false;
-            try { return wifiMgr().setWifiEnabled(on); } catch (Exception e) { return false; }
+            /* Chạy nền: setWifiEnabled() chặn vài trăm ms, làm gạt bị khựng; trả về ngay để giao diện đổi liền */
+            final boolean want = on;
+            new Thread(new Runnable() { public void run() { try { wifiMgr().setWifiEnabled(want); } catch (Throwable e) { } } }).start();
+            return true;
         }
         private BluetoothAdapter btAdapter() {
             try { return ((BluetoothManager) act.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter(); } catch (Exception e) { return null; }
         }
         @JavascriptInterface public boolean setBluetooth(boolean on) {
             if (Build.VERSION.SDK_INT >= 33) return false;
-            try { BluetoothAdapter a = btAdapter(); if (a == null) return false; return on ? a.enable() : a.disable(); } catch (Exception e) { return false; }
+            if (btAdapter() == null) return false;
+            final boolean want = on;
+            new Thread(new Runnable() { public void run() { try { BluetoothAdapter a = btAdapter(); if (a == null) return; if (want) a.enable(); else a.disable(); } catch (Throwable e) { } } }).start();
+            return true;
         }
         @JavascriptInterface public void btScan() {
             try {

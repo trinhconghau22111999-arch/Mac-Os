@@ -42,7 +42,7 @@ function buildSettings(b,w,arg){
         if(!A||!A.getWifiInfo)return ['Wi-Fi','<div class="grp">'+rw('Wi-Fi',tgl(pref('wifi',true),'wifi','Wi-Fi'),navigator.onLine?'Đã kết nối':'Không có kết nối mạng')+'</div>'];
         let o={}; try{o=JSON.parse(A.getWifiInfo())}catch(e){}
         if(Date.now()-(window._wfScan||0)>9000){window._wfScan=Date.now();try{A.wifiScan()}catch(e){}}
-        const on=!!o.on, L=o.list||[], cn=L.filter(n=>n.connected), ot=L.filter(n=>!n.connected);
+        const hv=window.radioHold?window.radioHold('wifi'):null, on=hv!==null?hv:!!o.on, L=o.list||[], cn=L.filter(n=>n.connected), ot=L.filter(n=>!n.connected);
         const bars=l=>'<span style="letter-spacing:1px;color:var(--muted)">'+'▂▄▆█'.slice(0,Math.max(1,Math.min(4,l+1)))+'</span>';
         const net=n=>'<div class="rw" data-wf="'+esc(n.ssid)+'" style="cursor:pointer"><span><b>'+esc(n.ssid)+'</b><small>'+(n.connected?'Đã kết nối':(n.saved?'Đã lưu · chưa kết nối':'Chưa kết nối'))+'</small></span><span class="rc2"'+(n.connected?' style="color:#34c759"':'')+'>'+(n.secure?'🔒 ':'')+bars(n.level)+'</span></div>';
         const hd=t=>'<p style="margin:16px 6px 6px;color:var(--muted);font-size:12px">'+t+'</p>';
@@ -62,7 +62,7 @@ function buildSettings(b,w,arg){
         let o={}; try{o=JSON.parse(A.getBtInfo())}catch(e){}
         if(o.none)return ['Bluetooth','<div class="grp"><div class="rw"><span><b>Máy không có Bluetooth</b></span></div></div>'];
         if(o.on&&Date.now()-(window._btScan||0)>20000){window._btScan=Date.now();try{A.btScan()}catch(e){}}
-        const on=!!o.on, P2=o.paired||[], F=o.found||[], cn=P2.filter(d=>d.connected), ds=P2.filter(d=>!d.connected);
+        const hv=window.radioHold?window.radioHold('bt'):null, on=hv!==null?hv:!!o.on, P2=o.paired||[], F=o.found||[], cn=P2.filter(d=>d.connected), ds=P2.filter(d=>!d.connected);
         const dev=(d,st,c)=>'<div class="rw" data-bt="1" style="cursor:pointer"><span><b>'+esc(d.name)+'</b><small>'+st+'</small></span><span class="rc2"'+(c?' style="color:#34c759"':'')+'>'+(c?'●':'')+'</span></div>';
         const hd=t=>'<p style="margin:16px 6px 6px;color:var(--muted);font-size:12px">'+t+'</p>';
         let h='<div class="grp">'+rw('Bluetooth',tgl(on,'bt','Bluetooth'),!on?'Đã tắt':(cn.length?'Đang kết nối '+cn.length+' thiết bị':'Đang bật · chưa kết nối thiết bị nào'))+'</div>';
@@ -140,7 +140,7 @@ function buildSettings(b,w,arg){
   function setPrefQuiet(k,v){P[k]=v;jset('dm-prefs',P);applyPrefs();bus.emit('slider')}
   live(w,'ui',()=>{const f=document.activeElement;/* đang kéo thanh trượt hoặc đang gõ chữ thì không vẽ lại, nếu không ô nhập bị mất focus và bàn phím tắt */if(f&&((f.classList&&f.classList.contains('rg'))||f.tagName==='INPUT'||f.tagName==='TEXTAREA'||f.tagName==='SELECT'))return;render()});
   /* Trang Wi-Fi / Bluetooth: tự làm mới 3 giây/lần để mạng và thiết bị mới quét được hiện ra ngay */
-  const rfT=setInterval(()=>{if(!document.body.contains(w)){clearInterval(rfT);return}if(key==='wifi'||key==='bt')bus.emit('ui')},3000);
+  const rfT=setInterval(()=>{if(!document.body.contains(w)){clearInterval(rfT);return}if(key==='wifi'||key==='bt'){const A=window.AndroidLauncher;let t='';try{t=key+(key==='wifi'?A.getWifiInfo():A.getBtInfo())}catch(e){} if(t&&t===window._rfLast&&!(window.radioHold&&window.radioHold(key)!==null))return;window._rfLast=t;bus.emit('ui')}},3000);
   render();
   return {open(a){if(a&&a.pane){key=a.pane;render()}}};
 }

@@ -4745,6 +4745,7 @@ if(hasLock()){lockUI()}else{greet()}
 if(window.AndroidLauncher){(function(){
   const A=window.AndroidLauncher;
   const safe=(f,d)=>{try{return f()}catch(e){return d}};
+  window.radioHold=k=>{const h=window._rh&&window._rh[k];return h&&Date.now()<h.until?h.v:null};
   const _ap=applyPrefs; applyPrefs=function(){_ap();const d=$('#dim');if(d)d.style.opacity=0};
   bus.on('ui',()=>{const d=$('#dim');if(d)d.style.opacity=0});
   let busy=0;
@@ -4753,6 +4754,7 @@ if(window.AndroidLauncher){(function(){
     P.vol=safe(()=>A.getVolume(),pref('vol',60));
     P.bright=Math.max(1,safe(()=>A.getBrightness(),pref('bright',100)));
     P.wifi=safe(()=>A.isWifiOn(),true); P.bt=safe(()=>A.isBluetoothOn(),false);
+    {const hw=window.radioHold&&window.radioHold('wifi'),hb=window.radioHold&&window.radioHold('bt'); if(hw!==null&&hw!==undefined)P.wifi=hw; if(hb!==null&&hb!==undefined)P.bt=hb} /* đang chờ máy bật/tắt thật: giữ trạng thái vừa gạt */
     const sg=[P.vol,P.bright,P.wifi,P.bt].join('|'); if(sg===sync._sg)return; sync._sg=sg; /* không đổi thì khỏi vẽ lại giao diện */
     bus.emit('ui'); bus.emit('slider');
   }
@@ -4878,11 +4880,20 @@ if(window.AndroidLauncher){(function(){
     if(!x)return;
     e.stopImmediatePropagation(); e.preventDefault();
     const kind=(x.id==='t-wifi'||x.dataset.t==='wifi')?'wifi':'bt';
-    /* Android 9 trở xuống cho tự bật/tắt; Android 10+ thì mở bảng hệ thống */
-    const cur=safe(()=>kind==='wifi'?A.isWifiOn():A.isBluetoothOn(),false);
-    const done=safe(()=>kind==='wifi'?A.setWifi(!cur):A.setBluetooth(!cur),false);
-    if(done){setTimeout(sync,1200);setTimeout(()=>bus.emit('ui'),1800);return}
-    safe(()=>A.openPanel(kind));
+    /* Android 9 trở xuống cho tự bật/tắt (chạy nền, đổi giao diện NGAY); Android 10+ thì mở bảng hệ thống */
+    const cur=safe(()=>kind==='wifi'?A.isWifiOn():A.isBluetoothOn(),false), want=!cur;
+    const done=safe(()=>kind==='wifi'?A.setWifi(want):A.setBluetooth(want),false);
+    if(!done){safe(()=>A.openPanel(kind));return}
+    const H=window._rh||(window._rh={}); H[kind]={v:want,until:Date.now()+6000};
+    P[kind]=want; /* lạc quan: gạt xong là đổi liền, không đợi máy */
+    document.querySelectorAll('.tg[data-t="'+kind+'"]').forEach(t=>t.setAttribute('aria-checked',String(want)));
+    const tl=$(kind==='wifi'?'#t-wifi':'#t-bt'); if(tl)tl.setAttribute('aria-pressed',String(want));
+    bus.emit('ui');
+    clearInterval(H[kind].iv); let n=0;
+    H[kind].iv=setInterval(()=>{ /* hỏi nhẹ 4 lần/giây cho tới khi máy đổi xong */
+      n++; const now=safe(()=>kind==='wifi'?A.isWifiOn():A.isBluetoothOn(),want);
+      if(now===want||n>24){clearInterval(H[kind].iv);H[kind].until=0;sync();bus.emit('ui')}
+    },250);
   },true);
   /* Launchpad: thêm ứng dụng thật đã cài trên máy */
   let REAL=null, REALV=null, lpTok=0;
