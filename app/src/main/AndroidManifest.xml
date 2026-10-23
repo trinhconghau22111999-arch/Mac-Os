@@ -45,6 +45,8 @@
         <package android:name="com.google.android.gm" />
         <package android:name="com.google.android.apps.docs" />
         <package android:name="com.zing.zalo" />
+        <!-- App phụ Trình duyệt + Ổ mềm (Gecko) -->
+        <package android:name="com.desktopmini.web" />
         <intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="mailto" /></intent>
     </queries>
     <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:theme="@style/AppTheme" android:allowBackup="false" android:networkSecurityConfig="@xml/network_security_config" android:extractNativeLibs="true" android:largeHeap="true">
@@ -74,42 +76,6 @@
             android:launchMode="singleTask" android:windowSoftInputMode="adjustResize"
             android:theme="@android:style/Theme.Material.Light.NoActionBar"
             android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode" />
-        <!-- App "Ổ mềm" = Drive 3 hồ sơ (chép từ repo Drive): 3 hồ sơ Ảnh / Video / Tệp, mỗi hồ sơ đăng nhập 1 tài khoản Google riêng trong Drive web -->
-        <activity android:name=".drive3.HomeActivity" android:label="Ổ mềm" android:exported="false"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <!-- Mỗi hồ sơ chạy trong 1 process riêng => cookie/đăng nhập tách biệt hoàn toàn (Android 9 trở lên) -->
-        <activity android:name=".drive3.PhotoActivity" android:label="Ổ mềm - Ảnh" android:exported="false" android:process=":p1"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" android:hardwareAccelerated="true"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".drive3.VideoActivity" android:label="Ổ mềm - Video" android:exported="false" android:process=":p2"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" android:hardwareAccelerated="true"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".drive3.FileActivity" android:label="Ổ mềm - Tệp" android:exported="false" android:process=":p3"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" android:hardwareAccelerated="true"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <!-- Android < 9: 3 hồ sơ chạy CHUNG process chính (máy cũ không tách được thư mục dữ liệu WebView theo process); đăng nhập được tách bằng cách đổi cookie (xem DriveCookies.java) -->
-        <activity android:name=".drive3.LegacyPhotoActivity" android:label="Ổ mềm - Ảnh" android:exported="false"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" android:hardwareAccelerated="true"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".drive3.LegacyVideoActivity" android:label="Ổ mềm - Video" android:exported="false"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" android:hardwareAccelerated="true"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".drive3.LegacyFileActivity" android:label="Ổ mềm - Tệp" android:exported="false"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" android:hardwareAccelerated="true"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <!-- Dịch vụ nền giữ tải lên: phải cùng process với trang Drive thì process đó mới khó bị hệ thống tắt -->
-        <service android:name=".drive3.UploadService$P1" android:process=":p1" android:exported="false" android:foregroundServiceType="dataSync" />
-        <service android:name=".drive3.UploadService$P2" android:process=":p2" android:exported="false" android:foregroundServiceType="dataSync" />
-        <service android:name=".drive3.UploadService$P3" android:process=":p3" android:exported="false" android:foregroundServiceType="dataSync" />
-        <service android:name=".drive3.UploadService$L" android:exported="false" android:foregroundServiceType="dataSync" />
         <receiver android:name=".AdminReceiver" android:exported="true" android:permission="android.permission.BIND_DEVICE_ADMIN">
             <meta-data android:name="android.app.device_admin" android:resource="@xml/device_admin" />
             <intent-filter><action android:name="android.app.action.DEVICE_ADMIN_ENABLED" /></intent-filter>

@@ -784,8 +784,8 @@ public class LauncherBridge {
         @JavascriptInterface public void aiStop() { act.runOnUiThread(new Runnable() { public void run() { act.aiStop(); } }); }
         /** Nút AI: hủy nghe, không trả kết quả. */
         @JavascriptInterface public void aiCancel() { act.runOnUiThread(new Runnable() { public void run() { act.aiCancel(); } }); }
-        /** Mở app "Ổ mềm" (Drive 3 hồ sơ: Ảnh / Video / Tệp) ở màn hình riêng; thoát thì quay về Desktop Mini. */
-        @JavascriptInterface public void openDrive3() { act.runOnUiThread(new Runnable() { public void run() { act.openDriveHome(); } }); }
+        /** Mở "Trình duyệt" (which="browser", arg=địa chỉ) hoặc "Ổ mềm" (which="omem", arg=hồ sơ anh/video/tep) trong app phụ riêng (Gecko). Chưa cài app phụ thì hỏi cài. */
+        @JavascriptInterface public void openCompanion(final String which, final String arg, final boolean upload) { act.runOnUiThread(new Runnable() { public void run() { act.openCompanion(which, arg, upload); } }); }
         /** Mở app con "Duyệt web" (trình duyệt mặc định của app); url có thể rỗng. */
         @JavascriptInterface public void openWebBrowser(String url) { act.openWeb(url); }
         /** Mở app con "YouTube" (chỉ YouTube, không thanh địa chỉ). */
@@ -1486,56 +1486,11 @@ public class LauncherBridge {
         }
 
 
-        /* ---- Trình duyệt Gecko nhúng trong cửa sổ ---- */
-        @JavascriptInterface public void gkShow(final float x, final float y, final float w, final float h) {
-            act.runOnUiThread(new Runnable() { public void run() {
-                try {
-                    float d = act.getResources().getDisplayMetrics().density;
-                    /* không ẩn view web nhúng khác: mỗi cửa sổ tự ẩn/hiện mình qua đồng bộ bên giao diện (cho phép nhiều cửa sổ không chồng nhau hiện cùng lúc) */
-                    act.gkEnsure();
-                    FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, Math.round(w * d)), Math.max(1, Math.round(h * d)));
-                    lp.leftMargin = Math.round(x * d); lp.topMargin = Math.round(y * d);
-                    act.gkView.setLayoutParams(lp); act.gkView.setVisibility(View.VISIBLE);
-                    act.gkPush();
-                } catch (Throwable t) { CrashLog.log(act, "Trình duyệt Gecko không mở được (gkShow)", t); act.gkToast("Không mở được trình duyệt: " + t + "\nChi tiết: " + CrashLog.where(act)); }
-            }});
-        }
-        @JavascriptInterface public void gkHide() { act.runOnUiThread(new Runnable() { public void run() { act.gkHideNow(); } }); }
-        @JavascriptInterface public void gkClose() {
-            act.runOnUiThread(new Runnable() { public void run() {
-                if (act.gkView == null) return;
-                try { act.gkCloseAll(); } catch (Exception e) { }
-                try { act.root.removeView(act.gkView); } catch (Exception e) { }
-                act.gkView = null; act.gkSession = null;
-            }});
-        }
-        @JavascriptInterface public void gkGo(final String text) {
-            act.runOnUiThread(new Runnable() { public void run() {
-                try { act.gkEnsure(); String t = text == null ? "" : text.trim(); if (t.length() > 0) act.gkSession.loadUri(act.gkToUrl(t)); } catch (Throwable e) { }
-            }});
-        }
-        @JavascriptInterface public void gkCancelDl(final int id) { act.gkCancelDl(id); }
-        @JavascriptInterface public void gkNewTab(final String url) { act.runOnUiThread(new Runnable() { public void run() { try { act.gkEnsure(); String t = url == null ? "" : url.trim(); act.gkNewTab(t.length() == 0 ? MainActivity.GK_HOME : act.gkToUrl(t), true); } catch (Throwable e) { } } }); }
-        @JavascriptInterface public void gkSelectTab(final int i) { act.runOnUiThread(new Runnable() { public void run() { act.gkSelect(i); } }); }
-        @JavascriptInterface public void gkCloseTab(final int i) { act.runOnUiThread(new Runnable() { public void run() { act.gkCloseTab(i); } }); }
-        @JavascriptInterface public void gkBack() { act.runOnUiThread(new Runnable() { public void run() { if (act.gkSession != null) act.gkSession.goBack(); } }); }
-        @JavascriptInterface public void gkForward() { act.runOnUiThread(new Runnable() { public void run() { if (act.gkSession != null) act.gkSession.goForward(); } }); }
-        @JavascriptInterface public void gkReload() { act.runOnUiThread(new Runnable() { public void run() { if (act.gkSession != null) act.gkSession.reload(); } }); }
-
         /* ---- Gmail / Lịch Google: trình duyệt nhúng trong cửa sổ ---- */
         @JavascriptInterface public void extShow(final String key, final String url, final float x, final float y, final float w, final float h) {
             act.runOnUiThread(new Runnable() { public void run() {
                 float d = act.getResources().getDisplayMetrics().density;
                 /* không ẩn view web nhúng khác: mỗi cửa sổ tự ẩn/hiện mình (xem winFree bên giao diện) nên nhiều cửa sổ không chồng nhau hiện cùng lúc được */
-                if ("omem".equals(key)) {   /* Ổ mềm chạy bằng Gecko */
-                    try {
-                        act.omemShow(Math.round(x * d), Math.round(y * d), Math.round(w * d), Math.round(h * d));
-                    } catch (Throwable t) {
-                        CrashLog.log(act, "Ổ mềm không mở được (extShow omem)", t);
-                        act.gkToast("Ổ mềm không mở được: " + t + "\nChi tiết: " + CrashLog.where(act));
-                    }
-                    return;
-                }
                 if ("webandr".equals(key)) {
                     try {
                         View bv = act.browserGet(url).getRoot();
@@ -1545,7 +1500,7 @@ public class LauncherBridge {
                     } catch (Throwable t) {
                         CrashLog.log(act, "Duyệt web không mở được (extShow webandr)", t);
                         act.browserHost = null;
-                        act.gkToast("Duyệt web không mở được: " + t + "\nChi tiết: " + CrashLog.where(act));
+                        act.toastLong("Duyệt web không mở được: " + t + "\nChi tiết: " + CrashLog.where(act));
                     }
                     return;
                 }
@@ -1558,30 +1513,24 @@ public class LauncherBridge {
                 ZoomHelper zz = act.zooms.get(key); if (zz != null) zz.onShown();
             }});
         }
-        /** true = Ổ mềm chạy nhúng trong cửa sổ (Android < 9); false = dùng màn hình hồ sơ riêng (Android 9+, process riêng). */
-        @JavascriptInterface public boolean omemEmbedded() { return com.desktopmini.launcher.drive3.DriveEmbed.enabled(); }
-        @JavascriptInterface public void omemOpen(final String profile, final boolean upload) {
-            act.runOnUiThread(new Runnable() { public void run() { act.omemSwitch(profile, upload); } });
-        }
         @JavascriptInterface public void extHide(final String key) {
             act.runOnUiThread(new Runnable() { public void run() {
                 if (key == null || key.length() == 0 || "webandr".equals(key)) act.browserHide();
-                if (key == null || key.length() == 0 || "omem".equals(key)) act.omemHideNow();
                 for (java.util.Map.Entry<String, WebView> e : act.ext.entrySet()) if (key == null || key.length() == 0 || e.getKey().equals(key)) { e.getValue().setVisibility(View.GONE); act.extPause(e.getKey(), e.getValue()); act.markExtHidden(e.getKey()); }
             }});
         }
         @JavascriptInterface public void extReload(final String key) {
-            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.reload(); return; } if ("omem".equals(key)) { act.omemReload(); return; } WebView v = act.ext.get(key); if (v != null) v.reload(); } });
+            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.reload(); return; } WebView v = act.ext.get(key); if (v != null) v.reload(); } });
         }
         @JavascriptInterface public void extGo(final String key, final String url) {
-            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { act.browserGet(url).openUrl(url); return; } if ("omem".equals(key)) { act.omemGo(url); return; } WebView v = act.extGet(key, url); v.loadUrl(url); } });
+            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { act.browserGet(url).openUrl(url); return; } WebView v = act.extGet(key, url); v.loadUrl(url); } });
         }
         /** Back trong cửa sổ Gõ văn bản: đóng hộp thoại/màn hình Tệp của trang trước, hết thì đóng cửa sổ. */
         @JavascriptInterface public void wordBack() {
             act.runOnUiThread(new Runnable() { public void run() { if (act.wordHost != null) act.wordHost.back(); } });
         }
         @JavascriptInterface public void extForward(final String key) {
-            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.forward(); return; } if ("omem".equals(key)) { act.omemForward(); return; } WebView v = act.ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
+            act.runOnUiThread(new Runnable() { public void run() { if ("webandr".equals(key)) { if (act.browserHost != null) act.browserHost.forward(); return; } WebView v = act.ext.get(key); if (v != null && v.canGoForward()) v.goForward(); } });
         }
         /** Đóng hẳn WebView nhúng (dừng phát video/âm thanh khi đóng cửa sổ). */
         @JavascriptInterface public void extClose(final String key) {
@@ -1595,7 +1544,6 @@ public class LauncherBridge {
                     bh.destroy();
                     return;
                 }
-                if ("omem".equals(key)) { act.omemClose(); return; }
                 final WebView v = act.ext.remove(key);
                 act.zooms.remove(key); act.extHiddenAt.remove(key);
                 if (v == null) return;
@@ -1612,7 +1560,6 @@ public class LauncherBridge {
         }
         @JavascriptInterface public String extUrl(final String key) {
             if ("webandr".equals(key)) return act.browserHost == null ? "" : act.browserHost.currentUrl();
-            if ("omem".equals(key)) return act.omemUrl();
             WebView v = act.ext.get(key); return v == null || v.getUrl() == null ? "" : v.getUrl();
         }
         @JavascriptInterface public void extBack(final String key) {
@@ -1622,7 +1569,6 @@ public class LauncherBridge {
                     if (act.browserHost == null || !act.browserHost.back()) act.web.evaluateJavascript("window.nativeCloseApp&&window.nativeCloseApp('webbrowser')", null);
                     return;
                 }
-                if ("omem".equals(key)) { act.omemBack(); return; }
                 WebView v = act.ext.get(key); if (v == null) return;
                 if (v.canGoBack()) { v.goBack(); return; }
                 /* Trang một-trang (vd Zalo web) không có lịch sử để lùi: gửi phím Esc để đóng cuộc trò chuyện/bảng đang mở */

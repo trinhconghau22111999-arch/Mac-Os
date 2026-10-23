@@ -2,14 +2,9 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
-// Phiên bản GeckoView cố định: đọc từ file gecko.version ở thư mục gốc (CI tự ghi lại ở lần build đầu tiên thành công).
-// Chưa có file (hoặc nội dung sai dạng) thì tạm dùng 128.+ như cũ. Muốn nâng cấp Gecko: sửa nội dung file này.
-def geckoVer = rootProject.file('gecko.version').exists() ? rootProject.file('gecko.version').text.trim() : ''
-if (!(geckoVer ==~ /^128\.[0-9A-Za-z.\-]+$/)) geckoVer = '128.+'
 dependencies {
     implementation 'androidx.core:core:1.13.1'
-    // ---- Trình duyệt Gecko (Firefox) đóng gói sẵn; thư viện gốc được lọc theo abiFilters bên dưới ----
-    implementation "org.mozilla.geckoview:geckoview-omni:${geckoVer}"
+    // GeckoView (Firefox) KHÔNG còn nằm trong app chính: nó chạy trong app phụ :web (Trình duyệt + Ổ mềm), đóng gói vào assets/web/web.apk
     // ---- App con "Duyệt web" (chép từ repo Webandr) ----
     implementation 'androidx.webkit:webkit:1.11.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
@@ -56,8 +51,8 @@ android {
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = '17' }
     lint { abortOnError false; checkReleaseBuilds false }
-    // Các mảnh WebView (zip đã nén sẵn) trong assets/webview: không nén lại để build nhanh và đọc nhanh
-    androidResources { noCompress += ['part'] }
+    // Các mảnh WebView (zip đã nén sẵn) trong assets/webview và APK app phụ trong assets/web: không nén lại để build nhanh và đọc nhanh
+    androidResources { noCompress += ['part', 'apk'] }
     packaging {
         jniLibs { useLegacyPackaging = true }
         resources.excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*', 'META-INF/INDEX.LIST']

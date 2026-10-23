@@ -18,21 +18,7 @@
 -keep class com.desktopmini.launcher.** extends android.content.BroadcastReceiver
 # android.print.PdfPrint dùng API ẩn của hệ thống: để nguyên tên
 -keep class android.print.** { *; }
--dontwarn org.mozilla.**
 
-# snakeyaml (kéo theo từ thư viện nhân trình duyệt) tham chiếu java.beans không có trên Android -> bỏ cảnh báo để R8 không dừng build
--dontwarn java.beans.**
--dontwarn org.yaml.snakeyaml.**
-
-# ---- GeckoView (trình duyệt Firefox): mã gốc (JNI) gọi lại Java theo TÊN lớp/hàm/trường nên R8 không được đổi tên hay xóa ----
--keep class org.mozilla.** { *; }
--keep interface org.mozilla.** { *; }
--keepclasseswithmembers class * {
-    @org.mozilla.gecko.annotation.WrapForJNI <methods>;
-}
--keepclasseswithmembers class * {
-    @org.mozilla.gecko.annotation.WrapForJNI <fields>;
-}
--keepclasseswithmembers class * {
-    native <methods>;
-}
+# Tink (từ androidx.security:security-crypto) chỉ tham chiếu các lớp chú thích lúc biên dịch (trước đây GeckoView kéo theo sẵn); bỏ cảnh báo để R8 không dừng build
+-dontwarn javax.annotation.**
+-dontwarn com.google.errorprone.annotations.**

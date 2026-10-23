@@ -29,11 +29,27 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
             echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
           fi
+      - name: Build app phụ (Trình duyệt + Ổ mềm, Gecko) và đóng gói vào app chính
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle :web:assembleRelease --no-daemon -Pabis="${{ github.event.inputs.abis || 'x86' }}" 2>&1 | tee build-web.log || {
+            grep -E "^e: |error:|Caused by|Missing class|R8: |ERROR:|What went wrong|Execution failed|Could not |Unresolved" -A3 build-web.log | cut -c1-400 | head -80 | while IFS= read -r l; do echo "::error::${l}"; done
+            exit 1
+          }
+          # APK app phụ nằm trong assets của app chính; app chính hỏi cài ngay lần mở đầu tiên (app phụ cùng chữ ký, cùng số phiên bản)
+          mkdir -p app/src/main/assets/web
+          cp web/build/outputs/apk/release/*.apk app/src/main/assets/web/web.apk
+          ls -l app/src/main/assets/web/web.apk
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       - name: Build APK
         shell: bash
         run: |
           set -o pipefail
-          gradle assembleRelease --no-daemon -Pabis="${{ github.event.inputs.abis || 'x86' }}" 2>&1 | tee build.log || {
+          gradle :app:assembleRelease --no-daemon -Pabis="${{ github.event.inputs.abis || 'x86' }}" 2>&1 | tee build.log || {
             # Đưa lỗi biên dịch lên phần Annotations của lần chạy để đọc nhanh, không cần mở log dài
             grep -E "^e: |error:|Caused by|Missing class|R8: |ERROR:|What went wrong|Execution failed|Could not |Unresolved" -A3 build.log | cut -c1-400 | head -80 | while IFS= read -r l; do echo "::error::${l}"; done
             exit 1
@@ -50,7 +66,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && hashFiles('gecko.version') == ''
         continue-on-error: true   # lỗi ở bước này không làm hỏng build
         run: |
-          V=$(gradle :app:dependencies --configuration releaseRuntimeClasspath --no-daemon -q 2>/dev/null | grep -o 'geckoview-omni:128\.+ -> [^ ]*' | head -1 | sed 's/.*-> //')
+          V=$(gradle :web:dependencies --configuration releaseRuntimeClasspath --no-daemon -q 2>/dev/null | grep -o 'geckoview-omni:128\.+ -> [^ ]*' | head -1 | sed 's/.*-> //')
           echo "GeckoView đang dùng: '$V'" | tee -a "$GITHUB_STEP_SUMMARY"
           if echo "$V" | grep -Eq '^128\.[0-9A-Za-z.-]+$'; then
             echo "$V" > gecko.version
