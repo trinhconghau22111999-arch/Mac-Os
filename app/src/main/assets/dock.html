@@ -81,16 +81,20 @@ window.setShot=function(on){shot.style.display=on?'':'none'};
 window.setMag=function(){};
 function fitIcons(){
   var n=apps.children.length; if(!n){return}
-  var sc=document.getElementById('sc'); var avail=sc.clientWidth||0; if(avail<=0)return;
-  var st=document.body.style; st.removeProperty('--ic'); apps.style.gap=''; sc.classList.remove('scroll');
-  var full=parseFloat(getComputedStyle(apps.firstElementChild).width)||40, gap=10, seps=apps.querySelectorAll('.sp').length;
-  var need=(n-seps)*full+(n-1)*gap+seps*4;
+  var sc=document.getElementById('sc'), st=document.body.style;
+  st.removeProperty('--ic'); apps.style.gap=''; sc.classList.remove('scroll');
+  /* Luôn chừa 1 ô trống (bằng nút AI) ở hai đầu dãy icon: đó là chỗ chạm để Back (trái) và Home (phải) */
+  var zone=Math.max(((document.getElementById('ai')||{}).offsetWidth)||24,24);
+  sc.style.paddingLeft=zone+'px'; sc.style.paddingRight=zone+'px';
+  var avail=(sc.clientWidth||0)-2*zone; if(avail<=0)return;
+  var full=parseFloat(getComputedStyle(apps.firstElementChild).width)||40, g=10, seps=apps.querySelectorAll('.sp').length;
+  var need=(n-seps)*full+(n-1)*g+seps*4;
   if(need<=avail)return;
-  /* Thu icon (tối thiểu 16px) và khe hẹp lại cho vừa chiều ngang, kể cả khi Dock dọc */
-  var g=6, w=Math.max(16,Math.floor((avail-(n-1)*g-seps*4)/(n-seps)));
+  /* Thu icon (tối thiểu 16px) và khe hẹp lại cho vừa phần giữa, không đụng hai ô trống */
+  g=6; var w=Math.max(16,Math.floor((avail-(n-1)*g-seps*4)/(n-seps)));
   st.setProperty('--ic',w+'px'); apps.style.gap=g+'px';
   need=(n-seps)*w+(n-1)*g+seps*4;
-  /* Vẫn không vừa: cho vuốt ngang để icon dư vẫn chạm được, không bị cắt mất */
+  /* Vẫn không vừa: vuốt ngang trong phần giữa, hai ô trống vẫn nằm yên */
   if(need>avail) sc.classList.add('scroll');
 }
 window.addEventListener('resize',function(){setTimeout(fitIcons,50)});
@@ -100,7 +104,7 @@ window.addEventListener('resize',function(){setTimeout(fitIcons,50)});
    - BÊN TRÁI icon (giữa nút AI và icon): mỗi lần chạm = Back ngay (không có chạm đôi; chạm lần 2 = Back thêm lần nữa)
    - BÊN PHẢI icon (giữa icon và nút chụp màn hình): chạm 1 lần = về Desktop, chạm 2 lần = mở đa nhiệm */
 var tapDn=null,lastTap=null;
-function tapSide(x){var r=apps.getBoundingClientRect();return x<r.left+r.width/2?'L':'R'}
+function tapSide(x){var r=document.getElementById('sc').getBoundingClientRect();return x<r.left+r.width/2?'L':'R'}
 pill.addEventListener('pointerdown',function(e){tapDn=e.target.closest('.dk,.sb')?null:{x:e.clientX,y:e.clientY,t:Date.now()}});
 pill.addEventListener('pointerup',function(e){
   var d=tapDn;tapDn=null;if(!d)return;var now=Date.now();
