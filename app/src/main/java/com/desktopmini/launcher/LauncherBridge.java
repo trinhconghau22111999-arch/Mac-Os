@@ -794,6 +794,33 @@ public class LauncherBridge {
         @JavascriptInterface public void startVoiceSearch() { act.runOnUiThread(new Runnable() { public void run() { act.voiceKey = null; act.launchVoiceSearch(); } }); }
         /** Mở app con "Gõ văn bản" (trình soạn thảo kiểu Word). */
         @JavascriptInterface public void openTyping() { act.openTy(); }
+        /** Danh sách launcher (trình khởi chạy) đã cài, trừ chính app này (JSON mảng {pkg,label}). */
+        @JavascriptInterface public String listLaunchers() {
+            try {
+                PackageManager pm = act.getPackageManager();
+                java.util.Set<String> seen = new java.util.HashSet<String>();
+                org.json.JSONArray arr = new org.json.JSONArray();
+                for (ResolveInfo r : pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)) {
+                    String pk = r.activityInfo.packageName;
+                    if (pk.equals(act.getPackageName()) || seen.contains(pk)) continue;
+                    boolean real = false;
+                    for (ResolveInfo l : pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(pk), 0))
+                        if (l.activityInfo.name.equals(r.activityInfo.name)) { real = true; break; }
+                    if (!real) continue;
+                    seen.add(pk);
+                    org.json.JSONObject o = new org.json.JSONObject();
+                    o.put("pkg", pk);
+                    o.put("label", pm.getApplicationLabel(r.activityInfo.applicationInfo).toString());
+                    arr.put(o);
+                }
+                return arr.toString();
+            } catch (Exception e) { return "[]"; }
+        }
+        /** Mở launcher đã chọn (ví dụ Lenovo Launcher). */
+        @JavascriptInterface public void openLauncher(String pkg) {
+            Intent i = act.getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i != null) act.go(i);
+        }
         @JavascriptInterface public boolean hasPackage(String pkg) {
             try { return act.getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
         }

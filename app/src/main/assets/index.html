@@ -2414,6 +2414,13 @@ function buildTrash(b,w){
 }
 
 /* ---------- Giới thiệu & Buộc thoát ---------- */
+/* Chọn launcher khác (ví dụ Lenovo Launcher): liệt kê các launcher đã cài, bấm để mở */
+function launcherPicker(){
+  const A=window.AndroidLauncher; let list=[];
+  try{list=JSON.parse(A&&A.listLaunchers?A.listLaunchers():'[]')||[]}catch(e){list=[]}
+  const items=list.length?list.map(x=>({t:x.label,fn:()=>{try{A.openLauncher(x.pkg)}catch(e){}}})):[{t:'Không tìm thấy launcher nào khác',fn:()=>{}}];
+  popAt(innerWidth/2,innerHeight/2,items);
+}
 function buildAbout(b){
   const nv=navigator, sc=window.screen, nr=nativeRows();
   const rows=nr?[['Hệ thống','Desktop Bắp OS 26'],['Bản dựng','Chạy trên Android']].concat(nr,[['Người dùng',userName()]]):[['Hệ thống','Desktop Bắp OS 26'],['Bản dựng','Mô phỏng chạy trên trình duyệt'],['Màn hình',sc.width+' × '+sc.height],['Số lõi xử lý',nv.hardwareConcurrency||'Không rõ'],['Bộ nhớ',nv.deviceMemory?nv.deviceMemory+' GB':'Không rõ'],['Người dùng',userName()]];
@@ -3220,7 +3227,7 @@ function buildMenu(key){
   const ta=w&&$('textarea',w);
   const nw=id&&NEWMAP[id];
   const M={
-    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},'-',homeItem(),{t:'Khởi động lại launcher này',fn:()=>restartLauncher()},{t:'Tắt máy…',fn:()=>shutNow()},{t:'Tắt nguồn…',fn:()=>powerOffNow()},{t:'Khởi động lại…',fn:()=>restartNow()}],
+    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},{t:'Chọn launcher…',fn:()=>launcherPicker()},'-',homeItem(),{t:'Khởi động lại launcher này',fn:()=>restartLauncher()},{t:'Tắt máy…',fn:()=>shutNow()},{t:'Tắt nguồn…',fn:()=>powerOffNow()},{t:'Khởi động lại…',fn:()=>restartNow()}],
     app:w?[{t:'Giới thiệu về '+nm,fn:()=>openApp('about')},'-',{t:'Ẩn '+nm,fn:()=>minWin(w)},'-',{t:'Thoát '+nm,fn:()=>{if(id==='music')musHalt();closeWin(w)}}]:[{t:'Mở Tệp',fn:()=>openApp('files')}],
     file:(nw?[{t:nw[0],fn:()=>{const x=$(nw[1],w);if(x)x.click()}},'-']:[]).concat([{t:'Mở Ghi chú',fn:()=>openApp('notes')},'-',{t:'Đóng cửa sổ',fn:()=>closeWin(w),dis:!w}]),
     edit:[{t:'Hoàn tác',dis:true},{t:'Làm lại',dis:true},'-',{t:'Cắt',fn:()=>{ta.focus();document.execCommand('cut')},dis:!ta},{t:'Sao chép',fn:()=>{ta.focus();document.execCommand('copy')},dis:!ta},{t:'Dán',dis:true},'-',{t:'Chọn tất cả',fn:()=>{ta.focus();ta.select()},dis:!ta}],
