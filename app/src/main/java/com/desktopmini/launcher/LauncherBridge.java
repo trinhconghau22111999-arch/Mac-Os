@@ -647,6 +647,11 @@ public class LauncherBridge {
             } catch (Exception e) { }
             return false;
         }
+        /** Khởi động lại máy ngay: tự bấm "Khởi động lại" trong menu nguồn Android (cần dịch vụ trợ năng đọc được nội dung cửa sổ). */
+        @JavascriptInterface public boolean restartDevice() {
+            if (LockService.inst != null) return LockService.inst.powerRestart();
+            return powerMenu();
+        }
         @JavascriptInterface public boolean powerMenu() {
             if (LockService.inst != null) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
             /* Trợ năng ghi là đã bật nhưng chưa nối (sau khi app bị tắt tiến trình): tự nối lại rồi thử lại, không bắt người dùng vào Cài đặt */

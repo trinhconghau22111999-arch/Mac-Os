@@ -4862,7 +4862,8 @@ if(window.AndroidLauncher){(function(){
   const doPower=()=>{closeAllPopups();if(!safe(()=>A.powerMenu(),false))needA11y()};
   /* Tắt máy = tắt màn hình ngay (không tắt nguồn thật) */
   const doOff=()=>{closeAllPopups();if(!safe(()=>A.lockScreen(),false))needA11y()};
-  lockNow=doLock; sleepNow=doLock; restartNow=doPower; shutNow=doOff;
+  const doRestart=()=>{closeAllPopups();if(!safe(()=>A.restartDevice?A.restartDevice():A.powerMenu(),false))needA11y()};
+  lockNow=doLock; sleepNow=doLock; restartNow=doRestart; shutNow=doOff;
   dmEvery(sync,3000); sync();
   /* thanh trượt -> cài đặt thật */
   document.addEventListener('input',e=>{

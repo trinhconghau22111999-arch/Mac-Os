@@ -116,6 +116,50 @@ public class LockService extends AccessibilityService {
         apply();
         updateTopBar();
     }
+    /* ---- Khởi động lại máy: mở menu nguồn của Android rồi tự bấm mục "Khởi động lại" (và nút xác nhận nếu có) ---- */
+    private boolean clickByTexts(String[] texts) {
+        try {
+            List<AccessibilityWindowInfo> ws = getWindows();
+            if (ws == null) return false;
+            for (AccessibilityWindowInfo w : ws) {
+                android.view.accessibility.AccessibilityNodeInfo root = w.getRoot();
+                if (root == null) continue;
+                try {
+                    if (getPackageName().contentEquals(root.getPackageName() == null ? "" : root.getPackageName())) continue; /* bỏ cửa sổ của chính mình */
+                    for (String t : texts) {
+                        List<android.view.accessibility.AccessibilityNodeInfo> found = root.findAccessibilityNodeInfosByText(t);
+                        if (found == null) continue;
+                        for (android.view.accessibility.AccessibilityNodeInfo n : found) {
+                            android.view.accessibility.AccessibilityNodeInfo c = n; int up = 0;
+                            while (c != null && !c.isClickable() && up++ < 6) c = c.getParent();
+                            if (c != null && c.isClickable() && c.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)) return true;
+                        }
+                    }
+                } finally { try { root.recycle(); } catch (Throwable x) { } }
+            }
+        } catch (Throwable t) { }
+        return false;
+    }
+    public boolean powerRestart() {
+        if (!performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)) return false;
+        final String[] item = {"Khởi động lại", "Restart", "Reboot"};
+        final String[] confirm = {"OK", "Đồng ý", "Yes", "Khởi động lại", "Restart", "Reboot"};
+        final long start = android.os.SystemClock.uptimeMillis();
+        final boolean[] clicked = {false};
+        final long[] clickAt = {0};
+        h.postDelayed(new Runnable() { public void run() {
+            long now = android.os.SystemClock.uptimeMillis();
+            if (!clicked[0]) {
+                if (clickByTexts(item)) { clicked[0] = true; clickAt[0] = now; }
+                else if (now - start > 4000) return; /* không tìm thấy: để nguyên menu cho người dùng tự bấm */
+            } else {
+                if (now - clickAt[0] > 2500) return;
+                if (now - clickAt[0] > 400 && clickByTexts(confirm)) return; /* có hộp xác nhận thì bấm đồng ý */
+            }
+            h.postDelayed(this, 200);
+        } }, 500);
+        return true;
+    }
     @Override public boolean onUnbind(Intent i) { inst = null; tearDown(); return super.onUnbind(i); }
     @Override public void onDestroy() { inst = null; tearDown(); super.onDestroy(); }
     @Override public void onConfigurationChanged(Configuration c) {
