@@ -2117,6 +2117,23 @@ function setTheme(mode){
   lsSet('dm-theme',mode); bus.emit('ui');
 }
 const themeMode=()=>lsGet('dm-theme')||'auto';
+/* Bàn phím ảo: màn hình ngang thì luôn tắt (ô nhập vẫn nhận phím cứng), chỉ bật khi màn hình dọc */
+const KBD_SEL='input,textarea,[contenteditable="true"]';
+function kbdLandscape(){return window.innerWidth>window.innerHeight}
+function applyKbd(){
+  const land=kbdLandscape();
+  document.querySelectorAll(KBD_SEL).forEach(el=>{
+    if(el.matches('input[type=checkbox],input[type=radio],input[type=range],input[type=button],input[type=submit],input[type=file],input[type=color]'))return;
+    if(land)el.setAttribute('inputmode','none'); else if(el.getAttribute('inputmode')==='none')el.removeAttribute('inputmode');
+  });
+  if(land&&document.activeElement&&document.activeElement.matches&&document.activeElement.matches(KBD_SEL))document.activeElement.blur();
+}
+document.addEventListener('focusin',e=>{
+  if(!kbdLandscape()||!e.target.matches||!e.target.matches(KBD_SEL))return;
+  e.target.setAttribute('inputmode','none');
+},true);
+window.addEventListener('resize',applyKbd);
+applyKbd();
 /* Hình nền thống nhất (app Android): một ảnh phủ cả màn hình; thanh menu, Desktop và Dock cùng cắt từ ảnh đó nên khớp nhau */
 window.setDeskWall=function(u){
   let el=document.getElementById('deskwall');
