@@ -298,7 +298,7 @@ public class LockService extends AccessibilityService {
     private final Runnable topTick = new Runnable() { public void run() {
         h.removeCallbacks(topTick);
         if (topBar == null) return;
-        boolean fs = videoFull || externalFullscreenTop();
+        boolean fs = videoFull; /* chỉ ẩn thanh menu khi đang xem video toàn màn hình */
         if (fs != topHidden && android.os.SystemClock.uptimeMillis() >= topPeekUntil) setTopHidden(fs); /* đang hiện tạm (kéo từ trên xuống) thì để bộ đếm 3,5 giây tự ẩn */
         topBar.invalidate();
         h.postDelayed(topTick, 1000);
@@ -342,7 +342,7 @@ public class LockService extends AccessibilityService {
     }
     public static void setBarHide(boolean hide) {
         barHide = hide;
-        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.setTopHidden(barHide || videoFull || s.externalFullscreenTop()); } });
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.setTopHidden(barHide || videoFull); } });
     }
     public static void setBarGeom(int dp) {
         barGeomDp = dp;
@@ -958,7 +958,7 @@ public class LockService extends AccessibilityService {
         h.removeCallbacks(topPeekEnd);
         if (!popId.isEmpty()) { topPeekUntil = android.os.SystemClock.uptimeMillis() + 1000; h.postDelayed(topPeekEnd, 1000); return; } /* menu đang mở: chờ đóng rồi mới ẩn */
         topPeekUntil = 0;
-        if (topBar != null && (videoFull || barHide || externalFullscreenTop())) setTopHidden(true);
+        if (topBar != null && (videoFull || barHide)) setTopHidden(true);
     } };
     private void peekTop() {
         if (topBar == null || topLp == null) return;
