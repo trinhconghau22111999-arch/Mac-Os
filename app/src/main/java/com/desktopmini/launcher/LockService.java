@@ -1521,6 +1521,8 @@ public class LockService extends AccessibilityService {
     private final Object wallLock = new Object();
     private String wallPushed = null; /* data URL đã gửi cho WebView Dock: không gửi lại khi không đổi */
     private static final int WALL_TOP_DP = 64, WALL_DOCK_DP = 200;
+    /** Hình nền toàn màn hình (đã phủ đúng cỡ màn hình) để Desktop hiển thị khớp với thanh menu và Dock. */
+    public static volatile String deskWallUrl = "";
     public static void setWall(String src) {
         String n = src == null ? "" : src;
         if (n.equals(wallSrc)) return;
@@ -1551,7 +1553,7 @@ public class LockService extends AccessibilityService {
         final String src = wallSrc; final int gen = ++wallGen; final Point real = realSize();
         final int topPx = dp(WALL_TOP_DP), dockPx = Math.min(dp(WALL_DOCK_DP), real.y / 2);
         new Thread(new Runnable() { public void run() {
-            Bitmap top = null; String url = "";
+            Bitmap top = null; String url = ""; String deskU = "";
             try {
                 byte[] b = src.length() == 0 ? null : wallBytes(src);
                 Bitmap bm = null;
@@ -1566,6 +1568,10 @@ public class LockService extends AccessibilityService {
                     /* cùng cách phủ "cover, căn giữa" như hình nền của Desktop */
                     float s = Math.max((float) real.x / bm.getWidth(), (float) real.y / bm.getHeight());
                     float x0 = (bm.getWidth() * s - real.x) / 2f, y0 = (bm.getHeight() * s - real.y) / 2f;
+                    Bitmap full = wallStrip(bm, s, x0, y0, real.x, 0, real.y);
+                    java.io.ByteArrayOutputStream fo = new java.io.ByteArrayOutputStream();
+                    full.compress(Bitmap.CompressFormat.JPEG, 85, fo); full.recycle();
+                    deskU = "data:image/jpeg;base64," + android.util.Base64.encodeToString(fo.toByteArray(), android.util.Base64.NO_WRAP);
                     top = wallStrip(bm, s, x0, y0, real.x, 0, topPx);
                     Bitmap bot = wallStrip(bm, s, x0, y0, real.x, real.y - dockPx, dockPx);
                     java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
@@ -1576,10 +1582,11 @@ public class LockService extends AccessibilityService {
                     bm.recycle(); bot.recycle();
                 } else synchronized (wallLock) { if (gen == wallGen) clearWallFiles(); }   /* hình chuyển màu hoặc không đọc được: xoá lát cũ */
             } catch (Throwable t) { top = null; url = ""; synchronized (wallLock) { if (gen == wallGen) clearWallFiles(); } }
-            final Bitmap ft = top; final String fu = url;
+            final Bitmap ft = top; final String fu = url; final String fdesk = deskU;
             h.post(new Runnable() { public void run() {
                 if (gen != wallGen) return;
                 wallTop = ft; wallDockUrl = fu;
+                deskWallUrl = fdesk; pushDeskWall();
                 if (topBar != null) topBar.invalidate();
                 pushDockWall();
             } });
@@ -1607,6 +1614,9 @@ public class LockService extends AccessibilityService {
             byte[] buf = new byte[16384]; int n; while ((n = in.read(buf)) > 0) bo.write(buf, 0, n); in.close();
             if (t != null) { wallTop = t; wallDockUrl = "data:image/jpeg;base64," + android.util.Base64.encodeToString(bo.toByteArray(), android.util.Base64.NO_WRAP); }
         } catch (Throwable t) { }
+    }
+    private void pushDeskWall() {
+        MainActivity.push("setDeskWall", org.json.JSONObject.quote(deskWallUrl));
     }
     private void pushDockWall() {
         if (dockWeb == null || !dockReady) return;

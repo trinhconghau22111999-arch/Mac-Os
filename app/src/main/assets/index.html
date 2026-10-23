@@ -1011,6 +1011,7 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .br .nv button{min-width:52px;width:52px;height:52px;padding:0;border-radius:50%}
 body.native{padding:0;box-sizing:border-box;background:transparent}
 body.native .stage{border-radius:0;min-height:0}
+body.deskwall-on .stage{background:transparent!important}
 </style>
 
 <style>
@@ -2116,6 +2117,13 @@ function setTheme(mode){
   lsSet('dm-theme',mode); bus.emit('ui');
 }
 const themeMode=()=>lsGet('dm-theme')||'auto';
+/* Hình nền thống nhất (app Android): một ảnh phủ cả màn hình; thanh menu, Desktop và Dock cùng cắt từ ảnh đó nên khớp nhau */
+window.setDeskWall=function(u){
+  let el=document.getElementById('deskwall');
+  if(!el){el=document.createElement('div');el.id='deskwall';el.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:0;pointer-events:none;background-repeat:no-repeat;background-size:100% 100%;background-position:0 0';document.body.insertBefore(el,document.body.firstChild)}
+  el.style.backgroundImage=u?'url("'+u+'")':'';
+  document.body.classList.toggle('deskwall-on',!!u);
+};
 function setWall(n){lsSet('dm-photowall','');stage.style.backgroundImage='';stage.style.backgroundSize='';stage.style.backgroundPosition='';lsSet('dm-syswall','');stage.dataset.wall=n;lsSet('dm-wall',n);bus.emit('ui')}
 function applyPrefs(){
   $('#wifi').classList.toggle('off',!pref('wifi',true));
@@ -4647,6 +4655,7 @@ if(window.AndroidLauncher){(function(){
       let src='';
       if(/^url\(["']?data:/i.test(bi.slice(0,24))){ const s0=bi.indexOf('data:'); let e=bi.lastIndexOf(')'); if(bi[e-1]==='"'||bi[e-1]==="'")e--; src=bi.slice(s0,e) }
       else if(/^url\(.*wallpaper\.jpg/i.test(bi.slice(0,300))) src='asset';
+      else if(!src&&stage.dataset.wall==='0'&&!stage.style.backgroundImage) src='asset';
       const sig=src.length+':'+src.slice(0,40)+src.slice(-40);
       if(sig===_wsig)return; _wsig=sig; A.setBarWall(src);
     }catch(e){}
@@ -4655,6 +4664,8 @@ if(window.AndroidLauncher){(function(){
   let _bwT=0; const bwSoon=()=>{clearTimeout(_bwT);_bwT=setTimeout(pushBarWall,400)};
   try{new MutationObserver(bwSoon).observe(stage,{attributes:true,attributeFilter:['style','data-wall']})}catch(e){}
   bwSoon(); setTimeout(pushBarWall,2000);
+  const loadDeskWall=()=>{try{const A=window.AndroidLauncher; if(A&&A.deskWall)setDeskWall(A.deskWall()||'')}catch(e){}};
+  loadDeskWall(); setTimeout(loadDeskWall,1500);
   let _dd='';
   function markND(){try{const A=window.AndroidLauncher;document.body.classList.toggle('nd',!!(A&&A.dockOverlayLive&&A.dockOverlayLive()&&pref('dockFloat',true)))}catch(e){}}
   dmEvery(markND,2500);

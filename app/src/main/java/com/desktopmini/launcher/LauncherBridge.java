@@ -794,6 +794,8 @@ public class LauncherBridge {
         @JavascriptInterface public void startVoiceSearch() { act.runOnUiThread(new Runnable() { public void run() { act.voiceKey = null; act.launchVoiceSearch(); } }); }
         /** Mở app con "Gõ văn bản" (trình soạn thảo kiểu Word). */
         @JavascriptInterface public void openTyping() { act.openTy(); }
+        /** Hình nền toàn màn hình hiện tại (data URL), rỗng nếu không dùng hình. */
+        @JavascriptInterface public String deskWall() { return LockService.deskWallUrl; }
         /** Danh sách launcher (trình khởi chạy) đã cài, trừ chính app này (JSON mảng {pkg,label}). */
         @JavascriptInterface public String listLaunchers() {
             try {
