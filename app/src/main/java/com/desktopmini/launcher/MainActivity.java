@@ -607,6 +607,31 @@ public class MainActivity extends Activity {
     }
 
 
+    /** Sau khi app bị tắt tiến trình (văng, hết RAM, "Khởi động lại launcher"), Android 7 vẫn ghi dịch vụ trợ năng là ĐÃ BẬT nhưng không nối lại nữa:
+     *  Dock/thanh Desktop mất, chừa khoảng trống bằng thanh đa nhiệm, menu nguồn đòi bật trợ năng. Có quyền WRITE_SECURE_SETTINGS thì tự tắt rồi bật lại
+     *  dịch vụ (đúng như người dùng làm tay) để hệ thống nối lại. Trả true nếu đã bắt đầu nối lại. */
+    private long lastHeal = 0;
+    boolean healA11y(boolean force) {
+        try {
+            if (LockService.isRunning() || !a11yOn() || !hasSecureWrite()) return false;
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (!force && now - lastHeal < 30000) return false;
+            if (now - lastHeal < 4000) return true; /* đang nối lại */
+            lastHeal = now;
+            final android.content.ContentResolver cr = getContentResolver();
+            final String key = Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES;
+            final String cur = Settings.Secure.getString(cr, key);
+            if (cur == null) return false;
+            StringBuilder sb = new StringBuilder();
+            for (String t : cur.split(":")) { if (t.length() == 0 || t.startsWith(getPackageName() + "/")) continue; if (sb.length() > 0) sb.append(':'); sb.append(t); }
+            Settings.Secure.putString(cr, key, sb.toString());
+            root.postDelayed(new Runnable() { public void run() {
+                try { Settings.Secure.putString(cr, key, cur); Settings.Secure.putInt(cr, Settings.Secure.ACCESSIBILITY_ENABLED, 1); } catch (Throwable t) { }
+            } }, 700);
+            return true;
+        } catch (Throwable t) { return false; }
+    }
+
     private static final String SS_CMD = "pm grant com.desktopmini.launcher android.permission.WRITE_SECURE_SETTINGS";
     private boolean hasSecureWrite() {
         return checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") == PackageManager.PERMISSION_GRANTED;
@@ -742,7 +767,7 @@ public class MainActivity extends Activity {
         super.onResume();
         powerRxStart();
         inFg = true; lastTouchAt = android.os.SystemClock.elapsedRealtime();
-        imeUp = false; hideBars(); LockService.launcherResumed(); reportDockGap(); root.postDelayed(new Runnable() { public void run() { reportDockGap(); } }, 700); prefetchApps(); scanNewMedia(); startMediaWatch();
+        imeUp = false; hideBars(); LockService.launcherResumed(); root.postDelayed(new Runnable() { public void run() { healA11y(false); } }, 2500); reportDockGap(); root.postDelayed(new Runnable() { public void run() { reportDockGap(); } }, 700); prefetchApps(); scanNewMedia(); startMediaWatch();
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) { try { if (e.getValue().getVisibility() == View.VISIBLE) { e.getValue().onResume(); extHiddenAt.remove(e.getKey()); } } catch (Exception x) { } }
         web.evaluateJavascript("window.nativeReload&&window.nativeReload()", null);
         if (!askingRuntime) root.post(new Runnable() { public void run() { setupNext(); } });

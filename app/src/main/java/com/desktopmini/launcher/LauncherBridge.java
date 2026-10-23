@@ -649,6 +649,15 @@ public class LauncherBridge {
         }
         @JavascriptInterface public boolean powerMenu() {
             if (LockService.inst != null) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
+            /* Trợ năng ghi là đã bật nhưng chưa nối (sau khi app bị tắt tiến trình): tự nối lại rồi thử lại, không bắt người dùng vào Cài đặt */
+            if (act.a11yOn()) {
+                if (act.healA11y(true)) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() { public void run() {
+                        try { if (LockService.inst != null) LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG); } catch (Throwable t) { }
+                    } }, 1800);
+                    return true;
+                }
+            }
             act.go(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return false;
         }
         /* ---- Dock nổi trên app khác (qua dịch vụ trợ năng) ---- */
