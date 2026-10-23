@@ -72,8 +72,10 @@ function buildCamera(b,w){
   let recOn=false, mr=null, recAud=null, recT0=0, recTm=null, recChain=Promise.resolve(), recMime='', recOk=true;
   const mmss2=ms=>{const t=Math.floor(ms/1000);return pad(Math.floor(t/60))+':'+pad(t%60)};
   const b64of=bl=>new Promise(r=>{const f=new FileReader();f.onload=()=>{const x=String(f.result);r(x.slice(x.indexOf(',')+1))};f.onerror=()=>r('');f.readAsDataURL(bl)});
+  let recDone=Promise.resolve();
   async function startRec(){
     const A=window.AndroidLauncher;
+    await recDone; /* đoạn trước còn đang lưu thì chờ xong */
     if(!stream){warn('Chưa quay được','Camera chưa sẵn sàng.');return}
     if(!window.MediaRecorder){warn('Không quay được','Thiết bị này không hỗ trợ quay video trong ứng dụng.');return}
     if(!(A&&A.videoBegin)){warn('Không quay được','Hãy cập nhật ứng dụng.');return}
@@ -92,7 +94,7 @@ function buildCamera(b,w){
     mr.ondataavailable=e=>{ if(e.data&&e.data.size){recChain=recChain.then(()=>b64of(e.data)).then(x=>{ if(!x||!A.videoChunk(x))recOk=false }).catch(()=>{recOk=false})} };
     mr.onstop=()=>{
       if(recAud){recAud.getTracks().forEach(t=>t.stop());recAud=null}
-      recChain.then(()=>{
+      recDone=recChain.then(()=>{
         let p=''; try{p=A.videoEnd()}catch(e){}
         if(!p||!recOk){warn('Không lưu được video','Kiểm tra quyền truy cập tệp rồi thử lại.');return}
         notify({app:'Webcam',title:'Đã lưu video',body:'Thư mục Video của máy',icon:'camera'});

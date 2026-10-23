@@ -513,7 +513,11 @@ public class MainActivity extends Activity {
         ArrayList<String> need = new ArrayList<String>();
         if (Build.VERSION.SDK_INT >= 33) {
             need.add(Manifest.permission.READ_MEDIA_AUDIO); need.add(Manifest.permission.READ_MEDIA_IMAGES); need.add(Manifest.permission.READ_MEDIA_VIDEO); need.add(Manifest.permission.POST_NOTIFICATIONS);
-        } else need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        } else {
+            need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            /* Android 9 trở xuống: lưu ảnh/video vào Pictures, Movies cần quyền ghi bộ nhớ (xin lúc chạy, không chỉ khai trong manifest) */
+            if (Build.VERSION.SDK_INT < 29) need.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
         if (Build.VERSION.SDK_INT >= 31) { need.add(Manifest.permission.BLUETOOTH_CONNECT); need.add(Manifest.permission.BLUETOOTH_SCAN); }
         need.add(Manifest.permission.RECORD_AUDIO);
         need.add(Manifest.permission.CAMERA);
