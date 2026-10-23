@@ -796,6 +796,7 @@ public class LauncherBridge {
         @JavascriptInterface public void openTyping() { act.openTy(); }
         /** Hình nền toàn màn hình hiện tại (data URL), rỗng nếu không dùng hình. */
         @JavascriptInterface public String deskWall() { return LockService.deskWallUrl; }
+        @JavascriptInterface public String deskWallBox() { return MainActivity.deskBox(); }
         /** Danh sách launcher (trình khởi chạy) đã cài, trừ chính app này (JSON mảng {pkg,label}). */
         @JavascriptInterface public String listLaunchers() {
             try {

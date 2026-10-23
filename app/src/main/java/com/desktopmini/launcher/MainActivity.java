@@ -705,8 +705,20 @@ public class MainActivity extends Activity {
             int[] loc = new int[2]; root.getLocationOnScreen(loc);
             android.graphics.Point p = new android.graphics.Point(); getWindowManager().getDefaultDisplay().getRealSize(p);
             if (root.getHeight() > 0) LockService.setDesktopGap(p.y - (loc[1] + root.getHeight()));
+            push("setDeskWallBox", deskBoxJson());
         } catch (Throwable t) { }
     }
+    /** Vị trí/cỡ màn hình thật so với khung giao diện (CSS px): [trái, trên, rộng, cao] của màn hình thật tính từ góc khung.
+     *  Hình nền Desktop phải phủ đúng khung này thì mới khớp với lát Dock/thanh menu (được cắt theo cỡ màn hình thật). */
+    String deskBoxJson() {
+        try {
+            int[] loc = new int[2]; root.getLocationOnScreen(loc);
+            android.graphics.Point p = new android.graphics.Point(); getWindowManager().getDefaultDisplay().getRealSize(p);
+            float d = getResources().getDisplayMetrics().density;
+            return "[" + (-loc[0] / d) + "," + (-loc[1] / d) + "," + (p.x / d) + "," + (p.y / d) + "]";
+        } catch (Throwable t) { return "[0,0,0,0]"; }
+    }
+    static String deskBox() { final MainActivity a = inst; return a == null || a.root == null ? "[0,0,0,0]" : a.deskBoxJson(); }
     @Override protected void onResume() {
         super.onResume();
         maybeAskCompanion();

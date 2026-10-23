@@ -2140,6 +2140,15 @@ window.setDeskWall=function(u){
   if(!el){el=document.createElement('div');el.id='deskwall';el.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:0;pointer-events:none;background-repeat:no-repeat;background-size:100% 100%;background-position:0 0';document.body.insertBefore(el,document.body.firstChild)}
   el.style.backgroundImage=u?'url("'+u+'")':'';
   document.body.classList.toggle('deskwall-on',!!u);
+  try{window.setDeskWallBox(window.__dwBox)}catch(e){}
+};
+/* Hình nền Desktop phải đúng bằng màn hình thật (cùng cỡ với lát Dock/thanh menu): khung giao diện có thể thấp hơn màn hình thật
+   (hở dưới/đệm trên) nên không dùng inset:0 mà đặt theo [trái, trên, rộng, cao] màn hình thật tính từ góc khung */
+window.setDeskWallBox=function(b){
+  if(b&&b.length===4&&b[2]>0&&b[3]>0)window.__dwBox=b; else b=window.__dwBox;
+  const el=document.getElementById('deskwall'); if(!el||!b||b.length!==4||!(b[2]>0))return;
+  const st=el.style; st.right='auto'; st.bottom='auto';
+  st.left=b[0]+'px'; st.top=b[1]+'px'; st.width=b[2]+'px'; st.height=b[3]+'px';
 };
 function setWall(n){lsSet('dm-photowall','');stage.style.backgroundImage='';stage.style.backgroundSize='';stage.style.backgroundPosition='';lsSet('dm-syswall','');stage.dataset.wall=n;lsSet('dm-wall',n);bus.emit('ui')}
 function applyPrefs(){
@@ -4681,7 +4690,8 @@ if(window.AndroidLauncher){(function(){
   let _bwT=0; const bwSoon=()=>{clearTimeout(_bwT);_bwT=setTimeout(pushBarWall,400)};
   try{new MutationObserver(bwSoon).observe(stage,{attributes:true,attributeFilter:['style','data-wall']})}catch(e){}
   bwSoon(); setTimeout(pushBarWall,2000);
-  const loadDeskWall=()=>{try{const A=window.AndroidLauncher; if(A&&A.deskWall)setDeskWall(A.deskWall()||'')}catch(e){}};
+  const loadDeskWall=()=>{try{const A=window.AndroidLauncher; if(A&&A.deskWallBox){try{window.__dwBox=JSON.parse(A.deskWallBox())}catch(e){}} if(A&&A.deskWall)setDeskWall(A.deskWall()||'')}catch(e){}};
+  window.addEventListener('resize',()=>setTimeout(loadDeskWall,150));
   loadDeskWall(); setTimeout(loadDeskWall,1500);
   let _dd='';
   function markND(){try{const A=window.AndroidLauncher;document.body.classList.toggle('nd',!!(A&&A.dockOverlayLive&&A.dockOverlayLive()&&pref('dockFloat',true)))}catch(e){}}
