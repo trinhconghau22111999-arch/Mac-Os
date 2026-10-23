@@ -1115,7 +1115,7 @@ public class LockService extends AccessibilityService {
     /** Đặt cửa sổ theo toạ độ tuyệt đối từ mép trên của màn hình THẬT (như thanh Desktop cũ) nên đè được lên thanh điều hướng. */
     private void placeDock(WindowManager.LayoutParams lp) {
         Point real = realSize(); int hh = dockBarPx() + dockGrowPx();
-        lp.width = real.x; lp.height = hh; lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = real.y - hh + dockYAdj;
+        lp.width = real.x; lp.height = hh; lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = real.y - hh + dockYAdj; int ime = imeTop(); if (ime > 0 && ime < real.y) lp.y = Math.min(lp.y, ime - hh); /* Dock nổi ngay trên bàn phím, không che phím */
     }
     /* Hệ thống có thể tính toạ độ y từ mép trên VÙNG NỘI DUNG (dưới thanh trạng thái) chứ không phải mép trên màn hình thật => cửa sổ bị đẩy xuống.
      * Đo vị trí thật của cửa sổ Dock trên màn hình rồi bù đúng phần lệch (tối đa vài lần mỗi lần hiện, không dao động). */
@@ -1159,10 +1159,10 @@ public class LockService extends AccessibilityService {
         relayoutDock(); /* đổi giữa Desktop/app khác, xoay màn hình, hoặc đo được thanh hệ thống cao hơn: chỉnh lại vị trí/chiều cao */
                 if (android.os.SystemClock.uptimeMillis() >= dockQuietUntil) {
             boolean peeking = android.os.SystemClock.uptimeMillis() < dockPeekUntil;
-            boolean hide = imeShown() || barHide || (dockAutoHide && !peeking); /* Dock luôn nổi; chỉ nhường chỗ cho bàn phím/khóa màn hình, hoặc tự ẩn nếu bật trong Cài đặt */
+            boolean hide = barHide || (dockAutoHide && !peeking); /* Dock luôn nổi; chỉ nhường chỗ cho bàn phím/khóa màn hình, hoặc tự ẩn nếu bật trong Cài đặt */
             boolean gate = !frontKnown && android.os.SystemClock.uptimeMillis() < frontGateUntil;
             if (hide && dockShown) hideDockBar(); else if (!hide && !dockShown && !gate) showDockBar();
-            if (dockAutoHide && !dockShown && !(imeShown() || barHide)) showHot(); else hideHot();
+            if (dockAutoHide && !dockShown && !barHide) showHot(); else hideHot();
         }
         h.postDelayed(dockTick, (!frontKnown && android.os.SystemClock.uptimeMillis() < frontGateUntil) ? 150 : 700);
     } };
@@ -1189,6 +1189,16 @@ public class LockService extends AccessibilityService {
     private void hideHot() {
         if (hotView != null) { try { wm.removeView(hotView); } catch (Exception e) { } }
         hotView = null;
+    }
+    /** Mép trên của bàn phím đang hiện trên màn hình (-1 nếu không có bàn phím). */
+    private int imeTop() {
+        try {
+            List<AccessibilityWindowInfo> ws = getWindows();
+            if (ws != null) for (AccessibilityWindowInfo w : ws) if (w.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
+                Rect r = new Rect(); w.getBoundsInScreen(r); return r.top;
+            }
+        } catch (Throwable t) { }
+        return -1;
     }
     private boolean imeShown() {
         try {
