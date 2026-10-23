@@ -298,7 +298,7 @@ public class LockService extends AccessibilityService {
     private final Runnable topTick = new Runnable() { public void run() {
         h.removeCallbacks(topTick);
         if (topBar == null) return;
-        boolean fs = videoFull; /* chỉ ẩn thanh menu khi đang xem video toàn màn hình */
+        boolean fs = videoFull || externalFullscreenTop();
         if (fs != topHidden && android.os.SystemClock.uptimeMillis() >= topPeekUntil) setTopHidden(fs); /* đang hiện tạm (kéo từ trên xuống) thì để bộ đếm 3,5 giây tự ẩn */
         topBar.invalidate();
         h.postDelayed(topTick, 1000);
@@ -317,6 +317,17 @@ public class LockService extends AccessibilityService {
         return Math.max(Math.max(hh, dp(24)), dp(barGeomDp));
     }
     /** App ngoài đang phủ tới tận mép trên (không còn thanh trạng thái) = đang toàn màn hình. */
+    /** Cửa sổ của chính New OS, app phụ, Cài đặt hệ thống hay SystemUI: không coi là video toàn màn hình. */
+    private boolean ownOrSystemWindow(AccessibilityWindowInfo w) {
+        android.view.accessibility.AccessibilityNodeInfo root = null;
+        try {
+            root = w.getRoot();
+            if (root == null || root.getPackageName() == null) return false;
+            String pk = root.getPackageName().toString();
+            return pk.equals(getPackageName()) || pk.equals(MainActivity.WEB_PKG) || pk.equals("com.android.settings") || pk.equals("com.android.systemui");
+        } catch (Throwable t) { return false; }
+        finally { if (root != null) { try { root.recycle(); } catch (Throwable t) { } } }
+    }
     private boolean externalFullscreenTop() {
         if (launcherFront || wm == null) return false;
         try {
@@ -326,7 +337,8 @@ public class LockService extends AccessibilityService {
             for (AccessibilityWindowInfo w : ws) {
                 if (w.getType() != AccessibilityWindowInfo.TYPE_APPLICATION || !(w.isActive() || w.isFocused())) continue;
                 Rect r = new Rect(); w.getBoundsInScreen(r);
-                return r.top <= 0 && r.width() >= real.x - dp(2) && r.height() >= real.y - dp(2);
+                if (!(r.top <= 0 && r.width() >= real.x - dp(2) && r.height() >= real.y - dp(2))) return false;
+                return !ownOrSystemWindow(w);
             }
         } catch (Throwable t) { }
         return false;
@@ -342,7 +354,7 @@ public class LockService extends AccessibilityService {
     }
     public static void setBarHide(boolean hide) {
         barHide = hide;
-        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.setTopHidden(barHide || videoFull); } });
+        final LockService s = inst; if (s != null) s.h.post(new Runnable() { public void run() { s.setTopHidden(barHide || videoFull || s.externalFullscreenTop()); } });
     }
     public static void setBarGeom(int dp) {
         barGeomDp = dp;
@@ -958,7 +970,7 @@ public class LockService extends AccessibilityService {
         h.removeCallbacks(topPeekEnd);
         if (!popId.isEmpty()) { topPeekUntil = android.os.SystemClock.uptimeMillis() + 1000; h.postDelayed(topPeekEnd, 1000); return; } /* menu đang mở: chờ đóng rồi mới ẩn */
         topPeekUntil = 0;
-        if (topBar != null && (videoFull || barHide)) setTopHidden(true);
+        if (topBar != null && (videoFull || barHide || externalFullscreenTop())) setTopHidden(true);
     } };
     private void peekTop() {
         if (topBar == null || topLp == null) return;

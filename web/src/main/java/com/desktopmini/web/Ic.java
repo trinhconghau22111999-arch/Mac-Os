@@ -37,7 +37,7 @@ final class Ic extends View {
 
     @Override protected void onDraw(Canvas c) {
         float w = getWidth(), h = getHeight(), cx = w / 2f, cy = h / 2f, u = Math.min(w, h) / 44f;
-        p.setColor(0xFF3A3A3C);
+        p.setColor(tint);
         p.setStyle(Paint.Style.STROKE);
         switch (kind) {
             case MENU:
@@ -90,5 +90,7 @@ final class Ic extends View {
         }
     }
 
+    int tint = 0xFF3A3A3C;
+    static Ic mkW(Context c, int kind, OnClickListener l) { Ic i = make(c, kind, l); i.tint = 0xFFFFFFFF; return i; }
     static Ic make(Context c, int kind, OnClickListener l) { Ic i = new Ic(c, kind, l); i.setLayoutParams(new LinearLayout.LayoutParams(GeckoCore.dp(c, 42), GeckoCore.dp(c, 44))); return i; }
 }

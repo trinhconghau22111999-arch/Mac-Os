@@ -108,18 +108,18 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
     private void buildUi() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFFE9E9EE);
+        root.setBackgroundColor(0xFF2B1B4A);
 
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setPadding(dp(4), 0, dp(4), 0);
 
-        final Ic menu = Ic.make(this, Ic.MENU, null);
+        final Ic menu = Ic.mkW(this, Ic.MENU, null);
         menu.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { showMenu(menu); } });
-        icBack = Ic.make(this, Ic.BACK, new View.OnClickListener() { public void onClick(View v) { if (session() != null) session().goBack(); } });
-        icFwd = Ic.make(this, Ic.FWD, new View.OnClickListener() { public void onClick(View v) { if (session() != null) session().goForward(); } });
-        Ic icReload = Ic.make(this, Ic.RELOAD, new View.OnClickListener() { public void onClick(View v) { if (session() != null) session().reload(); } });
+        icBack = Ic.mkW(this, Ic.BACK, new View.OnClickListener() { public void onClick(View v) { if (session() != null) session().goBack(); } });
+        icFwd = Ic.mkW(this, Ic.FWD, new View.OnClickListener() { public void onClick(View v) { if (session() != null) session().goForward(); } });
+        Ic icReload = Ic.mkW(this, Ic.RELOAD, new View.OnClickListener() { public void onClick(View v) { if (session() != null) session().reload(); } });
         addr = new EditText(this);
         addr.setSingleLine(true);
         addr.setTextSize(14);
@@ -128,7 +128,8 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         addr.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         addr.setImeOptions(EditorInfo.IME_ACTION_GO);
         addr.setPadding(dp(12), 0, dp(12), 0);
-        GradientDrawable ab = new GradientDrawable(); ab.setColor(Color.WHITE); ab.setCornerRadius(dp(18));
+        addr.setTextColor(0xFF1E1633); addr.setHintTextColor(0xFF8A80A6);
+        GradientDrawable ab = new GradientDrawable(); ab.setColor(0xFFF2EEFA); ab.setCornerRadius(dp(19));
         addr.setBackground(ab);
         addr.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override public boolean onEditorAction(TextView v, int actionId, KeyEvent e) {
@@ -138,9 +139,9 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         });
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(0, dp(36), 1f);
         alp.leftMargin = dp(4); alp.rightMargin = dp(4);
-        icStar = Ic.make(this, Ic.STAR, new View.OnClickListener() { public void onClick(View v) { toggleBookmark(); } });
-        icDown = Ic.make(this, Ic.DOWN, new View.OnClickListener() { public void onClick(View v) { if ("dl".equals(panelKind)) closePanel(); else openPanel("dl"); } });
-        Ic icPlus = Ic.make(this, Ic.PLUS, new View.OnClickListener() { public void onClick(View v) { closePanel(); newTab("", true); addr.requestFocus(); } });
+        icStar = Ic.mkW(this, Ic.STAR, new View.OnClickListener() { public void onClick(View v) { toggleBookmark(); } });
+        icDown = Ic.mkW(this, Ic.DOWN, new View.OnClickListener() { public void onClick(View v) { if ("dl".equals(panelKind)) closePanel(); else openPanel("dl"); } });
+        Ic icPlus = Ic.mkW(this, Ic.PLUS, new View.OnClickListener() { public void onClick(View v) { closePanel(); newTab("", true); addr.requestFocus(); } });
 
         top.addView(menu); top.addView(icBack); top.addView(icFwd); top.addView(icReload);
         top.addView(addr, alp);
@@ -159,7 +160,8 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         tabStrip.setGravity(Gravity.CENTER_VERTICAL);
         tabStrip.setPadding(dp(4), dp(2), dp(4), dp(2));
         tabScroll.addView(tabStrip, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        root.addView(tabScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38)));
+        tabScroll.setBackgroundColor(0xFFE9E3F5);
+        root.addView(tabScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34)));
 
         content = new FrameLayout(this);
         content.setBackgroundColor(Color.WHITE);
@@ -205,9 +207,6 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
     private void showMenu(View anchor) {
         PopupMenu m = new PopupMenu(this, anchor);
         m.getMenu().add(0, 1, 0, "Lịch sử");
-        m.getMenu().add(0, 2, 1, "Dấu trang");
-        m.getMenu().add(0, 3, 2, "Tải xuống");
-        m.getMenu().add(0, 4, 3, "Đóng trình duyệt");
         m.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             @Override public boolean onMenuItemClick(android.view.MenuItem it) {
                 switch (it.getItemId()) {
@@ -318,7 +317,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
             tv.setText(x.title.length() > 0 ? x.title : (x.url.length() > 0 ? hostOf(x.url) : "Thẻ mới"));
             tv.setSingleLine(true); tv.setEllipsize(TextUtils.TruncateAt.END);
             tv.setMaxWidth(dp(150)); tv.setTextSize(12.5f);
-            tv.setTextColor(i == cur ? 0xFF1C1C1E : 0xFF555560);
+            tv.setTextColor(i == cur ? 0xFF2B1B4A : 0xFF5A4A7A);
             if (i == cur) tv.setTypeface(Typeface.DEFAULT_BOLD);
             TextView cx = new TextView(this);
             cx.setText("\u00D7"); cx.setTextSize(18); cx.setGravity(Gravity.CENTER); cx.setTextColor(0xFF666670);

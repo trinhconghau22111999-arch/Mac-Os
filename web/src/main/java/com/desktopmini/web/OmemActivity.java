@@ -64,7 +64,7 @@ public class OmemActivity extends Activity {
     private void handle(Intent it) {
         String p = it == null ? null : it.getStringExtra("profile");
         boolean up = it != null && it.getBooleanExtra("upload", false);
-        if (p != null && valid(p)) open(p, up);
+        if (p != null && valid(p)) open(p, up); else open("anh", false); /* mặc định vào thẳng trang Ảnh */
     }
 
     private void buildUi() {
@@ -313,7 +313,7 @@ public class OmemActivity extends Activity {
 
     @Override public void onBackPressed() {
         if (session != null && backOk) { session.goBack(); return; }
-        if (session != null) { dropSession(); showHome(); return; }
+        if (session != null) { dropSession(); finish(); return; }
         finish();
     }
 
