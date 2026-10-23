@@ -148,7 +148,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         top.addView(menu); top.addView(icBack); top.addView(icFwd); top.addView(icReload);
         top.addView(addr, alp);
         Ic icClose = Ic.mkW(this, Ic.CLOSE, new View.OnClickListener() { public void onClick(View v) { finish(); } });   /* đóng hẳn trình duyệt */
-        top.addView(icStar); top.addView(icDown); top.addView(icStars) top.addView(icClose);
+        top.addView(icStar); top.addView(icDown); top.addView(icStars); top.addView(icClose);
         root.addView(top, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
 
         bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
