@@ -192,8 +192,9 @@ public class LockService extends AccessibilityService {
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
         if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
-        trackExt(pk);
-        dismissPop(); fgLabel = labelOf(pk); if (topBar != null) topBar.invalidate();
+        String key = ExtKey.of(pk, e.getClassName());
+        if (key != null) trackExt(key);
+        dismissPop(); if (key != null) fgLabel = labelOf(key); if (topBar != null) topBar.invalidate();
         videoFull = false; /* app khác lên trước: không còn video của mình ở toàn màn hình */
         setLauncherFront(false);
     }
@@ -305,7 +306,7 @@ public class LockService extends AccessibilityService {
     } };
 
     private String labelOf(String pk) {
-        try { return getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(pk, 0)).toString(); }
+        try { return ExtKey.label(getPackageManager(), pk); }
         catch (Throwable t) { return ""; }
     }
     private int statusBarHeight() {
@@ -1327,8 +1328,9 @@ public class LockService extends AccessibilityService {
     private final java.util.LinkedList<String> extPk = new java.util.LinkedList<String>();
     private final java.util.HashMap<String, String> extIcons = new java.util.HashMap<String, String>();
     private Set<String> homePk;
-    private void trackExt(String pk) {
+    private void trackExt(String key) {
         try {
+            String pk = ExtKey.pkgOf(key);
             if (pk.equals("android") || pk.equals(getPackageName())) return;
             if (homePk == null) {
                 homePk = new HashSet<String>();
@@ -1342,17 +1344,17 @@ public class LockService extends AccessibilityService {
                 }
             }
             if (homePk.contains(pk)) return;
-            if (getPackageManager().getLaunchIntentForPackage(pk) == null) return;
+            if (ExtKey.launchIntent(getPackageManager(), key) == null) return;
         } catch (Throwable t) { return; }
-        if (!extPk.isEmpty() && extPk.getFirst().equals(pk)) return;
-        extPk.remove(pk); extPk.addFirst(pk);
+        if (!extPk.isEmpty() && extPk.getFirst().equals(key)) return;
+        extPk.remove(key); extPk.addFirst(key);
         while (extPk.size() > 4) extPk.removeLast();
         pushExt();
     }
     private String extIconUrl(String p) {
         String u = extIcons.get(p); if (u != null) return u;
         try {
-            android.graphics.drawable.Drawable d = getPackageManager().getApplicationIcon(p);
+            android.graphics.drawable.Drawable d = ExtKey.icon(getPackageManager(), p);
             int sz = dp(48);
             Bitmap b = Bitmap.createBitmap(sz, sz, Bitmap.Config.ARGB_8888);
             d.setBounds(0, 0, sz, sz); d.draw(new Canvas(b));
@@ -1392,7 +1394,7 @@ public class LockService extends AccessibilityService {
     }
     private void openExternal(String pk) {
         try {
-            Intent i = getPackageManager().getLaunchIntentForPackage(pk);
+            Intent i = ExtKey.launchIntent(getPackageManager(), pk);
             if (i != null) { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)); noteExt(this, pk); }
         } catch (Throwable t) { }
     }

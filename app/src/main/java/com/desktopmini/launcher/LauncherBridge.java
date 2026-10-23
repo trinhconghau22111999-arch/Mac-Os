@@ -828,7 +828,7 @@ public class LauncherBridge {
             try { return act.getPackageManager().getLaunchIntentForPackage(pkg) != null; } catch (Exception e) { return false; }
         }
         @JavascriptInterface public void launchApp(String pkg) {
-            Intent i = act.getPackageManager().getLaunchIntentForPackage(pkg);
+            Intent i = ExtKey.launchIntent(act.getPackageManager(), pkg);
             if (i != null) act.go(i);
         }
         /** Các app ngoài đã mở từ Dock nổi (JSON mảng pkg, mới nhất trước); đọc xong thì xóa để không lặp. */
@@ -837,9 +837,8 @@ public class LauncherBridge {
         @JavascriptInterface public String appInfo(String pkg) {
             try {
                 PackageManager pm = act.getPackageManager();
-                android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
                 JSONObject o = new JSONObject();
-                o.put("label", pm.getApplicationLabel(ai).toString()); o.put("pkg", pkg); o.put("icon", act.icon(pm.getApplicationIcon(ai), 96));
+                o.put("label", ExtKey.label(pm, pkg)); o.put("pkg", pkg); o.put("icon", act.icon(ExtKey.icon(pm, pkg), 96));
                 return o.toString();
             } catch (Exception e) { return ""; }
         }
@@ -849,7 +848,7 @@ public class LauncherBridge {
             if (pkg == null || pkg.equals(act.getPackageName())) return false;
             LockService.forgetExt(pkg);   /* gỡ icon app này khỏi Dock nổi dù có tắt được tiến trình hay không */
             try {
-                ((ActivityManager) act.getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pkg);
+                ((ActivityManager) act.getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(ExtKey.pkgOf(pkg));
                 return true;
             } catch (Exception e) { return false; }
         }

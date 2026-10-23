@@ -54,7 +54,7 @@ window.setLayout=function(h,pad){var st=document.body.style;st.setProperty('--ba
 window.setBase=function(b){document.body.style.setProperty('--base',b+'px')};
 window.setIcs=function(v){document.body.setAttribute('data-ics',v||'round')};
 var lastList=[],lastExt=[];
-function ico(a){return '<button class="dk'+(a.r?' run':'')+'" type="button" data-p="'+(a.p===0?0:1)+'" data-id="'+esc(a.id)+'" aria-label="'+esc(a.name)+'"><span class="ic" style="background:'+a.bg+'">'+a.g+'</span></button>'}
+function ico(a,on){return '<button class="dk'+(on?' run':'')+'" type="button" data-p="'+(a.p===0?0:1)+'" data-id="'+esc(a.id)+'" aria-label="'+esc(a.name)+'"><span class="ic" style="background:'+a.bg+'">'+a.g+'</span></button>'}
 function ico2(a){return '<button class="dk ext run" type="button" data-pk="'+esc(a.p)+'" aria-label="'+esc(a.n)+'"><span class="ic"><img alt="" src="'+a.u+'"></span></button>'}
 var PD=null,dragging=false,pend=false,noClickUntil=0,lastPT='mouse',menuAt=0;
 function busy(){return dragging||(PD&&Date.now()-PD.t<6000)}
@@ -62,7 +62,10 @@ function flush(){if(pend&&!busy()){pend=false;render()}}
 function render(){
   if(busy()){pend=true;return}
   try{
-    apps.innerHTML=lastList.map(ico).join('')+(lastExt.length&&lastList.length?'<span class="sp"></span>':'')+lastExt.map(ico2).join('');
+    /* Icon ghim của Trình duyệt / Ổ mềm (có khóa k) đang mở thì sáng chấm ngay trên icon ghim, không hiện thêm icon thứ hai */
+    var ext=lastExt.filter(function(x){return !lastList.some(function(a){return a.k&&a.k===x.p})});
+    var on=function(a){return !!(a.r||(a.k&&lastExt.some(function(x){return x.p===a.k})))};
+    apps.innerHTML=lastList.map(function(a){return ico(a,on(a))}).join('')+(ext.length&&lastList.length?'<span class="sp"></span>':'')+ext.map(ico2).join('');
   }catch(e){}
   fitIcons();
 }
