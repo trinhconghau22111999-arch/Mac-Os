@@ -1428,7 +1428,7 @@ public class MainActivity extends Activity {
                     if (req.isForMainFrame() && web != null) web.evaluateJavascript("window.nativeExtError&&window.nativeExtError(" + JSONObject.quote(key) + ")", null);
                 }
             });
-            if (yt || br || ms) {
+            if (true) { /* mọi web nhúng (Zalo, Facebook, Gmail...) đều được chọn tệp để tải lên */
                 v.setWebChromeClient(new android.webkit.WebChromeClient() {
                     @Override public void onProgressChanged(WebView view, int p) { extNav(key, view, p); }
                     /* xem video toàn màn hình */
@@ -1452,7 +1452,7 @@ public class MainActivity extends Activity {
                     }
                 });
             }
-            if (br || ms) {
+            if (true) { /* mọi web nhúng đều tải xuống được vào thư mục Download */
                 v.setDownloadListener(new android.webkit.DownloadListener() {
                     @Override public void onDownloadStart(String dUrl, String ua, String cd, String mime, long len) {
                         try {
