@@ -64,3 +64,4 @@ jobs:
         with:
           name: DesktopMiniLauncher-apk
           path: app/build/outputs/apk/release/*.apk
+          retention-days: 2
