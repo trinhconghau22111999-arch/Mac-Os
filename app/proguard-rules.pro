@@ -18,3 +18,7 @@
 -keep class com.desktopmini.launcher.** extends android.content.BroadcastReceiver
 # android.print.PdfPrint dùng API ẩn của hệ thống: để nguyên tên
 -keep class android.print.** { *; }
+
+# Tink (từ androidx.security:security-crypto) chỉ tham chiếu các lớp chú thích lúc biên dịch (trước đây GeckoView kéo theo sẵn); bỏ cảnh báo để R8 không dừng build
+-dontwarn javax.annotation.**
+-dontwarn com.google.errorprone.annotations.**
