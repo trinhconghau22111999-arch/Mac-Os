@@ -3396,7 +3396,7 @@ function buildMenu(key){
   const ta=w&&$('textarea',w);
   const nw=id&&NEWMAP[id];
   const M={
-    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},'-',homeItem(),{t:'Khởi động lại launcher này',fn:()=>restartLauncher()},{t:'Tắt máy…',fn:()=>shutNow()},{t:'Khởi động lại…',fn:()=>restartNow()}],
+    apple:[{t:'Giới thiệu về Desktop Mini',fn:()=>openApp('about')},'-',{t:'Cài đặt hệ thống…',fn:()=>openApp('settings')},{t:'Buộc thoát…',fn:()=>openApp('forcequit')},'-',homeItem(),{t:'Khởi động lại launcher này',fn:()=>restartLauncher()},{t:'Tắt máy…',fn:()=>shutNow()},{t:'Tắt nguồn…',fn:()=>powerOffNow()},{t:'Khởi động lại…',fn:()=>restartNow()}],
     app:w?[{t:'Giới thiệu về '+nm,fn:()=>openApp('about')},'-',{t:'Ẩn '+nm,fn:()=>minWin(w)},'-',{t:'Thoát '+nm,fn:()=>{if(id==='music')musHalt();closeWin(w)}}]:[{t:'Mở Tệp',fn:()=>openApp('files')}],
     file:(nw?[{t:nw[0],fn:()=>{const x=$(nw[1],w);if(x)x.click()}},'-']:[]).concat([{t:'Mở Ghi chú',fn:()=>openApp('notes')},'-',{t:'Đóng cửa sổ',fn:()=>closeWin(w),dis:!w}]),
     edit:[{t:'Hoàn tác',dis:true},{t:'Làm lại',dis:true},'-',{t:'Cắt',fn:()=>{ta.focus();document.execCommand('cut')},dis:!ta},{t:'Sao chép',fn:()=>{ta.focus();document.execCommand('copy')},dis:!ta},{t:'Dán',dis:true},'-',{t:'Chọn tất cả',fn:()=>{ta.focus();ta.select()},dis:!ta}],
@@ -4161,6 +4161,7 @@ function sleepNow(){closeAllPopups();showOff('sleep')}
 function shutNow(){closeAllPopups();musHalt();killAll();showOff('off')}
 function restartLauncher(){closeAllPopups();try{musHalt()}catch(e){} const A=window.AndroidLauncher; if(A&&A.restartLauncher){try{if(A.restartLauncher())return}catch(e){}} location.reload()}
 function restartNow(){closeAllPopups();musHalt();killAll();boot()}
+let powerOffNow=function(){shutNow()};
 function boot(){
   lock.hidden=true; off.hidden=false; off.onclick=null; off.dataset.mode='boot';
   off.innerHTML='<div class="blogo"><svg viewBox="0 0 16 16"><path d="M8 .8l1.7 4.6 4.6 1.7-4.6 1.7L8 13.4 6.3 8.8 1.7 7.1l4.6-1.7z"/></svg></div><div class="bbar2"><i></i></div>';
@@ -4863,7 +4864,8 @@ if(window.AndroidLauncher){(function(){
   /* Tắt máy = tắt màn hình ngay (không tắt nguồn thật) */
   const doOff=()=>{closeAllPopups();if(!safe(()=>A.lockScreen(),false))needA11y()};
   const doRestart=()=>{closeAllPopups();if(!safe(()=>A.restartDevice?A.restartDevice():A.powerMenu(),false))needA11y()};
-  lockNow=doLock; sleepNow=doLock; restartNow=doRestart; shutNow=doOff;
+  const doPowerOff=()=>{closeAllPopups();if(!safe(()=>A.powerOffDevice?A.powerOffDevice():A.powerMenu(),false))needA11y()};
+  lockNow=doLock; sleepNow=doLock; restartNow=doRestart; shutNow=doOff; powerOffNow=doPowerOff;
   dmEvery(sync,3000); sync();
   /* thanh trượt -> cài đặt thật */
   document.addEventListener('input',e=>{

@@ -652,6 +652,11 @@ public class LauncherBridge {
             if (LockService.inst != null) return LockService.inst.powerRestart();
             return powerMenu();
         }
+        /** Tắt nguồn máy thật: tự bấm "Tắt nguồn" trong menu nguồn Android. */
+        @JavascriptInterface public boolean powerOffDevice() {
+            if (LockService.inst != null) return LockService.inst.powerOff();
+            return powerMenu();
+        }
         @JavascriptInterface public boolean powerMenu() {
             if (LockService.inst != null) return LockService.inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
             /* Trợ năng ghi là đã bật nhưng chưa nối (sau khi app bị tắt tiến trình): tự nối lại rồi thử lại, không bắt người dùng vào Cài đặt */

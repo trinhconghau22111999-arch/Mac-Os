@@ -141,9 +141,16 @@ public class LockService extends AccessibilityService {
         return false;
     }
     public boolean powerRestart() {
+        return powerPick(new String[]{"Khởi động lại", "Restart", "Reboot"},
+            new String[]{"OK", "Đồng ý", "Yes", "Khởi động lại", "Restart", "Reboot"});
+    }
+    /* Tắt nguồn thật: mở menu nguồn Android rồi tự bấm "Tắt nguồn" (và nút xác nhận nếu có) */
+    public boolean powerOff() {
+        return powerPick(new String[]{"Tắt nguồn", "Power off", "Shut down"},
+            new String[]{"OK", "Đồng ý", "Yes", "Tắt nguồn", "Power off", "Shut down"});
+    }
+    private boolean powerPick(final String[] item, final String[] confirm) {
         if (!performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)) return false;
-        final String[] item = {"Khởi động lại", "Restart", "Reboot"};
-        final String[] confirm = {"OK", "Đồng ý", "Yes", "Khởi động lại", "Restart", "Reboot"};
         final long start = android.os.SystemClock.uptimeMillis();
         final boolean[] clicked = {false};
         final long[] clickAt = {0};
