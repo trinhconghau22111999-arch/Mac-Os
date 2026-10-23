@@ -1132,14 +1132,14 @@ public class MainActivity extends Activity {
 
     /** Mở "Trình duyệt" (which = "browser", arg = địa chỉ) hoặc "Ổ mềm" (which = "omem", arg = hồ sơ anh/video/tep). Chưa cài app phụ thì hỏi cài. */
     void openCompanion(String which, String arg, boolean upload) {
-        if (companionVersion() < 0) { askInstallCompanion(); return; }
+        if (companionVersion() < 0) { toastLong("Chưa cài app phụ Trình duyệt + Ổ mềm. Hãy cài file web-release.apk trong cùng bản build."); return; }
         boolean om = "omem".equals(which);
         Intent i = new Intent();
         i.setClassName(WEB_PKG, WEB_PKG + (om ? ".OmemActivity" : ".BrowserActivity"));
         if (om) { if (arg != null && arg.length() > 0) i.putExtra("profile", arg); i.putExtra("upload", upload); }
         else if (arg != null && (arg.startsWith("http://") || arg.startsWith("https://"))) i.putExtra("url", arg);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try { startActivity(i); } catch (Throwable e) { toastLong("Không mở được app phụ (" + e.getClass().getSimpleName() + "), hãy cài lại."); askInstallCompanion(); }
+        try { startActivity(i); } catch (Throwable e) { toastLong("Không mở được app phụ (" + e.getClass().getSimpleName() + "), hãy cài lại web-release.apk."); }
     }
 
     /** Lần mở đầu của mỗi bản app: chưa cài hoặc app phụ cũ hơn thì hỏi cài (mỗi bản chỉ hỏi một lần; bấm biểu tượng sẽ hỏi lại). */

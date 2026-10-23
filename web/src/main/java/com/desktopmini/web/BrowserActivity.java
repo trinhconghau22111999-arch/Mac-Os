@@ -180,6 +180,10 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
 
         root.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         setContentView(root);
+        hideBars();
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+            @Override public void onSystemUiVisibilityChange(int vis) { if ((vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) hideBars(); }
+        });
     }
 
     private GeckoSession session() { return cur >= 0 && cur < tabs.size() ? tabs.get(cur).s : null; }
@@ -507,6 +511,20 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         if (tabs.size() > 1) { closeTab(cur); return; }
         finish();
     }
+
+    /** Ẩn thanh trạng thái và thanh điều hướng như app chính, để thanh đa nhiệm hệ thống không hiện đè lên trình duyệt. */
+    private void immersive() {
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+    }
+    private void hideBars() {
+        immersive();
+        getWindow().getDecorView().postDelayed(new Runnable() { public void run() { immersive(); } }, 400);
+    }
+    @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
+    @Override protected void onResume() { super.onResume(); hideBars(); }
 
     @Override protected void onStart() { super.onStart(); GeckoSession s = session(); if (s != null) { try { s.setActive(true); } catch (Throwable e) { } } }
 

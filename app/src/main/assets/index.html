@@ -1248,18 +1248,7 @@ function extBg(pkg){
   try{const A=window.AndroidLauncher; if(A&&A.forgetExtApp)A.forgetExtApp(pkg)}catch(e){}
 }
 /* Hỏi: đóng thật (tắt hẳn) hay để chạy nền. fn('kill'|'bg') */
-function extAsk(names,fn){
-  const o=document.createElement('div'); o.className='bpk';
-  o.innerHTML='<div class="bps"><b></b><div style="margin-top:6px;opacity:.7;padding:0 6px;line-height:1.45"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap"><button type="button" class="btn bpc">Huỷ</button><button type="button" class="btn xbg">Chạy nền</button><button type="button" class="btn xk" style="background:#e53935;color:#fff">Đóng hẳn</button></div></div>';
-  const one=names.length===1;
-  $('b',o).textContent=one?'Đóng "'+names[0]+'"?':'Đóng '+names.length+' ứng dụng ngoài?';
-  $('.bps>div',o).textContent='Đóng hẳn: tắt ứng dụng hoàn toàn. Chạy nền: chỉ gỡ khỏi đa nhiệm, ứng dụng vẫn chạy ngầm trong máy.';
-  stage.appendChild(o);
-  $('.bpc',o).addEventListener('click',()=>o.remove());
-  o.addEventListener('click',e=>{if(!e.target.closest('.bps'))o.remove()});
-  $('.xbg',o).addEventListener('click',()=>{o.remove();fn('bg')});
-  $('.xk',o).addEventListener('click',()=>{o.remove();fn('kill')});
-}
+function extAsk(names,fn){ fn('kill'); } /* Mặc định đóng hẳn ứng dụng ngoài, không hỏi nữa */
 const extName=id=>(APPS[id]&&APPS[id].name)||id.slice(2);
 const jget=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const jset=(k,v)=>lsSet(k,JSON.stringify(v));

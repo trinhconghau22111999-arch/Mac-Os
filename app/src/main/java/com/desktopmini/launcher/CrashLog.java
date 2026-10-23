@@ -38,7 +38,7 @@ public final class CrashLog {
 
     static String where(Context c) {
         File d = downloadFile();
-        return d != null ? "Download/" + NAME : appFile(c).getAbsolutePath();
+        return appFile(c).getAbsolutePath();
     }
 
     private static String webViewInfo(Context c) {
@@ -81,7 +81,6 @@ public final class CrashLog {
 
     private static void write(Context c, String text) {
         append(appFile(c), text);
-        append(downloadFile(), text);
     }
 
     static String stack(Throwable t) {
@@ -291,6 +290,7 @@ public final class CrashLog {
 
     /** Nếu lần chạy trước bị lỗi / tắt đột ngột: dựng bản báo lỗi, ghi vào tệp và hiện hộp thoại trên màn hình (không tự tắt) để chụp lại gửi đi. */
     static void reportAsync(final Activity a, String lastExit, String javaCrash, boolean unclean) {
+        if (true) return; /* Đã tắt: không hiện hộp báo lỗi nữa (lỗi vẫn ghi vào tệp riêng của app) */
         if (lastExit == null && javaCrash == null && !unclean) return;
         final Context c = a.getApplicationContext();
         SharedPreferences sp = c.getSharedPreferences(SPN, Context.MODE_PRIVATE);

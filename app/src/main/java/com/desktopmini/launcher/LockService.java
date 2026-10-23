@@ -1311,7 +1311,13 @@ public class LockService extends AccessibilityService {
             if (homePk == null) {
                 homePk = new HashSet<String>();
                 Intent hi = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
-                for (android.content.pm.ResolveInfo r : getPackageManager().queryIntentActivities(hi, 0)) homePk.add(r.activityInfo.packageName);
+                for (android.content.pm.ResolveInfo r : getPackageManager().queryIntentActivities(hi, 0)) {
+                    /* Chỉ coi là trình khởi chạy khi chính activity HOME đó cũng là icon LAUNCHER. App như Cài đặt hay Google có mục HOME phụ nhưng không phải launcher, nên vẫn hiện trên Dock. */
+                    Intent li = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(r.activityInfo.packageName);
+                    for (android.content.pm.ResolveInfo l : getPackageManager().queryIntentActivities(li, 0)) {
+                        if (l.activityInfo.name.equals(r.activityInfo.name)) { homePk.add(r.activityInfo.packageName); break; }
+                    }
+                }
             }
             if (homePk.contains(pk)) return;
             if (getPackageManager().getLaunchIntentForPackage(pk) == null) return;

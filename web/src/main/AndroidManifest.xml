@@ -14,14 +14,24 @@
     <!-- App phụ của Desktop Mini: không có biểu tượng riêng trong danh sách app; Desktop Mini mở "Trình duyệt" và "Ổ mềm" bằng intent tường minh -->
     <application android:label="Trình duyệt và Ổ mềm" android:allowBackup="false" android:largeHeap="true"
         android:extractNativeLibs="true" android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        <activity android:name=".BrowserActivity" android:label="Trình duyệt" android:exported="true"
+        <activity android:name=".BrowserActivity" android:icon="@drawable/ic_browser" android:label="Trình duyệt" android:exported="true"
             android:launchMode="singleTask" android:taskAffinity="com.desktopmini.web.browser"
             android:windowSoftInputMode="adjustResize"
-            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode" />
-        <activity android:name=".OmemActivity" android:label="Ổ mềm" android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".OmemActivity" android:icon="@drawable/ic_omem" android:label="Ổ mềm" android:exported="true"
             android:launchMode="singleTask" android:taskAffinity="com.desktopmini.web.omem"
             android:windowSoftInputMode="adjustResize"
-            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode" />
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout|uiMode" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files"
             android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
