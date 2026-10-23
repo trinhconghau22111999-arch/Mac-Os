@@ -12,6 +12,9 @@ body{position:relative;--base:46px;--ics:calc(var(--barh,calc(var(--base) + 18px
 .sb svg{width:72%;height:72%}
 .sep{display:none}
 .sc{flex:1 1 auto;min-width:0;height:100%;display:flex;align-items:center;overflow:visible}
+.sc.scroll{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sc.scroll::-webkit-scrollbar{display:none}
+.sc.scroll .apps{margin:0;justify-content:flex-start;padding:0 4px}
 .apps{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto}
 .dk{flex:none;width:var(--ic);height:var(--ic);border:0;background:none;padding:0;position:relative;-webkit-touch-callout:none}
 .pill{touch-action:none}
@@ -78,11 +81,17 @@ window.setShot=function(on){shot.style.display=on?'':'none'};
 window.setMag=function(){};
 function fitIcons(){
   var n=apps.children.length; if(!n){return}
-  var avail=document.getElementById('sc').clientWidth||0; if(avail<=0)return;
-  var st=document.body.style; st.removeProperty('--ic');
+  var sc=document.getElementById('sc'); var avail=sc.clientWidth||0; if(avail<=0)return;
+  var st=document.body.style; st.removeProperty('--ic'); apps.style.gap=''; sc.classList.remove('scroll');
   var full=parseFloat(getComputedStyle(apps.firstElementChild).width)||40, gap=10, seps=apps.querySelectorAll('.sp').length;
   var need=(n-seps)*full+(n-1)*gap+seps*4;
-  if(need>avail){var w=Math.max(22,Math.floor((avail-(n-1)*gap-seps*4)/(n-seps)));st.setProperty('--ic',w+'px')}
+  if(need<=avail)return;
+  /* Thu icon (tối thiểu 16px) và khe hẹp lại cho vừa chiều ngang, kể cả khi Dock dọc */
+  var g=6, w=Math.max(16,Math.floor((avail-(n-1)*g-seps*4)/(n-seps)));
+  st.setProperty('--ic',w+'px'); apps.style.gap=g+'px';
+  need=(n-seps)*w+(n-1)*g+seps*4;
+  /* Vẫn không vừa: cho vuốt ngang để icon dư vẫn chạm được, không bị cắt mất */
+  if(need>avail) sc.classList.add('scroll');
 }
 window.addEventListener('resize',function(){setTimeout(fitIcons,50)});
 /* rê/chạm vào Dock: báo cho dịch vụ giữ Dock hiện (khi bật tự ẩn) */
