@@ -1115,7 +1115,7 @@ public class LockService extends AccessibilityService {
     /** Đặt cửa sổ theo toạ độ tuyệt đối từ mép trên của màn hình THẬT (như thanh Desktop cũ) nên đè được lên thanh điều hướng. */
     private void placeDock(WindowManager.LayoutParams lp) {
         Point real = realSize(); int hh = dockBarPx() + dockGrowPx();
-        lp.width = real.x; lp.height = hh; lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = real.y - hh + dockYAdj; int ime = imeTop(); if (ime > 0 && ime < real.y) lp.y = Math.min(lp.y, ime - hh); /* Dock nổi ngay trên bàn phím, không che phím */
+        lp.width = real.x; lp.height = hh; lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = real.y - hh + dockYAdj; /* Dock luôn ở đáy và luôn nằm trên mọi cửa sổ, kể cả bàn phím: không đẩy lên đẩy xuống */
     }
     /* Hệ thống có thể tính toạ độ y từ mép trên VÙNG NỘI DUNG (dưới thanh trạng thái) chứ không phải mép trên màn hình thật => cửa sổ bị đẩy xuống.
      * Đo vị trí thật của cửa sổ Dock trên màn hình rồi bù đúng phần lệch (tối đa vài lần mỗi lần hiện, không dao động). */
