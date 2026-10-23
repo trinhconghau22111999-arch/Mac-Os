@@ -1456,7 +1456,7 @@ function lazyBuild(file,fn,b,w,a){
 const APPS={
   files:{name:'Tệp',w:700,h:430,minW:340,minH:260,build:(b,w,a)=>buildRealFiles(b,w,a,'files')},
   downloads:{name:'Tải xuống',w:560,h:400,minW:320,minH:240,build:(b,w,a)=>buildRealFiles(b,w,a,'down')},
-  browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>(window.AndroidLauncher&&window.AndroidLauncher.gkShow)?buildGecko(b,w,a):buildBrowser(b,w,a)},
+  browser:{name:'Trình duyệt',w:760,h:500,minW:360,minH:280,build:(b,w,a)=>buildBrowser(b,w,a)},
   webbrowser:{name:'Duyệt web',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser?buildWebApp(b,w,'webandr','https://www.google.com/','Duyệt web',{plain:true,local:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):window.AndroidLauncher?buildWebApp(b,w,'web','https://www.google.com/','Duyệt web',{addr:true,close:true,url:typeof a==='string'?a:(a&&a.url)}):buildBrowser(b,w,a)},
   youtube:{name:'YouTube',w:860,h:540,minW:360,minH:280,build:(b,w,a)=>window.AndroidLauncher?buildWebApp(b,w,'youtube','https://www.youtube.com/?hl=vi&gl=VN&persist_hl=1','YouTube',{close:true,compact:true,url:typeof a==='string'&&/^https:\/\/www\.youtube\.com\//.test(a)?a:undefined}):buildBrowser(b,w,a)},
   mail:{name:'Thư',w:880,h:540,minW:360,minH:280,build:(b,w)=>window.AndroidLauncher?buildWebApp(b,w,'gmail','https://mail.google.com/mail/u/0/','Gmail',{compact:true}):buildMail(b,w)},
@@ -1908,9 +1908,9 @@ function openApp(id,arg){
   if(id==='launchpad'){toggleLP();return}
   if(typeof id==='string'&&id.indexOf('x:')===0){if(typeof lpOn!=='undefined'&&lpOn)closeLP();extLaunch(id.slice(2));return}
   if(!APPS[id])return;
-  /* "Ổ mềm" = app Drive 3 hồ sơ (Ảnh / Video / Tệp): Android < 9 chạy nhúng trong cửa sổ (thấy Dock, xem buildDrive3Stub); Android 9+ mở màn hình riêng (process riêng từng hồ sơ), thoát thì quay về Desktop Mini */
-  if(id==='omem'&&window.AndroidLauncher&&window.AndroidLauncher.openDrive3&&!(window.AndroidLauncher.omemEmbedded&&window.AndroidLauncher.omemEmbedded())){
-    try{window.AndroidLauncher.openDrive3()}catch(e){}
+  /* "Trình duyệt" và "Ổ mềm" chạy bằng Gecko nên nằm trong app phụ riêng (không dùng chung WebView với giao diện này): bấm biểu tượng là mở app phụ (thấy Dock như app ngoài), thoát thì quay về Desktop Mini. Chưa cài thì Android hỏi cài. */
+  if((id==='browser'||id==='omem')&&window.AndroidLauncher&&window.AndroidLauncher.openCompanion){
+    try{window.AndroidLauncher.openCompanion(id,typeof arg==='string'?arg:(arg&&(arg.url||arg.profile))||'',!!(arg&&arg.upload))}catch(e){}
     return;
   }
   /* "YouTube", "Gõ văn bản" chạy trong cửa sổ như các app khác (WebView gốc nhúng) */
@@ -2332,44 +2332,7 @@ function buildNotes(b,w,arg){
 }
 
 /* ---------- Ổ mềm (Drive 3 hồ sơ): Android < 9 chạy NHÚNG trong cửa sổ như Duyệt web (thấy Dock); chọn hồ sơ Ảnh / Video / Tệp, đổi hồ sơ ngay trên thanh tiêu đề ---------- */
-function buildDrive3Stub(b,w){
-  const A=window.AndroidLauncher;
-  if(!A||!A.omemEmbedded||!A.omemEmbedded()){
-    b.innerHTML='<div class="app"><div class="bar"><strong class="t">Ổ mềm</strong></div><div class="none">Ổ mềm (Drive 3 hồ sơ) chỉ chạy trong ứng dụng Android</div></div>';
-    return {};
-  }
-  w.classList.add('wplain');
-  const P=[['anh','Ảnh','🖼','#4fc3f7'],['video','Video','🎬','#ff8a80'],['tep','Tệp','📁','#81c784']];
-  b.innerHTML='<div class="om"><div class="omh">'+P.map(x=>'<div class="omc" data-p="'+x[0]+'" style="--c:'+x[3]+'"><i>'+x[2]+'</i><b>'+x[1]+'</b><button class="btn omo" type="button">Mở</button><button class="btn omu" type="button">\u2B06 Tải lên</button></div>').join('')+'</div><div class="omw" hidden></div></div>';
-  const home=$('.omh',b), host=$('.omw',b);
-  let cur='', api=null;
-  function mark(){$$('.omchip',host).forEach(c=>c.classList.toggle('on',c.dataset.p===cur))}
-  function open(p,up){
-    /* Gọi phần gốc TRƯỚC khi dựng cửa sổ web: phải nạp cookie đúng hồ sơ trước khi trang Drive đầu tiên được tải */
-    try{A.omemOpen(p,!!up)}catch(e){return}
-    if(!api){
-      home.hidden=true; host.hidden=false;
-      api=buildWebApp(host,w,'omem','https://drive.google.com/drive/my-drive','Ổ mềm',{close:true,compact:true});
-      const bar=$('.bar',host), t=$('.t',bar);
-      if(t){
-        const chips=document.createElement('span'); chips.className='omchips';
-        chips.innerHTML=P.map(x=>'<button class="omchip" type="button" data-p="'+x[0]+'">'+x[1]+'</button>').join('')+'<button class="omchip omup" type="button">\u2B06 Tải lên</button>';
-        t.replaceWith(chips);
-        chips.addEventListener('click',e=>{
-          const c=e.target.closest('.omchip'); if(!c)return;
-          if(c.classList.contains('omup')){try{A.omemOpen(cur,true)}catch(x){}return}
-          if(c.dataset.p!==cur){cur=c.dataset.p;mark();try{A.omemOpen(cur,false)}catch(x){}}
-        });
-      }
-    }
-    cur=p; mark();
-  }
-  home.addEventListener('click',e=>{
-    const c=e.target.closest('.omc'); if(!c)return;
-    open(c.dataset.p,!!e.target.closest('.omu'));
-  });
-  return {destroy(){if(api&&api.destroy)api.destroy();else{try{A.extClose('omem')}catch(e){}}}};
-}
+function buildDrive3Stub(b,w){b.innerHTML='<div class="app"><div class="bar"><strong class="t">Ổ mềm</strong></div><div class="none">Ổ mềm chạy trong app phụ riêng, chỉ có trong ứng dụng Android</div></div>';return {}}
 
 function buildCalc(b,w){return lazyBuild('calc','buildCalc',b,w)}
 /* ---------- Cài đặt hệ thống ---------- */
@@ -2992,134 +2955,6 @@ function buildWebApp(b,w,key,url,title,opt){
     open(arg){const u=typeof arg==='string'?arg:(arg&&arg.url); if(u)go(u)},
     destroy(){NSYNC.delete(sync);delete EXTERR[key];delete EXTNAV[key];if(opt.close&&A.extClose){A.extClose(key)}else{A.extHide(key)}}
   };
-}
-
-/* ---------- Trình duyệt Gecko (chép từ repo dang-nhap-github) nhúng trong cửa sổ ---------- */
-const GK={url:'',back:false,fwd:false,p:0,ui:null,dlOpen:false,closeDl:null,dlui:null};
-window.nativeGk=s=>{Object.assign(GK,s);if(GK.ui)GK.ui()};
-/* Tải xuống từ trình duyệt: tiến độ gửi từ phần gốc */
-const GKDL=(()=>{try{return JSON.parse(lsGet('dm-gkdl')||'[]').filter(x=>x&&x.name).map(x=>Object.assign(x,{nid:-1,state:'ok',msg:''}))}catch(e){return[]}})();
-const gkdlSave=()=>lsSet('dm-gkdl',JSON.stringify(GKDL.filter(x=>x.state==='ok').slice(0,30).map(x=>({name:x.name,got:x.got,total:x.total,t:x.t}))));
-window.nativeGkDl=o=>{
-  let it=GKDL.find(x=>x.nid===o.id);
-  if(!it){it={nid:o.id,t:Date.now()};GKDL.unshift(it)}
-  const was=it.state;
-  if(o.state==='cancel'){GKDL.splice(GKDL.indexOf(it),1);gkdlSave();if(GK.dlui)GK.dlui();return}
-  it.name=o.name; it.state=o.state; it.got=o.got; it.total=o.total; it.msg=o.msg;
-  if(o.state!=='run')gkdlSave();
-  if(o.state==='ok'&&was!=='ok')notify({app:'Trình duyệt',title:'Đã tải xong',body:o.name,icon:'downloads'});
-  if(GK.dlui)GK.dlui();
-};
-function buildGecko(b,w,arg){
-  const A=window.AndroidLauncher;
-  w._nat=true;
-  b.innerHTML='<div class="wa gk gx"><div class="bar gxb"><button class="ib gmn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg></button><button class="ib gbk" type="button" aria-label="Quay lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg></button><button class="ib gfw" type="button" aria-label="Tiến tới"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button><button class="ib grl" type="button" aria-label="Tải lại"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/></svg></button><input class="gku" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tìm kiếm hoặc nhập địa chỉ" aria-label="Địa chỉ"><button class="ib gst" type="button" aria-label="Dấu trang"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.3 6.6 20.2l1.1-6.1L3.2 9.9l6.1-.8z"/></svg></button><button class="ib gdl" type="button" aria-label="Tải xuống"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" hidden></i></button></div><div class="gkp"><i></i></div><div class="gxt"><div class="gxs"><div class="gxtl"></div><button class="gxp" type="button" aria-label="Tab mới">\uFF0B</button></div><button class="ib gbm" type="button" aria-label="Dấu trang đã lưu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.3 6.6 20.2l1.1-6.1L3.2 9.9l6.1-.8z"/></svg></button></div><div class="wab"><div class="gdp" hidden></div></div></div>';
-  const area=$('.wab',b), inp=$('.gku',b), bk=$('.gbk',b), fw=$('.gfw',b), bar=$('.gkp i',b), dlb=$('.gdl',b), dot=$('.gdot',b), dp=$('.gdp',b), tl=$('.gxtl',b), plusB=$('.gxp',b), menuB=$('.gmn',b), starB=$('.gst',b), bmB=$('.gbm',b); let last='', timer=null, tsig='', menuEl=null;
-  const sz=n=>typeof fmtSize==='function'?fmtSize(n):Math.round(n/1024)+' KB';
-  function renderDl(){
-    dot.hidden=!GKDL.some(x=>x.state==='run');
-    if(!GK.dlOpen)return;
-    if(GK.panel&&GK.panel!=='dl'){renderList();return}
-    dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>Tải xuống</b><button class="btn gdc" type="button"'+(GKDL.some(x=>x.state!=='run')?'':' disabled')+'>Xoá lịch sử</button></div>'+(GKDL.length?GKDL.map((x,i)=>{
-      const pct=x.total>0?Math.min(100,Math.round(x.got*100/x.total)):(x.state==='ok'?100:0);
-      const st=x.state==='run'?(x.total>0?sz(x.got)+' / '+sz(x.total)+' · '+pct+'%':sz(x.got)+' · đang tải…'):x.state==='ok'?'Đã tải xong · '+sz(x.got||0):'Lỗi: '+esc(x.msg||'không tải được');
-      return '<div class="gdr '+x.state+'"><b>'+esc(x.name)+'</b><div class="gdb"><i style="width:'+(x.state==='err'?100:pct)+'%"></i></div><small>'+st+'</small>'+(x.state==='ok'?'<button class="btn gdo" type="button" data-i="'+i+'">Mở trong Tải xuống</button>':'')+(x.state==='run'?'<button class="btn gdk" type="button" data-nid="'+x.nid+'">Huỷ tải</button>':'')+'</div>';
-    }).join(''):'<div class="gdn">Chưa có tệp nào được tải xuống</div>');
-  }
-  function setDl(on){
-    GK.dlOpen=on; dp.hidden=!on; last=''; if(!on)GK.panel='dl'; if(on)renderDl(); sync();
-  }
-  function openPanel(k){closeMenu();GK.panel=k;setDl(true)}
-  GK.closeDl=()=>setDl(false);
-  GK.dlui=renderDl;
-  dlb.addEventListener('click',()=>setDl(!GK.dlOpen));
-  dp.addEventListener('click',e=>{
-    if(e.target.closest('.gdx')){setDl(false);return}
-    if(e.target.closest('.gdc')){ /* chỉ xoá mục trong danh sách (không xoá tệp đã tải); mục đang tải được giữ lại */
-      for(let i=GKDL.length-1;i>=0;i--)if(GKDL[i].state!=='run')GKDL.splice(i,1);
-      gkdlSave(); renderDl(); return;
-    }
-    const k=e.target.closest('.gdk'); if(k){ if(A.gkCancelDl)A.gkCancelDl(+k.dataset.nid); return }
-    const o=e.target.closest('.gdo'); if(!o)return;
-    const it=GKDL[+o.dataset.i]; if(it)openApp('downloads',{select:it.name});
-  });
-  /* ---- Lịch sử / Dấu trang (lưu trong máy) ---- */
-  const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return u}};
-  const getH=()=>{const l=jget('dm-gkhist',[]);return Array.isArray(l)?l:[]};
-  const getB=()=>{const l=jget('dm-gkbm',[]);return Array.isArray(l)?l:[]};
-  const curTitle=()=>{const t=GK.tabs&&GK.tabs[GK.cur];return (t&&t.t)||''};
-  function recHist(){
-    const u=GK.url; if(GK.p!==0||!u||!/^https?:/.test(u))return;
-    const h=getH();
-    if(h.length&&h[0].u===u){ if(!h[0].t&&curTitle()){h[0].t=curTitle();jset('dm-gkhist',h)} return }
-    h.unshift({t:curTitle(),u:u,d:Date.now()}); if(h.length>300)h.length=300; jset('dm-gkhist',h);
-  }
-  function toggleBm(){
-    const u=GK.url; if(!u||!/^https?:/.test(u))return;
-    let l=getB(); const i=l.findIndex(x=>x.u===u);
-    if(i>=0)l.splice(i,1); else l.unshift({t:curTitle()||hostOf(u),u:u});
-    jset('dm-gkbm',l); GK.ui&&GK.ui(); if(GK.dlOpen&&GK.panel==='bm')renderList();
-  }
-  function renderList(){
-    const hist=GK.panel==='hist', l=hist?getH():getB();
-    dp.innerHTML='<div class="gdh"><button class="btn gdx" type="button">‹ Trang web</button><b>'+(hist?'Lịch sử':'Dấu trang')+'</b>'+(hist?'<button class="btn glc" type="button"'+(l.length?'':' disabled')+'>Xoá hết</button>':'')+'</div>'+
-      (l.length?l.map((x,i)=>'<div class="gli" data-i="'+i+'"><div class="glt"><b>'+esc(x.t||hostOf(x.u))+'</b><small>'+esc(x.u)+'</small></div><button class="btn gld" type="button" data-i="'+i+'" aria-label="Xoá">✕</button></div>').join(''):'<div class="gdn">'+(hist?'Chưa có lịch sử duyệt web':'Chưa có dấu trang nào')+'</div>');
-  }
-  dp.addEventListener('click',e=>{
-    if(GK.panel==='dl'||!GK.panel)return;
-    const hist=GK.panel==='hist';
-    if(e.target.closest('.glc')){jset('dm-gkhist',[]);renderList();return}
-    const d=e.target.closest('.gld');
-    if(d){const l=hist?getH():getB();l.splice(+d.dataset.i,1);jset(hist?'dm-gkhist':'dm-gkbm',l);renderList();return}
-    const it=e.target.closest('.gli');
-    if(it){const x=(hist?getH():getB())[+it.dataset.i]; if(x){setDl(false);A.gkGo(x.u)}}
-  });
-  /* ---- Menu ⋮: chỉ có Lịch sử ---- */
-  function closeMenu(){if(menuEl){menuEl.remove();menuEl=null;last='';sync()}}
-  menuB.addEventListener('click',e=>{
-    e.stopPropagation();
-    if(menuEl){closeMenu();return}
-    const m=document.createElement('div'); m.className='gxm';
-    m.innerHTML='<button type="button" class="gxmi">Lịch sử</button>';
-    $('.gx',b).appendChild(m); menuEl=m; sync();
-    m.querySelector('.gxmi').addEventListener('click',()=>openPanel('hist'));
-    setTimeout(()=>{const off=ev=>{if(!menuEl){document.removeEventListener('pointerdown',off,true);return}if(!menuEl.contains(ev.target)&&ev.target!==menuB&&!menuB.contains(ev.target)){document.removeEventListener('pointerdown',off,true);closeMenu()}};document.addEventListener('pointerdown',off,true)},0);
-  });
-  starB.addEventListener('click',toggleBm);
-  bmB.addEventListener('click',()=>{if(GK.dlOpen&&GK.panel==='bm')setDl(false);else openPanel('bm')});
-  plusB.addEventListener('click',()=>{if(GK.dlOpen)setDl(false);A.gkNewTab('')});
-  function renderTabs(){
-    const t=GK.tabs||[], sig=JSON.stringify([t,GK.cur]); if(sig===tsig)return; tsig=sig;
-    tl.innerHTML=t.map((x,i)=>'<div class="gxtb'+(i===GK.cur?' on':'')+'" data-i="'+i+'"><span class="gxn">'+esc(x.t||(x.u?hostOf(x.u):'Tab mới'))+'</span><b class="gxx" data-i="'+i+'" aria-label="Đóng tab">✕</b></div>').join('');
-    const on=tl.querySelector('.on'); if(on&&on.scrollIntoView)try{on.scrollIntoView({block:'nearest',inline:'nearest'})}catch(e){}
-  }
-  tl.addEventListener('click',e=>{
-    const x=e.target.closest('.gxx'); if(x){A.gkCloseTab(+x.dataset.i);return}
-    const t=e.target.closest('.gxtb'); if(t){if(GK.dlOpen)setDl(false);A.gkSelectTab(+t.dataset.i)}
-  });
-  GK.ui=()=>{
-    bk.disabled=!GK.back; fw.disabled=!GK.fwd; bar.style.width=(GK.p||0)+'%';
-    if(document.activeElement!==inp&&GK.url)inp.value=GK.url;
-    renderTabs(); recHist();
-    starB.classList.toggle('on',!!GK.url&&getB().some(x=>x.u===GK.url));
-  };
-  const blocked=()=>(typeof lpOn!=='undefined'&&lpOn)||(typeof mcOn!=='undefined'&&mcOn)||(typeof msOn!=='undefined'&&msOn)||['#spot','#nc','#cc','#ql','#lock','#off','#sw'].some(q=>{const e=$(q);return e&&!e.hidden})||Object.keys(pops).some(k=>!pops[k].hidden);
-  function sync(){
-    if(!w.isConnected)return;
-    const vis=(w.classList.contains('focus')||winFree(w))&&!w.classList.contains('min')&&!w._leaving&&!blocked()&&!GK.dlOpen&&!menuEl;
-    if(!vis){if(last!=='hide'){A.gkHide();last='hide'}return}
-    const r=area.getBoundingClientRect(), sig=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
-    if(sig!==last){last=sig;A.gkShow(r.left,r.top,r.width,r.height)}
-  }
-  function go(){const t=inp.value.trim(); if(!t)return; if(GK.dlOpen)setDl(false); A.gkGo(t); inp.blur()}
-  bk.addEventListener('click',()=>A.gkBack());
-  fw.addEventListener('click',()=>A.gkForward());
-  $('.grl',b).addEventListener('click',()=>A.gkReload());
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
-  inp.addEventListener('focus',()=>inp.select());
-  GK.ui(); renderDl(); NSYNC.add(sync); nsStart(); sync();
-  if(typeof arg==='string'&&arg)A.gkGo(arg); else if(arg&&arg.url)A.gkGo(arg.url);
-  return {open(a){const u=typeof a==='string'?a:(a&&a.url); if(u)A.gkGo(u)},destroy(){NSYNC.delete(sync);GK.ui=null;GK.dlui=null;GK.closeDl=null;GK.dlOpen=false;GK.panel='dl';GK.tabs=[];GK.cur=-1;GK.back=false;GK.fwd=false;GK.p=0;GK.url='';A.gkClose()}};
 }
 
 /* =========================================================
@@ -4847,8 +4682,6 @@ if(window.AndroidLauncher){(function(){
     try{
       if(overlaysOpen())return;
       const w=$('.win.focus',layer); if(!w)return;
-      if(w.dataset.app==='browser'&&GK.dlOpen&&GK.closeDl){GK.closeDl();return}
-      if(w.dataset.app==='browser'&&GK.back&&window.AndroidLauncher&&window.AndroidLauncher.gkBack){window.AndroidLauncher.gkBack();return}
       if(w.dataset.app==='typing'&&window.AndroidLauncher&&window.AndroidLauncher.wordBack){window.AndroidLauncher.wordBack();return}
       {const ek={webbrowser:(window.AndroidLauncher&&window.AndroidLauncher.openWebBrowser?'webandr':'web'),youtube:'youtube',msword:'ms-word',msexcel:'ms-excel',msppt:'ms-ppt',msoffice:'ms-office'}[w.dataset.app]; if(ek&&EXTST[ek]&&EXTST[ek].back&&window.AndroidLauncher&&window.AndroidLauncher.extBack){window.AndroidLauncher.extBack(ek);return}}
             closeWin(w);

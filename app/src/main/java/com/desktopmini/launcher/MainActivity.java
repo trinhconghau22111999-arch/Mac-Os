@@ -133,33 +133,6 @@ public class MainActivity extends Activity {
     private final Runnable reapTask = new Runnable() { public void run() { reapIdleExt(); reaper.postDelayed(this, 60000); } };
     /** Gmail / Drive / Zalo / Facebook web: giao diện máy tính. */
     private static final String UA_DESK = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
-    /** UA máy tính nhưng mang đúng số phiên bản Chrome thật của WebView trên máy (không khai man phiên bản, bỏ "; wv"), để Google chấp nhận đăng nhập. */
-    private String cleanDeskUa() {
-        try {
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("Chrome/[\\d.]+").matcher(WebSettings.getDefaultUserAgent(this));
-            if (m.find()) return "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " + m.group() + " Safari/537.36";
-        } catch (Exception e) { }
-        return UA_DESK;
-    }
-    /** Google còn nhận ra WebView qua "client hints" (Sec-CH-UA có nhãn "Android WebView", platform "Android", mobile ?1) và navigator.userAgentData,
-     *  lệch với UA máy tính ở trên. Đặt lại cho khớp một trình duyệt Chrome trên Linux máy tính để trang đăng nhập Google không chặn. */
-    private void applyChromeHints(WebSettings s) {
-        try {
-            if (!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.USER_AGENT_METADATA)) return;
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("Chrome/((\\d+)[\\d.]*)").matcher(WebSettings.getDefaultUserAgent(this));
-            if (!m.find()) return;
-            String full = m.group(1), major = m.group(2);
-            java.util.List<androidx.webkit.UserAgentMetadata.BrandVersion> brands = new java.util.ArrayList<androidx.webkit.UserAgentMetadata.BrandVersion>();
-            brands.add(new androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand("Chromium").setMajorVersion(major).setFullVersion(full).build());
-            brands.add(new androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand("Google Chrome").setMajorVersion(major).setFullVersion(full).build());
-            brands.add(new androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand("Not-A.Brand").setMajorVersion("99").setFullVersion("99.0.0.0").build());
-            androidx.webkit.UserAgentMetadata md = new androidx.webkit.UserAgentMetadata.Builder()
-                .setBrandVersionList(brands).setFullVersion(full)
-                .setPlatform("Linux").setPlatformVersion("6.5.0").setMobile(false)
-                .setModel("").setArchitecture("x86").setBitness(64).setWow64(false).build();
-            androidx.webkit.WebSettingsCompat.setUserAgentMetadata(s, md);
-        } catch (Throwable e) { }
-    }
     private static final String UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
 
     /** Đẩy sự kiện từ service nền vào giao diện HTML. */
@@ -407,7 +380,6 @@ public class MainActivity extends Activity {
         inFg = false; undimIdle();
         if (browserHost != null) { try { browserHost.onPause(); } catch (Exception e) { } }
         if (wordHost != null) wordHost.save();
-        /* Ổ mềm chạy bằng Gecko: mỗi hồ sơ có kho cookie riêng (contextId), không cần chụp/nạp cookie WebView nữa */
         /* Tối ưu: rời Desktop Mini thì tạm dừng mọi trang web nhúng (YouTube, Zalo, Office...) cho đỡ tốn pin/RAM, như ứng dụng ở nền trên điện thoại */
         for (java.util.Map.Entry<String, WebView> e : ext.entrySet()) extPause(e.getKey(), e.getValue());
         for (String k : ext.keySet()) markExtHidden(k);
@@ -428,7 +400,7 @@ public class MainActivity extends Activity {
     }
 
     /** Đóng hẳn các trang nhúng đã ẩn quá EXT_IDLE_MS. Bỏ qua trang đang hiện, "Gõ văn bản" (giữ tài liệu đang soạn) và lúc đang phát nhạc. */
-    private void reapIdleExt() { omemReapIdle(EXT_IDLE_MS); reapExt(EXT_IDLE_MS); reapGecko(EXT_IDLE_MS); }
+    private void reapIdleExt() { reapExt(EXT_IDLE_MS); }
 
     /** minIdleMs = 0: đóng NGAY mọi trang nhúng đang ẩn (dùng khi máy sắp hết RAM), không chờ đủ thời gian. */
     private void reapExt(long minIdleMs) {
@@ -454,7 +426,7 @@ public class MainActivity extends Activity {
         /* Máy sắp hết RAM thật (đang chạy mà RAM tới mức "nguy cấp", hoặc app ở nền bị đẩy tới giữa/cuối danh sách bị giết): đóng ngay trang nhúng đang ẩn.
            Cố ý KHÔNG dùng mức UI_HIDDEN (20) và BACKGROUND (40): hai mức này xảy ra mỗi khi mở app khác từ launcher, chưa phải thiếu RAM, đóng thì YouTube/Zalo bị tải lại liên tục. */
         if (browserHost != null) { try { browserHost.onTrimMemory(level); } catch (Exception e) { } }
-        if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) { omemReapIdle(0); reapExt(0); reapGecko(0); }
+        if (level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_MODERATE) { reapExt(0); }
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
             for (WebView v : ext.values()) { try { if (v.getVisibility() != View.VISIBLE) v.clearCache(false); } catch (Exception e) { } }
         }
@@ -698,34 +670,6 @@ public class MainActivity extends Activity {
         super.onActivityResult(req, res, data);
         if (wordHost != null && wordHost.handleResult(req, res, data)) return;
         if (browserHost != null && browserHost.handleActivityResult(req, res, data)) return;
-        if (req == REQ_OMEM_PICK) {
-            if (res == RESULT_OK && data != null) {
-                Uri[] u = null;
-                android.content.ClipData cd = data.getClipData();
-                if (cd != null) { u = new Uri[cd.getItemCount()]; for (int k = 0; k < u.length; k++) u[k] = cd.getItemAt(k).getUri(); }
-                else if (data.getData() != null) u = new Uri[]{ data.getData() };
-                if (u != null && u.length > 0) {
-                    omemPending = u; omemUploadStarted = false;
-                    omemToast("Đã chọn " + u.length + " tệp – đang gửi lên Drive");
-                    if (omemReady) { omemUploadStarted = true; omemRunUpload(); }
-                }
-            }
-            return;
-        }
-        if (req == REQ_OMFILE) {
-            org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse> fr = omFileRes;
-            org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt fp = omFilePrompt;
-            omFileRes = null; omFilePrompt = null;
-            if (fr == null || fp == null) return;
-            Uri[] u = null;
-            if (res == RESULT_OK && data != null) {
-                android.content.ClipData cd = data.getClipData();
-                if (cd != null) { u = new Uri[cd.getItemCount()]; for (int k = 0; k < u.length; k++) u[k] = cd.getItemAt(k).getUri(); }
-                else if (data.getData() != null) u = new Uri[]{ data.getData() };
-            }
-            if (u != null && u.length > 0) fr.complete(omemConfirm(fp, u)); else fr.complete(fp.dismiss());
-            return;
-        }
         if (req == REQ_EXTFILE) {
             if (extFileCb != null) { extFileCb.onReceiveValue(android.webkit.WebChromeClient.FileChooserParams.parseResult(res, data)); extFileCb = null; }
             return;
@@ -765,6 +709,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
+        maybeAskCompanion();
         powerRxStart();
         inFg = true; lastTouchAt = android.os.SystemClock.elapsedRealtime();
         imeUp = false; hideBars(); LockService.launcherResumed(); root.postDelayed(new Runnable() { public void run() { healA11y(false); } }, 2500); reportDockGap(); root.postDelayed(new Runnable() { public void run() { reportDockGap(); } }, 700); prefetchApps(); scanNewMedia(); startMediaWatch();
@@ -1167,10 +1112,85 @@ public class MainActivity extends Activity {
         return arr;
     }
 
-    /** Mở app "Ổ mềm" = Drive 3 hồ sơ (màn hình chọn Ảnh / Video / Tệp). */
-    void openDriveHome() {
-        Intent i = new Intent(this, com.desktopmini.launcher.drive3.HomeActivity.class);
-        try { startActivity(i); } catch (Exception e) { }
+    /* ================= App phụ "Trình duyệt + Ổ mềm" (Gecko), tách riêng khỏi WebView giao diện =================
+     * Hai app này dùng lõi Gecko (Firefox) nên chạy trong app riêng (com.desktopmini.web); app chính chỉ dùng WebView hệ thống.
+     * APK app phụ đóng gói sẵn trong assets/web/web.apk, app chính hỏi cài (hoặc cập nhật) ngay lần mở đầu tiên. Biểu tượng vẫn nằm trên Dock/Launchpad như cũ. */
+    static final String WEB_PKG = "com.desktopmini.web";
+    private boolean companionAsked;
+    volatile boolean htmlEditing = false;
+
+    void toastLong(final String msg) {
+        runOnUiThread(new Runnable() { public void run() { android.widget.Toast.makeText(MainActivity.this, msg, android.widget.Toast.LENGTH_LONG).show(); } });
+    }
+    private int myVersion() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Throwable t) { return 0; } }
+    /** Số phiên bản app phụ đã cài; -1 nếu chưa cài. */
+    int companionVersion() { try { return getPackageManager().getPackageInfo(WEB_PKG, 0).versionCode; } catch (Throwable t) { return -1; } }
+    private boolean hasBundledCompanion() {
+        try { String[] l = getAssets().list("web"); if (l != null) for (String n : l) if (n.equals("web.apk")) return true; } catch (Throwable t) { }
+        return false;
+    }
+
+    /** Mở "Trình duyệt" (which = "browser", arg = địa chỉ) hoặc "Ổ mềm" (which = "omem", arg = hồ sơ anh/video/tep). Chưa cài app phụ thì hỏi cài. */
+    void openCompanion(String which, String arg, boolean upload) {
+        if (companionVersion() < 0) { askInstallCompanion(); return; }
+        boolean om = "omem".equals(which);
+        Intent i = new Intent();
+        i.setClassName(WEB_PKG, WEB_PKG + (om ? ".OmemActivity" : ".BrowserActivity"));
+        if (om) { if (arg != null && arg.length() > 0) i.putExtra("profile", arg); i.putExtra("upload", upload); }
+        else if (arg != null && (arg.startsWith("http://") || arg.startsWith("https://"))) i.putExtra("url", arg);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(i); } catch (Throwable e) { toastLong("Không mở được app phụ (" + e.getClass().getSimpleName() + "), hãy cài lại."); askInstallCompanion(); }
+    }
+
+    /** Lần mở đầu của mỗi bản app: chưa cài hoặc app phụ cũ hơn thì hỏi cài (mỗi bản chỉ hỏi một lần; bấm biểu tượng sẽ hỏi lại). */
+    private void maybeAskCompanion() {
+        if (companionAsked || !hasBundledCompanion()) return;
+        companionAsked = true;
+        if (companionVersion() >= myVersion()) return;
+        android.content.SharedPreferences sp = getSharedPreferences("dm_companion", MODE_PRIVATE);
+        if (sp.getInt("asked", 0) == myVersion()) return;
+        sp.edit().putInt("asked", myVersion()).apply();
+        root.postDelayed(new Runnable() { public void run() { askInstallCompanion(); } }, 3500);
+    }
+
+    private void askInstallCompanion() {
+        if (!hasBundledCompanion()) { toastLong("Bản này chưa kèm app phụ Trình duyệt / Ổ mềm."); return; }
+        final boolean update = companionVersion() >= 0;
+        try {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle(update ? "Cập nhật app phụ" : "Cài app phụ Trình duyệt + Ổ mềm")
+                .setMessage("\"Trình duyệt\" và \"Ổ mềm\" chạy trong một app phụ riêng, không dùng chung WebView với giao diện chính nên hết xung đột/văng. App phụ đi kèm sẵn trong Desktop Mini.\n\nBấm \"Cài ngay\" rồi xác nhận cài đặt của Android (cần cho phép cài từ nguồn này nếu máy hỏi). Biểu tượng vẫn nằm trên Dock/Launchpad như cũ.")
+                .setPositiveButton("Cài ngay", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { installCompanion(); } })
+                .setNegativeButton("Để sau", null)
+                .show();
+        } catch (Throwable e) { }
+    }
+
+    private void installCompanion() {
+        final java.io.File dir = new java.io.File(getCacheDir(), "shared"); dir.mkdirs();
+        final java.io.File f = new java.io.File(dir, "web.apk");
+        if (dir.getUsableSpace() < 300L * 1024 * 1024) { toastLong("Không đủ bộ nhớ trống (cần khoảng 300 MB) để cài app phụ. Hãy dọn bớt rồi thử lại."); return; }
+        final android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
+        pd.setMessage("Đang chuẩn bị app phụ, vui lòng chờ…");
+        pd.setCancelable(false);
+        try { pd.show(); } catch (Throwable t) { }
+        new Thread(new Runnable() { public void run() {
+            boolean ok = false;
+            java.io.File tmp = new java.io.File(dir, "web.apk.tmp");
+            try {
+                java.io.InputStream in = getAssets().open("web/web.apk");
+                java.io.FileOutputStream out = new java.io.FileOutputStream(tmp);
+                try { byte[] buf = new byte[1 << 16]; int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n); out.flush(); ok = tmp.length() > 1024 * 1024; }
+                finally { try { out.close(); } catch (Throwable t) { } try { in.close(); } catch (Throwable t) { } }
+                if (ok) { f.delete(); ok = tmp.renameTo(f); }
+            } catch (Throwable e) { ok = false; }
+            if (!ok) { try { tmp.delete(); } catch (Throwable t) { } }
+            final boolean done = ok;
+            runOnUiThread(new Runnable() { public void run() {
+                try { pd.dismiss(); } catch (Throwable t) { }
+                if (done) launchApkInstall(f, false); else toastLong("Không chuẩn bị được app phụ.");
+            } });
+        } }, "companion-install").start();
     }
 
     /** Mở app con "Gõ văn bản". */
@@ -1278,196 +1298,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* ================= Ổ mềm nhúng trong cửa sổ (Android < 9): thấy Dock, các hồ sơ đổi cookie như bản Legacy ================= */
-    private static final int REQ_OMEM_PICK = 1005;
-    /** Hồ sơ đang mở trong cửa sổ Ổ mềm: "anh" / "video" / "tep" ("" = chưa mở). */
-    String omemProfile = "";
-    /** Tệp đã chọn bằng nút "Tải lên", chờ Drive gọi hộp chọn tệp để giao vào. */
-    Uri[] omemPending;
-    boolean omemReady, omemUploadStarted;
-
-    private void omemToast(String m) { android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show(); }
-
-    /* ---- Ổ mềm chạy bằng GeckoView (Firefox) thay cho WebView hệ thống: Google chấp nhận đăng nhập; mỗi hồ sơ một kho cookie riêng (contextId) ---- */
-    private static final int REQ_OMFILE = 1006;
-    private org.mozilla.geckoview.GeckoView omView;
-    private org.mozilla.geckoview.GeckoSession omSession;
-    private boolean omBackOk;
-    private String omUrl = "";
-    private long omHiddenAt = 0;
-    private boolean omExtDone;
-    private org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt omFilePrompt;
-    private org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse> omFileRes;
-
-    /** Tiện ích dọn giao diện Drive + tự bấm Tải tệp lên (assets/dmdrive). Lỗi thì bỏ qua, Ổ mềm vẫn dùng được. */
-    private void omemExt() {
-        if (omExtDone) return;
-        omExtDone = true;
-        try { gkRt().getWebExtensionController().ensureBuiltIn("resource://android/assets/dmdrive/", "dmdrive@desktopmini.launcher"); }
-        catch (Throwable t) { CrashLog.log(this, "Ổ mềm: không nạp được tiện ích dmdrive", t); }
-    }
-
-    private void omemEnsureView() {
-        if (omView != null) return;
-        omView = new org.mozilla.geckoview.GeckoView(this);
-        omView.setViewBackend(org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);   /* nằm đúng thứ tự trên giao diện HTML */
-        kbGuard(omView);
-        omView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        omView.setVisibility(View.GONE);
-        root.addView(omView, new FrameLayout.LayoutParams(1, 1));
-    }
-
-    private org.mozilla.geckoview.GeckoSession omemNewSession(String profile) {
-        omemExt();
-        org.mozilla.geckoview.GeckoSessionSettings st = new org.mozilla.geckoview.GeckoSessionSettings.Builder()
-            .contextId("omem-" + profile)
-            .userAgentMode(org.mozilla.geckoview.GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
-            .viewportMode(org.mozilla.geckoview.GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
-            .build();
-        final org.mozilla.geckoview.GeckoSession se = new org.mozilla.geckoview.GeckoSession(st);
-        se.setContentDelegate(new org.mozilla.geckoview.GeckoSession.ContentDelegate() {
-            @Override public void onExternalResponse(org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.WebResponse response) { gkDownload(response); }
-            @Override public void onCrash(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Ổ mềm (Gecko): tiến trình trang web bị văng (onCrash)", new Exception("onCrash")); omemDropSession(); gkToast("Ổ mềm bị văng, hãy mở lại. Chi tiết: " + CrashLog.where(MainActivity.this)); }
-            @Override public void onKill(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Ổ mềm (Gecko): bị hệ thống tắt, thường do thiếu RAM (onKill)", new Exception("onKill")); omemDropSession(); gkToast("Ổ mềm bị tắt do thiếu RAM, hãy mở lại."); }
-        });
-        se.setProgressDelegate(new org.mozilla.geckoview.GeckoSession.ProgressDelegate() {
-            @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) omUrl = url; }
-            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) {
-                if (!success || omUrl == null) return;
-                String oh = Uri.parse(omUrl).getHost();
-                if (oh != null && oh.equals("drive.google.com")) {
-                    omemReady = true;
-                    /* đã chọn tệp bằng nút "Tải lên": vào tới trang Drive thì tự bấm Mới -> Tải tệp lên */
-                    if (omemPending != null && !omemUploadStarted) { omemUploadStarted = true; root.postDelayed(new Runnable() { @Override public void run() { omemRunUpload(); } }, 1500); }
-                }
-            }
-        });
-        se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
-            @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { omBackOk = can; }
-            @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession> onNewSession(org.mozilla.geckoview.GeckoSession s, String uri) {
-                se.loadUri(uri); return null;   /* link mở thẻ mới -> mở ngay tại chỗ */
-            }
-        });
-        se.setPromptDelegate(new org.mozilla.geckoview.GeckoSession.PromptDelegate() {
-            @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse> onFilePrompt(
-                    org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt prompt) {
-                if (omemPending != null) {   /* nút "Tải lên": giao thẳng tệp đã chọn cho Drive */
-                    Uri[] given = omemPending; omemPending = null;
-                    omemToast("Đang tải lên Drive…");
-                    return org.mozilla.geckoview.GeckoResult.fromValue(omemConfirm(prompt, given));
-                }
-                if (omFileRes != null) omFileRes.complete(prompt.dismiss());
-                omFilePrompt = prompt;
-                omFileRes = new org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse>();
-                Intent it = new Intent(Intent.ACTION_GET_CONTENT);
-                /* hồ sơ Ảnh chỉ cho chọn ảnh, hồ sơ Video chỉ cho chọn video, hồ sơ Tệp cho chọn mọi loại */
-                it.addCategory(Intent.CATEGORY_OPENABLE); it.setType(com.desktopmini.launcher.drive3.DriveEmbed.pickType(omemProfile));
-                it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                try { startActivityForResult(Intent.createChooser(it, "Chọn tệp"), REQ_OMFILE); }
-                catch (Exception e) { omFileRes.complete(prompt.dismiss()); }
-                return omFileRes;
-            }
-        });
-        se.open(gkRt());
-        return se;
-    }
-
-    private org.mozilla.geckoview.GeckoSession.PromptDelegate.PromptResponse omemConfirm(org.mozilla.geckoview.GeckoSession.PromptDelegate.FilePrompt prompt, Uri[] uris) {
-        try {
-            if (uris.length == 1) return prompt.confirm(this, uris[0]);
-            return prompt.confirm(this, uris);
-        } catch (Throwable t) {
-            try { return prompt.confirm(this, uris[0]); } catch (Throwable t2) { return prompt.dismiss(); }
-        }
-    }
-
-    /** Bỏ phiên Gecko của Ổ mềm (giải phóng RAM); hồ sơ vẫn nhớ nên mở lại là vào đúng hồ sơ, đăng nhập vẫn còn. */
-    private void omemDropSession() {
-        org.mozilla.geckoview.GeckoSession old = omSession;
-        omSession = null; omBackOk = false; omemReady = false; omemUploadStarted = false;
-        if (omView != null) { try { omView.releaseSession(); } catch (Throwable t) { } omView.setVisibility(View.GONE); }
-        if (old != null) { try { old.close(); } catch (Throwable t) { } }
-    }
-
-    /** Mở / chuyển hồ sơ (mỗi hồ sơ một kho cookie riêng). PHẢI chạy trên luồng giao diện. */
-    void omemSwitch(String profile, boolean upload) {
-        if (!com.desktopmini.launcher.drive3.DriveEmbed.valid(profile)) return;
-        if (omSession != null && profile.equals(omemProfile)) { if (upload) omemPick(profile); return; }
-        omemEnsureView();
-        int vis = omView.getVisibility();
-        omemDropSession();
-        omemProfile = profile; omemPending = null;
-        omSession = omemNewSession(profile);
-        omView.setSession(omSession);
-        omUrl = com.desktopmini.launcher.drive3.DriveEmbed.startUrl(omemProfile);
-        omSession.loadUri(omUrl);
-        omView.setVisibility(vis);   /* giữ nguyên vị trí cũ trong cửa sổ: giao diện HTML không cần đặt lại */
-        if (upload) omemPick(profile);
-    }
-
-    /** Giao diện đặt/hiện khung Ổ mềm tại vị trí (px). */
-    void omemShow(int x, int y, int w, int h) {
-        omemEnsureView();
-        if (omSession == null && com.desktopmini.launcher.drive3.DriveEmbed.valid(omemProfile)) {   /* đã bị giải phóng do ẩn lâu / thiếu RAM: mở lại */
-            omSession = omemNewSession(omemProfile);
-            omView.setSession(omSession);
-            omUrl = com.desktopmini.launcher.drive3.DriveEmbed.startUrl(omemProfile);
-            omSession.loadUri(omUrl);
-        }
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.max(1, w), Math.max(1, h));
-        lp.leftMargin = x; lp.topMargin = y;
-        omView.setLayoutParams(lp); omView.setVisibility(View.VISIBLE);
-        omHiddenAt = 0;
-        if (omSession != null) { try { omSession.setActive(true); } catch (Throwable t) { } }
-    }
-
-    void omemHideNow() {
-        if (omView == null || omView.getVisibility() != View.VISIBLE) return;
-        omView.setVisibility(View.GONE);
-        omHiddenAt = android.os.SystemClock.elapsedRealtime();
-        if (omSession != null) { try { omSession.setActive(false); } catch (Throwable t) { } }
-    }
-
-    /** Đóng hẳn Ổ mềm (đóng cửa sổ). */
-    void omemClose() {
-        omemDropSession();
-        omemProfile = ""; omemPending = null; omHiddenAt = 0;
-        if (omView != null) { try { root.removeView(omView); } catch (Throwable t) { } omView = null; }
-    }
-
-    private void omemReapIdle(long minIdleMs) {
-        if (omSession == null || omView == null || omView.getVisibility() == View.VISIBLE) return;
-        if (minIdleMs > 0 && (omHiddenAt == 0 || android.os.SystemClock.elapsedRealtime() - omHiddenAt < minIdleMs)) return;
-        omemDropSession();
-    }
-
-    void omemReload() { if (omSession != null) omSession.reload(); }
-    void omemForward() { if (omSession != null) omSession.goForward(); }
-    void omemBack() { if (omSession != null && omBackOk) omSession.goBack(); }
-    void omemGo(String url) { if (omSession != null && url != null && url.length() > 0) omSession.loadUri(url); }
-    String omemUrl() { return omUrl == null ? "" : omUrl; }
-
-    private void omemPick(String profile) {
-        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        i.addCategory(Intent.CATEGORY_OPENABLE);
-        i.setType(com.desktopmini.launcher.drive3.DriveEmbed.pickType(profile));
-        i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        try { startActivityForResult(i, REQ_OMEM_PICK); } catch (Exception e) { omemToast("Không mở được trình chọn tệp"); }
-    }
-
-    /** Đổi địa chỉ thành #dm-upload-...: tiện ích trong trang Drive tự bấm "Mới" rồi "Tải tệp lên"; Drive gọi hộp chọn tệp thì onFilePrompt giao tệp đã chọn. */
-    private void omemRunUpload() {
-        if (omSession == null || omemPending == null) return;
-        String base = omUrl == null ? "" : omUrl;
-        int h = base.indexOf('#'); if (h >= 0) base = base.substring(0, h);
-        String bh = null; try { bh = Uri.parse(base).getHost(); } catch (Exception e) { }
-        if (bh == null || !bh.equals("drive.google.com") || base.contains("/drive/search")) base = com.desktopmini.launcher.drive3.DriveEmbed.START_URL;   /* trang lọc theo loại không có chỗ tải lên: dùng Drive của tôi */
-        omSession.loadUri(base + "#dm-upload-" + System.currentTimeMillis());
-        root.postDelayed(new Runnable() { @Override public void run() {
-            if (omemPending != null) omemToast("Chưa tự bấm được – hãy bấm Mới → Tải tệp lên, tệp đã chọn sẽ được gửi");
-        } }, 12000);
-    }
-
     BrowserHost browserGet(String url) {
         if (browserHost == null) {
             browserHost = new BrowserHost(this, new kotlin.jvm.functions.Function0<kotlin.Unit>() {
@@ -1508,14 +1338,14 @@ public class MainActivity extends Activity {
             return v;
         }
         if (v == null) {
-            final boolean yt = "youtube".equals(key), br = "web".equals(key), ms = key.startsWith("ms-"), om = "omem".equals(key);
+            final boolean yt = "youtube".equals(key), br = "web".equals(key), ms = key.startsWith("ms-");
             v = new WebView(this);
             final WebView wv = v;
             final ZoomHelper zm = ZoomHelper.attach(this, v, key);
             zooms.put(key, zm);
             WebSettings s = v.getSettings();
             s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
-            if (yt || br || ms || om) {
+            if (yt || br || ms) {
                 s.setDatabaseEnabled(true);
                 s.setMediaPlaybackRequiresUserGesture(false);
                 s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -1537,10 +1367,9 @@ public class MainActivity extends Activity {
                     }
                 } catch (Exception e) { }
             } else {
-                s.setUserAgentString(om ? cleanDeskUa() : ("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms) ? UA_DESK : UA);
-                if (ms || om) { /* Microsoft / Ổ mềm (Google): bỏ X-Requested-With để trang đăng nhập không coi là "ứng dụng không an toàn" */
+                s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms) ? UA_DESK : UA);
+                if (ms) { /* Microsoft: bỏ X-Requested-With để trang đăng nhập không coi là "ứng dụng không an toàn" */
                     s.setJavaScriptCanOpenWindowsAutomatically(true);   // đăng nhập Microsoft/Google có thể mở cửa sổ phụ
-                    if (om) applyChromeHints(s);
                     try {
                         if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST))
                             androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, new java.util.HashSet<String>());
@@ -1551,11 +1380,6 @@ public class MainActivity extends Activity {
             if (yt || br) v.addJavascriptInterface(new WebVoice(key), "AndroidVoice");
             v.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
-                    if (om) {   /* Ổ mềm: chỉ http(s), như màn hình hồ sơ gốc; ghi nhớ tên miền để lưu/nạp cookie đúng chỗ */
-                        com.desktopmini.launcher.drive3.DriveEmbed.noteHost(req.getUrl().getHost());
-                        String osc = req.getUrl().getScheme();
-                        return !("http".equals(osc) || "https".equals(osc));
-                    }
                     if (!(yt || br || ms) || !req.isForMainFrame()) return false;
                     Uri u = req.getUrl();
                     if (yt) {
@@ -1572,7 +1396,6 @@ public class MainActivity extends Activity {
                     return false;
                 }
                 @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
-                    if (om && req.getUrl() != null) com.desktopmini.launcher.drive3.DriveEmbed.noteHost(req.getUrl().getHost());
                     if (!(yt || br || ms) || req.getUrl() == null || req.getUrl().getHost() == null) return null;
                     String h = req.getUrl().getHost().toLowerCase();
                     if (isAdHost(h)) return new android.webkit.WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0]));
@@ -1593,15 +1416,6 @@ public class MainActivity extends Activity {
                 @Override public void doUpdateVisitedHistory(WebView view, String u, boolean r) { if (yt || br || ms) extNav(key, view, 50); }
                 @Override public void onPageFinished(WebView view, String u) {
                     zm.onPageFinished(view);
-                    if (om && u != null) {
-                        String oh = Uri.parse(u).getHost();
-                        if (oh != null && oh.equals("drive.google.com")) {
-                            view.evaluateJavascript(com.desktopmini.launcher.drive3.DriveEmbed.tidyJs(), null);
-                            omemReady = true;
-                            /* đã chọn tệp bằng nút "Tải lên": vào tới trang Drive thì tự bấm Mới -> Tải tệp lên */
-                            if (omemPending != null && !omemUploadStarted) { omemUploadStarted = true; view.postDelayed(new Runnable() { @Override public void run() { omemRunUpload(); } }, 1500); }
-                        }
-                    }
                     if (yt || br || ms) {
                         /* WebView cũ không hỗ trợ script lúc bắt đầu tải: chèn sau khi tải xong (script tự chống chạy 2 lần) */
                         try { String h = Uri.parse(u == null ? "" : u).getHost(); if (h != null && hostIs(h.toLowerCase(), "youtube.com")) view.evaluateJavascript("window.__wbAdSkip=true;" + YT_KEEP_JS + YouTubeActivityKt.YT_ONLY_AD_JS, null); } catch (Exception e) { }
@@ -1614,7 +1428,7 @@ public class MainActivity extends Activity {
                     if (req.isForMainFrame() && web != null) web.evaluateJavascript("window.nativeExtError&&window.nativeExtError(" + JSONObject.quote(key) + ")", null);
                 }
             });
-            if (yt || br || ms || om) {
+            if (yt || br || ms) {
                 v.setWebChromeClient(new android.webkit.WebChromeClient() {
                     @Override public void onProgressChanged(WebView view, int p) { extNav(key, view, p); }
                     /* xem video toàn màn hình */
@@ -1628,23 +1442,17 @@ public class MainActivity extends Activity {
                     @Override public void onHideCustomView() { extHideFull(); }
                     /* chọn tệp từ máy để mở trong Word/Excel/PowerPoint Online, Duyệt web */
                     @Override public boolean onShowFileChooser(WebView w, android.webkit.ValueCallback<Uri[]> cb, FileChooserParams params) {
-                        if (om && omemPending != null) {   /* nút "Tải lên": giao thẳng tệp đã chọn cho Drive */
-                            Uri[] given = omemPending; omemPending = null;
-                            cb.onReceiveValue(given);
-                            omemToast("Đang tải lên Drive…");
-                            return true;
-                        }
                         if (extFileCb != null) extFileCb.onReceiveValue(null);
                         extFileCb = cb;
                         Intent it = new Intent(Intent.ACTION_GET_CONTENT);
-                        it.addCategory(Intent.CATEGORY_OPENABLE); it.setType(om ? com.desktopmini.launcher.drive3.DriveEmbed.pickType(omemProfile) : "*/*");
+                        it.addCategory(Intent.CATEGORY_OPENABLE); it.setType("*/*");
                         if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                         try { startActivityForResult(Intent.createChooser(it, "Chọn tệp"), REQ_EXTFILE); return true; }
                         catch (Exception e) { extFileCb = null; return false; }
                     }
                 });
             }
-            if (br || ms || om) {
+            if (br || ms) {
                 v.setDownloadListener(new android.webkit.DownloadListener() {
                     @Override public void onDownloadStart(String dUrl, String ua, String cd, String mime, long len) {
                         try {
@@ -1668,390 +1476,6 @@ public class MainActivity extends Activity {
         return v;
     }
 
-
-    /* ================= Trình duyệt Gecko nhúng trong cửa sổ (chép từ repo dang-nhap-github) ================= */
-    static final String GK_HOME = "https://www.google.com/";
-    private static final String GK_SEARCH = "https://www.google.com/search?q=";
-    private static org.mozilla.geckoview.GeckoRuntime gkRuntime;
-    org.mozilla.geckoview.GeckoSession gkSession;
-    org.mozilla.geckoview.GeckoView gkView;
-    private boolean gkBackOk, gkFwdOk;
-    private String gkUrl = "";
-    private int gkProg = 0;
-
-    /** Một tab của trình duyệt Gecko (mỗi tab một GeckoSession riêng; lõi vẫn là Gecko). */
-    static class GkTab { org.mozilla.geckoview.GeckoSession s; String url = "", title = ""; boolean back, fwd; int prog; }
-    final java.util.ArrayList<GkTab> gkTabs = new java.util.ArrayList<GkTab>();
-    int gkCur = -1;
-
-    void gkTabPush(GkTab t) {
-        if (gkTabs.indexOf(t) == gkCur) { gkUrl = t.url; gkBackOk = t.back; gkFwdOk = t.fwd; gkProg = t.prog; }
-        gkPush();
-    }
-
-    void gkSelect(int i) {
-        if (i < 0 || i >= gkTabs.size()) return;
-        GkTab t = gkTabs.get(i);
-        gkCur = i; gkSession = t.s; gkUrl = t.url; gkBackOk = t.back; gkFwdOk = t.fwd; gkProg = t.prog;
-        if (gkView != null) {
-            try { gkView.releaseSession(); } catch (Throwable e) { }
-            try { gkView.setSession(t.s); } catch (Throwable e) { CrashLog.log(this, "Gecko: không chuyển được tab (setSession)", e); }
-        }
-        gkPush();
-    }
-
-    void gkCloseTab(int i) {
-        if (i < 0 || i >= gkTabs.size()) return;
-        boolean wasCur = (i == gkCur);
-        GkTab t = gkTabs.get(i);
-        if (wasCur && gkView != null) { try { gkView.releaseSession(); } catch (Throwable e) { } }
-        gkTabs.remove(i);
-        try { t.s.close(); } catch (Throwable e) { }
-        if (gkTabs.isEmpty()) { gkCur = -1; gkSession = null; gkNewTab(GK_HOME, true); return; }
-        if (wasCur) gkSelect(Math.min(i, gkTabs.size() - 1));
-        else { if (i < gkCur) gkCur--; gkPush(); }
-    }
-
-    void gkCloseAll() {
-        if (gkView != null) { try { gkView.releaseSession(); } catch (Throwable e) { } }
-        for (GkTab t : gkTabs) { try { t.s.close(); } catch (Throwable e) { } }
-        gkTabs.clear(); gkCur = -1; gkSession = null;
-    }
-
-    void gkPush() {
-        if (web == null) return;
-        try {
-            JSONObject o = new JSONObject();
-            o.put("url", gkUrl); o.put("back", gkBackOk); o.put("fwd", gkFwdOk); o.put("p", gkProg);
-            org.json.JSONArray ta = new org.json.JSONArray();
-            for (GkTab t : gkTabs) { JSONObject x = new JSONObject(); x.put("t", t.title == null ? "" : t.title); x.put("u", t.url == null ? "" : t.url); ta.put(x); }
-            o.put("tabs", ta); o.put("cur", gkCur);
-            web.evaluateJavascript("window.nativeGk&&window.nativeGk(" + o.toString() + ")", null);
-        } catch (Exception e) { }
-    }
-    void gkToast(final String msg) {
-        runOnUiThread(new Runnable() { public void run() { android.widget.Toast.makeText(MainActivity.this, msg, android.widget.Toast.LENGTH_LONG).show(); } });
-    }
-    private String gkHeader(org.mozilla.geckoview.WebResponse r, String key) {
-        if (r.headers == null) return null;
-        for (java.util.Map.Entry<String, String> e : r.headers.entrySet()) {
-            if (e.getKey() != null && e.getKey().equalsIgnoreCase(key)) return e.getValue();
-        }
-        return null;
-    }
-    private int gkDlSeq = 0;
-    /** Báo tiến độ tải xuống cho giao diện (trang Tải xuống trong cửa sổ trình duyệt). */
-    private void gkDl(final int id, final String name, final String state, final long got, final long total, final String msg) {
-        runOnUiThread(new Runnable() { public void run() {
-            if (web == null) return;
-            try {
-                JSONObject o = new JSONObject();
-                o.put("id", id); o.put("name", name); o.put("state", state); o.put("got", got); o.put("total", total); o.put("msg", msg == null ? "" : msg);
-                web.evaluateJavascript("window.nativeGkDl&&window.nativeGkDl(" + o.toString() + ")", null);
-            } catch (Exception e) { }
-        } });
-    }
-    /* Tải xuống Gecko đang chạy (id -> tên) và các id bị người dùng huỷ */
-    private final java.util.concurrent.ConcurrentHashMap<Integer, String> gkRunning = new java.util.concurrent.ConcurrentHashMap<Integer, String>();
-    private final java.util.Set<Integer> gkCancelled = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<Integer, Boolean>());
-    void gkCancelDl(int id) { if (gkRunning.containsKey(id)) gkCancelled.add(id); }
-    /* Cảnh báo khi tải trùng một tệp đang tải: hỏi xác nhận rồi mới tải thêm */
-    private void gkDownload(final org.mozilla.geckoview.WebResponse r) {
-        final String nm = android.webkit.URLUtil.guessFileName(r.uri, gkHeader(r, "content-disposition"), gkHeader(r, "content-type"));
-        if (!gkRunning.containsValue(nm)) { gkDownloadGo(r); return; }
-        runOnUiThread(new Runnable() { public void run() {
-            try {
-                new android.app.AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Tệp đang được tải")
-                    .setMessage("\"" + nm + "\" đang tải xuống. Bạn có muốn tải thêm một lần nữa không?")
-                    .setPositiveButton("Tải thêm", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { gkDownloadGo(r); hideBars(); } })
-                    .setNegativeButton("Huỷ", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { try { if (r.body != null) r.body.close(); } catch (Exception e) { } hideBars(); } })
-                    .setOnCancelListener(new android.content.DialogInterface.OnCancelListener() { public void onCancel(android.content.DialogInterface d) { try { if (r.body != null) r.body.close(); } catch (Exception e) { } hideBars(); } })
-                    .show();
-            } catch (Throwable e) { gkDownloadGo(r); }
-        } });
-    }
-    private void gkDownloadGo(final org.mozilla.geckoview.WebResponse r) {
-        final String name0 = android.webkit.URLUtil.guessFileName(r.uri, gkHeader(r, "content-disposition"), gkHeader(r, "content-type"));
-        String ct = gkHeader(r, "content-type");
-        if (ct != null) { int sc = ct.indexOf(';'); if (sc >= 0) ct = ct.substring(0, sc); ct = ct.trim(); }
-        final String mime = (ct == null || ct.length() == 0) ? "application/octet-stream" : ct;
-        long tl = -1;
-        try { String cl = gkHeader(r, "content-length"); if (cl != null) tl = Long.parseLong(cl.trim()); } catch (Exception e) { tl = -1; }
-        final long total = tl;
-        final int id = ++gkDlSeq;
-        gkRunning.put(id, name0);
-        gkDl(id, name0, "run", 0, total, "");
-        new Thread(new Runnable() { public void run() {
-            Uri mu = null; OutputStream out = null; String finalName = name0, legacyPath = null;
-            try {
-                InputStream in = r.body;
-                if (in == null) throw new java.io.IOException("không có dữ liệu");
-                if (Build.VERSION.SDK_INT >= 29) {
-                    /* Android 10+: ghi vào Download qua MediaStore (không cần quyền riêng) */
-                    android.content.ContentValues v = new android.content.ContentValues();
-                    v.put(MediaStore.MediaColumns.DISPLAY_NAME, name0);
-                    v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-                    v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-                    v.put(MediaStore.MediaColumns.IS_PENDING, 1);
-                    mu = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-                    if (mu == null) throw new java.io.IOException("không tạo được tệp");
-                    out = getContentResolver().openOutputStream(mu);
-                    Cursor c = getContentResolver().query(mu, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null);
-                    if (c != null) { try { if (c.moveToFirst() && c.getString(0) != null) finalName = c.getString(0); } finally { c.close(); } }
-                } else {
-                    File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                    if (!(dir.exists() || dir.mkdirs()) || !dir.canWrite()) dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-                    File f = new File(dir, name0);
-                    int i = 1; String base = name0, ex = "";
-                    int dot = name0.lastIndexOf('.');
-                    if (dot > 0) { base = name0.substring(0, dot); ex = name0.substring(dot); }
-                    while (f.exists()) f = new File(dir, base + " (" + (i++) + ")" + ex);
-                    finalName = f.getName();
-                    out = new FileOutputStream(f);
-                    legacyPath = f.getAbsolutePath();
-                }
-                if (out == null) throw new java.io.IOException("không ghi được tệp");
-                long got = 0, lastPush = 0;
-                try {
-                    byte[] buf = new byte[16384]; int n;
-                    while ((n = in.read(buf)) > 0) {
-                        if (gkCancelled.contains(id)) throw new java.io.IOException("cancel");
-                        out.write(buf, 0, n); got += n;
-                        long now = System.currentTimeMillis();
-                        if (now - lastPush > 250) { lastPush = now; gkDl(id, finalName, "run", got, total, ""); }
-                    }
-                } finally { out.close(); }
-                in.close();
-                if (mu != null) {
-                    android.content.ContentValues v2 = new android.content.ContentValues();
-                    v2.put(MediaStore.MediaColumns.IS_PENDING, 0);
-                    getContentResolver().update(mu, v2, null, null);
-                } else if (legacyPath != null) {
-                    android.media.MediaScannerConnection.scanFile(MainActivity.this, new String[]{legacyPath}, null, null);
-                }
-                gkRunning.remove(id);
-                gkDl(id, finalName, "ok", got, got, "");
-            } catch (Exception e) {
-                boolean cx = gkCancelled.remove(id);
-                gkRunning.remove(id);
-                if (mu != null) { try { getContentResolver().delete(mu, null, null); } catch (Exception x) { } }
-                if (legacyPath != null) { try { new File(legacyPath).delete(); } catch (Exception x) { } }
-                try { InputStream bi = r.body; if (bi != null) bi.close(); } catch (Exception x) { }
-                gkDl(id, finalName, cx ? "cancel" : "err", 0, total, String.valueOf(e.getMessage()));
-            }
-        } }).start();
-    }
-    String gkToUrl(String text) {
-        if (text.startsWith("http://") || text.startsWith("https://") || text.startsWith("file://") || text.startsWith("about:")) return text;
-        if (!text.contains(" ") && text.contains(".")) return "https://" + text;
-        return GK_SEARCH + Uri.encode(text);
-    }
-    private float gkZoom = 1f;
-    private void gkApplyZoom() {
-        try {
-            gkRuntime.getSettings().setAutomaticFontSizeAdjustment(false);
-            gkRuntime.getSettings().setFontSizeFactor(gkZoom);
-        } catch (Throwable t) { }
-    }
-    private void gkStep(float f) {
-        gkZoom = Math.max(0.5f, Math.min(3f, gkZoom * f));
-        gkApplyZoom();
-        getSharedPreferences("dm_zoom", MODE_PRIVATE).edit().putFloat("gecko", gkZoom).apply();
-    }
-    /** Tắt hiệu ứng kéo quá đầu/cuối trang (trang bị \"võng\" lộ hình nền hệ thống phía sau): kéo tới cuối là dừng hẳn.
-     *  Đặt cờ Gecko apz.overscroll.enabled=false cho cả 2 nhánh (mặc định + người dùng). Gọi bằng reflection để không vỡ build nếu bản Gecko khác chữ ký. */
-    private static void gkNoOverscroll() {
-        try {
-            Class<?> c = Class.forName("org.mozilla.geckoview.GeckoPreferenceController");
-            for (java.lang.reflect.Method m : c.getMethods()) {
-                if (!"setGeckoPref".equals(m.getName()) || !java.lang.reflect.Modifier.isStatic(m.getModifiers())) continue;
-                Class<?>[] t = m.getParameterTypes();
-                if (t.length == 3 && t[0] == String.class && t[1] == boolean.class && t[2] == int.class) {
-                    for (int br = 0; br <= 1; br++) { try { m.invoke(null, "apz.overscroll.enabled", false, br); } catch (Throwable x) { } }
-                } else if (t.length == 2 && t[0] == String.class && t[1] == boolean.class) {
-                    try { m.invoke(null, "apz.overscroll.enabled", false); } catch (Throwable x) { }
-                }
-            }
-        } catch (Throwable t) { }
-    }
-    /** Giảm RAM của Gecko (máy 32-bit, Android 7: Gecko + WebView giao diện chung một tiến trình, dễ hết không gian địa chỉ -> WebView văng).
-     *  Chỉ 1 tiến trình trang, không nạp trước tiến trình, bộ nhớ đệm và ảnh giải mã nhỏ hơn. Gọi bằng reflection như gkNoOverscroll. */
-    private static void gkLightPrefs() {
-        gkSetPref("dom.ipc.processCount", 1);
-        gkSetPref("dom.ipc.processPrelaunch.enabled", false);
-        gkSetPref("browser.cache.memory.capacity", 16384);
-        gkSetPref("image.mem.max_decoded_image_kb", 40960);
-    }
-    private static void gkSetPref(String name, Object val) {
-        try {
-            Class<?> c = Class.forName("org.mozilla.geckoview.GeckoPreferenceController");
-            Class<?> want = val instanceof Boolean ? boolean.class : int.class;
-            for (java.lang.reflect.Method m : c.getMethods()) {
-                if (!"setGeckoPref".equals(m.getName()) || !java.lang.reflect.Modifier.isStatic(m.getModifiers())) continue;
-                Class<?>[] t = m.getParameterTypes();
-                if (t.length == 3 && t[0] == String.class && t[1] == want && t[2] == int.class) {
-                    for (int br = 0; br <= 1; br++) { try { m.invoke(null, name, val, br); } catch (Throwable x) { } }
-                } else if (t.length == 2 && t[0] == String.class && t[1] == want) {
-                    try { m.invoke(null, name, val); } catch (Throwable x) { }
-                }
-            }
-        } catch (Throwable t) { }
-    }
-    /** Nhân Gecko dùng chung cho trình duyệt và Ổ mềm (tạo một lần). */
-    org.mozilla.geckoview.GeckoRuntime gkRt() {
-        if (gkRuntime == null) {
-            gkRuntime = org.mozilla.geckoview.GeckoRuntime.create(getApplicationContext());
-            gkNoOverscroll();
-            gkLightPrefs();
-            /* cho phép 2 ngón zoom cả trang cấm zoom; nạp mức zoom chữ đã lưu */
-            try { org.mozilla.geckoview.GeckoRuntimeSettings.class.getMethod("setForceUserScalableEnabled", boolean.class).invoke(gkRuntime.getSettings(), true); } catch (Throwable t) { }
-            gkZoom = getSharedPreferences("dm_zoom", MODE_PRIVATE).getFloat("gecko", 1f);
-            if (Math.abs(gkZoom - 1f) > 0.01f) gkApplyZoom();
-        }
-        return gkRuntime;
-    }
-    /** JS báo ô nhập HTML của giao diện chính đang được gõ (để biết bàn phím ảo đang thuộc về ô HTML, không phải trang Gecko). */
-    volatile boolean htmlEditing = false;
-    /** Chạm vào view Gecko (trang web nhúng, native nằm đè lên giao diện HTML) khi bàn phím đang thuộc ô HTML (vd thanh địa chỉ):
-     *  ô HTML không nhận được sự kiện nào nên bàn phím kẹt lại -> bỏ focus ô HTML và tắt bàn phím. Chạm vào ô của trang Gecko thì Gecko tự bật lại. */
-    void kbGuard(View v) {
-        v.setOnTouchListener(new View.OnTouchListener() {
-            @Override public boolean onTouch(View view, android.view.MotionEvent e) {
-                if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN && htmlEditing) {
-                    htmlEditing = false;
-                    try { if (web != null) web.evaluateJavascript("try{var a=document.activeElement;if(a&&a.blur)a.blur()}catch(e){}", null); } catch (Throwable t) { }
-                    try { ((android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(view.getWindowToken(), 0); } catch (Throwable t) { }
-                }
-                return false;
-            }
-        });
-    }
-    /** Địa chỉ có nên mở lại khi vào lại app không: bỏ link chuyển hướng của Google (google.com/url?...ved=...) và địa chỉ quá dài.
-     *  Các link này chỉ dùng được đúng một lần ngay lúc bấm; mở lại sau đó dễ treo hoặc kẹt ở trang chuyển hướng. */
-    static boolean gkRestorable(String u) {
-        try {
-            if (u == null || u.length() > 2000) return false;
-            android.net.Uri x = android.net.Uri.parse(u);
-            String h = x.getHost() == null ? "" : x.getHost().toLowerCase(java.util.Locale.ROOT);
-            String path = x.getPath() == null ? "" : x.getPath();
-            if ((h.equals("google.com") || h.endsWith(".google.com")) && (path.equals("/url") || path.equals("/aclk") || path.startsWith("/imgres"))) return false;
-            return true;
-        } catch (Throwable t) { return false; }
-    }
-    /** Địa chỉ THẬT của trang sau khi chuyển hướng (thanh địa chỉ và trang lưu để mở lại đều dùng cái này). */
-    void gkLoc(GkTab t, String url) {
-        if (url == null || url.length() == 0 || url.equals("about:blank")) return;
-        t.url = url; gkTabPush(t);
-    }
-    void gkEnsure() {
-        if (gkView != null) return;
-        /* Lần mở Gecko trước chưa tải xong trang nào mà app đã bị tắt (dấu vết còn nguyên): không mở lại đúng trang cũ nữa mà về trang chủ, tránh văng lặp lại ở cùng một trang */
-        String prevStage = getSharedPreferences("dm_crash", MODE_PRIVATE).getString("stage", null);
-        boolean gkDiedBefore = prevStage != null && prevStage.contains("gkEnsure");
-        /* Đếm số lần Gecko làm app văng LIÊN TIẾP (reset khi có bản app mới hoặc khi một trang tải xong):
-         *  lần 1: về trang chủ; lần 2: chế độ nhẹ (SurfaceView thay TextureView); từ lần 3: tạm khóa để app không văng lặp mãi */
-        android.content.SharedPreferences gs = getSharedPreferences("gk_state", MODE_PRIVATE);
-        int ver = 0; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Throwable t) { }
-        if (gs.getInt("deathsVer", 0) != ver) gs.edit().putInt("deathsVer", ver).putInt("deaths", 0).apply();
-        int deaths = gs.getInt("deaths", 0);
-        if (gkDiedBefore) { deaths++; gs.edit().putInt("deaths", deaths).remove("last").apply(); CrashLog.clearMark(this); }
-        if (deaths >= 3) throw new IllegalStateException("Trình duyệt Gecko đã làm app văng " + deaths + " lần liên tiếp trên máy này nên tạm khóa để app không văng nữa. Hãy dùng app \"Duyệt web\"; khi cài bản app mới, trình duyệt này sẽ tự được thử lại.");
-        final boolean gkSafe = deaths >= 2;
-        CrashLog.mark(this, "mở trình duyệt Gecko (gkEnsure)" + (gkSafe ? " [chế độ nhẹ]" : ""));
-        gkRt();
-        /* Mở lại app: vào đúng trang đã xem lần trước (nếu có), chưa có thì về Google */
-        String gkLast = getSharedPreferences("gk_state", MODE_PRIVATE).getString("last", null);
-        final String gkStart = (gkLast != null && (gkLast.startsWith("http://") || gkLast.startsWith("https://")) && gkRestorable(gkLast)) ? gkLast : GK_HOME;
-        gkUrl = gkStart; gkBackOk = false; gkFwdOk = false; gkProg = 0;
-        gkView = new org.mozilla.geckoview.GeckoView(this);
-        /* TextureView để lớp nổi nằm đúng thứ tự trên giao diện HTML */
-        gkView.setViewBackend(gkSafe ? org.mozilla.geckoview.GeckoView.BACKEND_SURFACE_VIEW : org.mozilla.geckoview.GeckoView.BACKEND_TEXTURE_VIEW);
-        kbGuard(gkView);
-        gkView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        /* Ctrl + lăn chuột / Ctrl + - 0: đổi cỡ chữ cả trang (lưu lại); 2 ngón dùng zoom gốc của Gecko */
-        gkView.setOnGenericMotionListener(new View.OnGenericMotionListener() {
-            @Override public boolean onGenericMotion(View view, android.view.MotionEvent e) {
-                if (e.getAction() != android.view.MotionEvent.ACTION_SCROLL || (e.getMetaState() & android.view.KeyEvent.META_CTRL_ON) == 0) return false;
-                float dy = e.getAxisValue(android.view.MotionEvent.AXIS_VSCROLL);
-                if (dy == 0) return false;
-                gkStep((float) Math.pow(1.1, dy)); return true;
-            }
-        });
-        gkView.setOnKeyListener(new View.OnKeyListener() {
-            @Override public boolean onKey(View view, int code, android.view.KeyEvent e) {
-                if (!e.isCtrlPressed()) return false;
-                boolean down = e.getAction() == android.view.KeyEvent.ACTION_DOWN;
-                if (code == android.view.KeyEvent.KEYCODE_PLUS || code == android.view.KeyEvent.KEYCODE_EQUALS || code == android.view.KeyEvent.KEYCODE_NUMPAD_ADD) { if (down) gkStep(1.1f); return true; }
-                if (code == android.view.KeyEvent.KEYCODE_MINUS || code == android.view.KeyEvent.KEYCODE_NUMPAD_SUBTRACT) { if (down) gkStep(1f / 1.1f); return true; }
-                if (code == android.view.KeyEvent.KEYCODE_0 || code == android.view.KeyEvent.KEYCODE_NUMPAD_0) { if (down) gkStep(1f / gkZoom); return true; }
-                return false;
-            }
-        });
-        gkView.setVisibility(View.GONE);
-        root.addView(gkView, new FrameLayout.LayoutParams(1, 1));
-        gkNewTab(gkStart, true);
-    }
-    GkTab gkNewTab(String url, boolean select) {
-        final GkTab t = new GkTab(); t.url = url == null ? "" : url;
-        final org.mozilla.geckoview.GeckoSession se = new org.mozilla.geckoview.GeckoSession();
-        t.s = se;
-        se.setContentDelegate(new org.mozilla.geckoview.GeckoSession.ContentDelegate() {
-            public void onTitleChange(org.mozilla.geckoview.GeckoSession s, String title) { t.title = title == null ? "" : title; gkPush(); }
-            @Override public void onExternalResponse(org.mozilla.geckoview.GeckoSession s, org.mozilla.geckoview.WebResponse response) { gkDownload(response); }
-            @Override public void onCrash(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Gecko: tiến trình trang web bị văng (onCrash)", new Exception("onCrash")); gkToast("Trang web bị văng. Chi tiết: " + CrashLog.where(MainActivity.this)); }
-            @Override public void onKill(org.mozilla.geckoview.GeckoSession s) { CrashLog.log(MainActivity.this, "Gecko: tiến trình trang web bị hệ thống tắt, thường do thiếu RAM (onKill)", new Exception("onKill")); gkToast("Trang web bị tắt (có thể thiếu RAM). Chi tiết: " + CrashLog.where(MainActivity.this)); }
-        });
-        se.setProgressDelegate(new org.mozilla.geckoview.GeckoSession.ProgressDelegate() {
-            @Override public void onPageStart(org.mozilla.geckoview.GeckoSession s, String url) { if (url != null) t.url = url; t.prog = 5; gkTabPush(t); }
-            @Override public void onProgressChange(org.mozilla.geckoview.GeckoSession s, int p) { t.prog = p; gkTabPush(t); }
-            @Override public void onPageStop(org.mozilla.geckoview.GeckoSession s, boolean success) {
-                t.prog = 0; gkTabPush(t);
-                if (success) {
-                    CrashLog.clearMark(MainActivity.this);
-                    String u = t.url;   /* nhớ trang cuối để lần sau mở lại đúng trang này */
-                    if (u != null && (u.startsWith("http://") || u.startsWith("https://")))
-                        getSharedPreferences("gk_state", MODE_PRIVATE).edit().putString("last", u).putInt("deaths", 0).apply();
-                }
-            }
-        });
-        se.setNavigationDelegate(new org.mozilla.geckoview.GeckoSession.NavigationDelegate() {
-            /* Không gắn @Override: tùy bản Gecko là chữ ký 2 hay 3 tham số, cái nào có thì được gọi; kiểu List thô để khớp mọi bản */
-            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url, java.util.List perms) { gkLoc(t, url); }
-            public void onLocationChange(org.mozilla.geckoview.GeckoSession s, String url) { gkLoc(t, url); }
-            @Override public void onCanGoBack(org.mozilla.geckoview.GeckoSession s, boolean can) { t.back = can; gkTabPush(t); }
-            @Override public void onCanGoForward(org.mozilla.geckoview.GeckoSession s, boolean can) { t.fwd = can; gkTabPush(t); }
-            @Override public org.mozilla.geckoview.GeckoResult<org.mozilla.geckoview.GeckoSession> onNewSession(org.mozilla.geckoview.GeckoSession s, String uri) {
-                /* Link mở tab mới -> mở ngay trong tab hiện tại */
-                gkNewTab(uri, true); return null;
-            }
-        });
-        se.open(gkRuntime);
-        gkTabs.add(t);
-        if (select) gkSelect(gkTabs.size() - 1); else gkPush();
-        if (t.url.length() > 0) se.loadUri(t.url);
-        return t;
-    }
-    void gkHideNow() { if (gkView != null) { gkView.setVisibility(View.GONE); gkHiddenAt = android.os.SystemClock.elapsedRealtime(); } }
-
-    /* Trình duyệt Gecko ẩn lâu thì giải phóng để trả RAM (Gecko nặng, máy 32-bit dùng chung tiến trình với giao diện).
-     * Giống cách đóng các trang web nhúng khác: đóng các tab, lần mở sau vào lại đúng trang cuối đã xem. */
-    private long gkHiddenAt = 0;
-    /** minIdleMs = 0: đóng ngay (máy sắp hết RAM). Không đụng tới khi đang tải tệp, đang xem toàn màn hình, hoặc (với đóng theo thời gian) đang phát nhạc. */
-    void reapGecko(long minIdleMs) {
-        if (gkView == null) return;
-        long now = android.os.SystemClock.elapsedRealtime();
-        if (gkView.getVisibility() == View.VISIBLE) { gkHiddenAt = 0; return; }
-        if (gkHiddenAt == 0) gkHiddenAt = now;
-        if (!gkRunning.isEmpty()) return;
-        if (minIdleMs > 0) {
-            if (now - gkHiddenAt < minIdleMs) return;
-            try { if (((android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE)).isMusicActive()) return; } catch (Exception e) { }
-        } else if (extFullView != null) return;
-        try { gkCloseAll(); } catch (Throwable e) { }
-        try { root.removeView(gkView); } catch (Throwable e) { }
-        gkView = null; gkSession = null; gkHiddenAt = 0;
-    }
 
     /** Giao diện cần WebView (Chrome) từ bản 105 trở lên; máy Android 7 thường phải cập nhật Android System WebView.
      *  WebView quá cũ (vd sau khi gỡ cập nhật về bản gốc của máy): hiện hộp thoại gốc của Android (không phụ thuộc giao diện HTML đang lỗi)
@@ -2104,7 +1528,7 @@ public class MainActivity extends Activity {
         if (parts == null || parts.isEmpty()) { openWebViewStore(); return; }
         final java.io.File dir = new java.io.File(getCacheDir(), "shared"); dir.mkdirs();
         final java.io.File f = new java.io.File(dir, "webview.apk");
-        if (f.exists() && f.length() > 200L * 1024 * 1024) { launchApkInstall(f); return; }   /* đã giải nén lần trước */
+        if (f.exists() && f.length() > 200L * 1024 * 1024) { launchApkInstall(f, true); return; }   /* đã giải nén lần trước */
         if (dir.getUsableSpace() < 330L * 1024 * 1024) {
             android.widget.Toast.makeText(this, "Không đủ bộ nhớ trống (cần khoảng 330 MB) để giải nén WebView. Hãy dọn bớt rồi thử lại.", android.widget.Toast.LENGTH_LONG).show();
             return;
@@ -2142,7 +1566,7 @@ public class MainActivity extends Activity {
             final boolean done = ok;
             runOnUiThread(new Runnable() { public void run() {
                 try { pd.dismiss(); } catch (Throwable t) { }
-                if (done) launchApkInstall(f);
+                if (done) launchApkInstall(f, true);
                 else {
                     android.widget.Toast.makeText(MainActivity.this, "Không giải nén được WebView đi kèm, mở trang cập nhật trên Google Play.", android.widget.Toast.LENGTH_LONG).show();
                     openWebViewStore();
@@ -2150,10 +1574,10 @@ public class MainActivity extends Activity {
             } });
         } }, "webview-install").start();
     }
-    private void launchApkInstall(java.io.File f) {
+    private void launchApkInstall(java.io.File f, boolean webview) {
         try {
             if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
-                android.widget.Toast.makeText(this, "Hãy bật \"Cho phép từ nguồn này\" cho Desktop Mini rồi bấm Cài WebView lại.", android.widget.Toast.LENGTH_LONG).show();
+                android.widget.Toast.makeText(this, "Hãy bật \"Cho phép từ nguồn này\" cho Desktop Mini rồi thử cài lại.", android.widget.Toast.LENGTH_LONG).show();
                 startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:" + getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 return;
             }
@@ -2161,8 +1585,10 @@ public class MainActivity extends Activity {
             startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(u, "application/vnd.android.package-archive")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK));
         } catch (Throwable e) {
-            android.widget.Toast.makeText(this, "Không mở được trình cài đặt, mở trang cập nhật trên Google Play.", android.widget.Toast.LENGTH_LONG).show();
-            openWebViewStore();
+            if (webview) {
+                android.widget.Toast.makeText(this, "Không mở được trình cài đặt, mở trang cập nhật trên Google Play.", android.widget.Toast.LENGTH_LONG).show();
+                openWebViewStore();
+            } else android.widget.Toast.makeText(this, "Không mở được trình cài đặt của Android.", android.widget.Toast.LENGTH_LONG).show();
         }
     }
     private void openWebViewStore() {

@@ -225,7 +225,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         final GeckoSession se = new GeckoSession();
         t.s = se;
         se.setContentDelegate(new GeckoSession.ContentDelegate() {
-            @Override public void onTitleChange(GeckoSession s, String title) { t.title = title == null ? "" : title; refresh(); }
+            public void onTitleChange(GeckoSession s, String title) { t.title = title == null ? "" : title; refresh(); }
             @Override public void onExternalResponse(GeckoSession s, WebResponse response) { download(response); }
             @Override public void onCrash(GeckoSession s) { toast("Trang web bị văng, hãy tải lại hoặc mở thẻ mới."); }
             @Override public void onKill(GeckoSession s) { toast("Trang web bị tắt (có thể thiếu RAM), hãy tải lại."); }
