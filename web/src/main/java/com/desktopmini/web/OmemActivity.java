@@ -60,10 +60,28 @@ public class OmemActivity extends Activity {
         GeckoCore.rt(this);
         closeRx = CloseRx.reg(this);
         buildUi();
+        hideBars();
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+            @Override public void onSystemUiVisibilityChange(int vis) { if ((vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) hideBars(); }
+        });
         handle(getIntent());
     }
 
     @Override protected void onNewIntent(Intent it) { super.onNewIntent(it); setIntent(it); handle(it); }
+
+    /** Ẩn thanh trạng thái/điều hướng như Trình duyệt: nội dung bắt đầu từ mép trên màn hình, nên phần chừa cho thanh menu nổi khớp đúng, không còn dải trống thừa phía trên hàng Ảnh/Video/Tệp. */
+    private void immersive() {
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+    }
+    private void hideBars() {
+        immersive();
+        getWindow().getDecorView().postDelayed(new Runnable() { public void run() { immersive(); } }, 400);
+    }
+    @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) hideBars(); }
+    @Override protected void onResume() { super.onResume(); hideBars(); }
 
     private void handle(Intent it) {
         String p = it == null ? null : it.getStringExtra("profile");
