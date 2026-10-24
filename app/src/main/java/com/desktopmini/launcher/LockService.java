@@ -188,11 +188,12 @@ public class LockService extends AccessibilityService {
         recentsOpen = false; /* đã có cửa sổ khác lên trước: đa nhiệm đã đóng */
         if (pk.equals(getPackageName())) {
             CharSequence c = e.getClassName();
-            if (c != null && c.toString().endsWith(".MainActivity")) setLauncherFront(true);
+            if (c != null && c.toString().endsWith(".MainActivity")) { fgExtKey = null; setLauncherFront(true); }
             return; /* cửa sổ nổi của chính mình: bỏ qua */
         }
         if (imePackages().contains(pk)) return; /* bàn phím: không đổi app đang mở */
         String key = ExtKey.of(pk, e.getClassName());
+        if (key != null) { fgExtKey = key; fgExtAt = android.os.SystemClock.uptimeMillis(); }   /* app ngoài/app phụ đang ở trên cùng */
         if (key != null) trackExt(key);
         dismissPop(); if (key != null) fgLabel = labelOf(key); if (topBar != null) topBar.invalidate();
         videoFull = false; /* app khác lên trước: không còn video của mình ở toàn màn hình */
@@ -258,7 +259,7 @@ public class LockService extends AccessibilityService {
     /** MainActivity báo đã lên trước: chắc chắn hơn chờ sự kiện trợ năng (lúc mới mở app launcherFront còn mặc định false làm Dock đo sai cỡ). */
     public static void launcherResumed() {
         final LockService s = inst; if (s == null) return;
-        s.h.post(new Runnable() { public void run() { s.frontKnown = true; s.frontWant = true; s.h.removeCallbacks(s.frontCommit); s.commitLauncherFront(true); } });
+        s.h.post(new Runnable() { public void run() { s.fgExtKey = null; s.frontKnown = true; s.frontWant = true; s.h.removeCallbacks(s.frontCommit); s.commitLauncherFront(true); } });
     }
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
     private Point realSize() {
@@ -1365,7 +1366,7 @@ public class LockService extends AccessibilityService {
         dismissPop();
         java.util.List<PI> L = new java.util.ArrayList<PI>();
         if (name != null && name.length() > 0) L.add(pText(name));
-        L.add(pItem("Mở", new Runnable() { public void run() { openExternal(key); } }));
+        L.add(pItem("Mở", new Runnable() { public void run() { openExternal(key, false); } }));
         L.add(pItem("Đóng cửa sổ", new Runnable() { public void run() { closeExt(key); } }));
         float d = getResources().getDisplayMetrics().density;
         final PopView pv = new PopView(this, L, xCss * d - dp(115));
@@ -1452,7 +1453,12 @@ public class LockService extends AccessibilityService {
         } catch (Throwable t) { }
     }
     private String lastExtJs = null;
-    private void openExternal(String pk) {
+    /** App ngoài / app phụ (Trình duyệt, Ổ mềm) đang ở trên cùng. null = Desktop Mini đang ở trước. */
+    private volatile String fgExtKey = null; private volatile long fgExtAt = 0;
+    private void openExternal(String pk) { openExternal(pk, true); }
+    private void openExternal(String pk, boolean toggle) {
+        /* Bấm icon của app đang mở ở trên cùng thì thu xuống Desktop (như nút − của app con trong Desktop Mini), không mở lại */
+        if (toggle && pk != null && pk.equals(fgExtKey) && !launcherFront) { goHome(); return; }
         try {
             Intent i = ExtKey.launchIntent(getPackageManager(), pk);
             if (i != null) { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)); noteExt(this, pk); }
