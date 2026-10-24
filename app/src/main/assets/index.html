@@ -1277,10 +1277,13 @@ function kickSync(){if(nsRaf)return;nsRaf=requestAnimationFrame(()=>{nsRaf=0;NSY
 function winFree(w){
   try{
     const r=w.getBoundingClientRect(); if(r.width<2||r.height<2)return false;
+    const zw=+w.style.zIndex||0, E=2; /* E: dung sai vài px — 2 cửa sổ chia đôi chỉ chạm mép nhau thì không tính là che */
     return !$$('.win',layer).some(o=>{
       if(o===w||o.classList.contains('min')||o._leaving)return false;
+      /* chỉ cửa sổ nằm TRÊN (z-index cao hơn) mới che được; cửa sổ nằm dưới không che nên không được làm ẩn YouTube/web nhúng */
+      if((+o.style.zIndex||0)<zw)return false;
       const q=o.getBoundingClientRect(); if(q.width<2||q.height<2)return false;
-      return q.left<r.right&&q.right>r.left&&q.top<r.bottom&&q.bottom>r.top;
+      return q.left<r.right-E&&q.right>r.left+E&&q.top<r.bottom-E&&q.bottom>r.top+E;
     });
   }catch(e){return false}
 }
