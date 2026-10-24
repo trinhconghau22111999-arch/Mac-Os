@@ -1172,10 +1172,10 @@ public class LockService extends AccessibilityService {
         relayoutDock(); /* đổi giữa Desktop/app khác, xoay màn hình, hoặc đo được thanh hệ thống cao hơn: chỉnh lại vị trí/chiều cao */
                 if (android.os.SystemClock.uptimeMillis() >= dockQuietUntil) {
             boolean peeking = android.os.SystemClock.uptimeMillis() < dockPeekUntil;
-            boolean hide = barHide || videoFull || (dockAutoHide && !peeking); /* Dock luôn nổi; chỉ nhường chỗ cho bàn phím/khóa màn hình, hoặc tự ẩn nếu bật trong Cài đặt */
+            boolean hide = barHide || (dockAutoHide && !peeking); /* Dock luôn hiện, kể cả khi xem video toàn màn hình */ /* Dock luôn nổi; chỉ nhường chỗ cho bàn phím/khóa màn hình, hoặc tự ẩn nếu bật trong Cài đặt */
             boolean gate = !frontKnown && android.os.SystemClock.uptimeMillis() < frontGateUntil;
             if (hide && dockShown) hideDockBar(); else if (!hide && !dockShown && !gate) showDockBar();
-            if (dockAutoHide && !dockShown && !barHide && !videoFull) showHot(); else hideHot();
+            if (dockAutoHide && !dockShown && !barHide) showHot(); else hideHot();
         }
         h.postDelayed(dockTick, (!frontKnown && android.os.SystemClock.uptimeMillis() < frontGateUntil) ? 150 : 700);
     } };
