@@ -951,6 +951,9 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .app.tr .tsb{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;width:max-content;max-width:calc(100% - 16px);padding:8px 10px;border-radius:18px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 10px 34px rgba(0,0,0,.4)}
 .app.tr .tsb .btn{min-height:40px;padding:0 14px}
 .app.tr .tsb [hidden]{display:none}
+.win[data-app=mail] .bar,.win[data-app=notes] .bar,.win[data-app=calendar] .bar,.win[data-app=clock] .bar{padding-left:14px!important;padding-right:14px!important;height:48px}
+.win[data-app=clock] .clk2>.bar{justify-content:center}
+.win[data-app=notes] .nl .bar .t{font-size:17px}
 .rf .rsb{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;width:max-content;max-width:calc(100% - 16px);padding:8px 10px;border-radius:18px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 10px 34px rgba(0,0,0,.4)}
 .rf .rsb[hidden],.rf .rsb .btn[hidden],.rf .rsb .rsn:empty{display:none}
 .rf .rsb .rsn{font-size:13px;font-weight:600;padding:0 6px;white-space:nowrap}
@@ -1957,8 +1960,10 @@ const DOCK_OV=8; /* cửa sổ chui xuống dưới Dock 8px nên không còn h�
 const dockRes=()=>{try{const A=window.AndroidLauncher,t=A&&A.dockTopCss?+A.dockTopCss():0; if(t>0)return Math.max(0,Math.round((innerHeight-(t+4))*10)/10)}catch(e){} return 44};
 /* Bỏ hàng tiêu đề trên cùng của mọi cửa sổ app con (3 nút x − + và thanh tên/nút của app): nội dung dồn lên sát mép trên.
    Chỉ ẩn thanh nằm sát đỉnh và gần full chiều ngang; thanh nào hiện ra muộn (app nạp lười) cũng được xử lý. Máy tính (.calc) giữ nguyên vì thanh của nó là màn hình hiển thị. */
+const KEEPBAR=['mail','notes','calendar','clock'];
 function stripTop(w){
   const body=w.querySelector('.body'); if(!body)return;
+  if(KEEPBAR.indexOf(w.dataset.app)>=0)return;   /* Thư, Ghi chú, Lịch, Đồng hồ: thanh có nút chuyển tab/soạn/lưu/tháng nên giữ lại */
   let t=0;
   const run=()=>{t=0;
     const br=body.getBoundingClientRect(); if(!br.width)return;
