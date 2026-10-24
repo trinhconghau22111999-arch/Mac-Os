@@ -1337,6 +1337,23 @@ public class MainActivity extends Activity {
     }
     void browserHide() { if (browserHost != null) { try { browserHost.getRoot().setVisibility(View.GONE); } catch (Exception e) { } } }
 
+    private boolean gmailFixed = false;
+    /** Xoá cookie của các miền Google (không đụng Zalo/Facebook dùng chung kho cookie). */
+    private void clearGoogleCookies() {
+        try {
+            CookieManager cm = CookieManager.getInstance();
+            String[] urls = { "https://mail.google.com/", "https://accounts.google.com/", "https://www.google.com/", "https://google.com/", "https://myaccount.google.com/" };
+            String[] doms = { "", "; Domain=.google.com", "; Domain=google.com", "; Domain=mail.google.com", "; Domain=accounts.google.com" };
+            for (String u : urls) {
+                String c = cm.getCookie(u); if (c == null) continue;
+                for (String part : c.split(";")) {
+                    int i = part.indexOf('='); String n = (i > 0 ? part.substring(0, i) : part).trim(); if (n.isEmpty()) continue;
+                    for (String d : doms) cm.setCookie(u, n + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/" + d);
+                }
+            }
+            cm.flush();
+        } catch (Throwable t) { }
+    }
     WebView extGet(final String key, String url) {
         WebView v = ext.get(key);
         if (v == null && !"word".equals(key)) capExt(key);
@@ -1390,6 +1407,18 @@ public class MainActivity extends Activity {
                 } catch (Exception e) { }
             } else {
                 s.setUserAgentString(("gmail".equals(key) || "drive".equals(key) || "zalo".equals(key) || "facebook".equals(key) || br || ms) ? UA_DESK : UA);
+                if ("gmail".equals(key)) {
+                    /* Gmail: UA máy tính nhưng đúng phiên bản Chrome thật của máy (UA giả Chrome 124 làm Google chuyển hướng vòng lặp), bỏ X-Requested-With */
+                    try {
+                        String du = WebSettings.getDefaultUserAgent(this);
+                        du = du.replaceAll("\\(Linux; Android[^)]*\\)", "(X11; Linux x86_64)").replace(" Mobile", "").replace(" Version/4.0", "");
+                        if (du.contains("Chrome/")) s.setUserAgentString(du);
+                    } catch (Exception e) { }
+                    try {
+                        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST))
+                            androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, new java.util.HashSet<String>());
+                    } catch (Exception e) { }
+                }
                 if (ms) { /* Microsoft: bỏ X-Requested-With để trang đăng nhập không coi là "ứng dụng không an toàn" */
                     s.setJavaScriptCanOpenWindowsAutomatically(true);   // đăng nhập Microsoft/Google có thể mở cửa sổ phụ
                     try {
@@ -1447,6 +1476,11 @@ public class MainActivity extends Activity {
                     CookieManager.getInstance().flush();
                 }
                 @Override public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
+                    if ("gmail".equals(key) && req.isForMainFrame() && !gmailFixed && err != null
+                        && (err.getErrorCode() == WebViewClient.ERROR_REDIRECT_LOOP || String.valueOf(err.getDescription()).contains("TOO_MANY_REDIRECTS"))) {
+                        /* Vòng lặp chuyển hướng của Google (cookie đăng nhập hỏng): xoá riêng cookie Google rồi tải lại một lần */
+                        gmailFixed = true; clearGoogleCookies(); view.loadUrl("https://mail.google.com/mail/u/0/"); return;
+                    }
                     if (req.isForMainFrame() && web != null) web.evaluateJavascript("window.nativeExtError&&window.nativeExtError(" + JSONObject.quote(key) + ")", null);
                 }
             });
