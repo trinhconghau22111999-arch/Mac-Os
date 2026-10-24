@@ -63,7 +63,7 @@ function render(){
   if(busy()){pend=true;return}
   try{
     /* Icon ghim của Trình duyệt / Ổ mềm (có khóa k) đang mở thì sáng chấm ngay trên icon ghim, không hiện thêm icon thứ hai */
-    var ext=lastExt.filter(function(x){return !lastList.some(function(a){return a.k&&a.k===x.p})});
+    var ext=lastExt; /* Ổ mềm / Trình duyệt đang mở: luôn hiện thêm icon riêng sau các icon ghim, như các app ngoài */
     var on=function(a){return !!(a.r||(a.k&&lastExt.some(function(x){return x.p===a.k})))};
     apps.innerHTML=lastList.map(function(a){return ico(a,on(a))}).join('')+(ext.length&&lastList.length?'<span class="sp"></span>':'')+ext.map(ico2).join('');
   }catch(e){}

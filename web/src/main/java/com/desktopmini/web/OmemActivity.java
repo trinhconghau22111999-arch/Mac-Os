@@ -75,19 +75,19 @@ public class OmemActivity extends Activity {
 
         bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL); bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(4), 0, dp(4), 0);
+        bar.setPadding(dp(2), 0, dp(2), 0);
         bar.addView(Ic.make(this, Ic.CLOSE, new View.OnClickListener() { public void onClick(View v) { finish(); } }));
         chips = new LinearLayout(this);
         chips.setOrientation(LinearLayout.HORIZONTAL); chips.setGravity(Gravity.CENTER_VERTICAL);
         for (int i = 0; i < 3; i++) {
             final String id = P[i][0];
             TextView c = new TextView(this);
-            c.setText(P[i][1]); c.setTextSize(14); c.setGravity(Gravity.CENTER);
-            c.setPadding(dp(16), 0, dp(16), 0);
+            c.setText(P[i][1]); c.setTextSize(12); c.setGravity(Gravity.CENTER);
+            c.setPadding(dp(12), 0, dp(12), 0);
             c.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { open(id, false); } });
             chipViews[i] = c;
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
-            lp.rightMargin = dp(6);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(22));
+            lp.rightMargin = dp(4);
             chips.addView(c, lp);
         }
         bar.addView(chips);
@@ -97,8 +97,9 @@ public class OmemActivity extends Activity {
         icFwd = Ic.make(this, Ic.FWD, new View.OnClickListener() { public void onClick(View v) { if (session != null && fwdOk) session.goForward(); } });
         bar.addView(icBack); bar.addView(icFwd);
         bar.addView(Ic.make(this, Ic.RELOAD, new View.OnClickListener() { public void onClick(View v) { if (session != null) session.reload(); } }));
+        for (int i = 0; i < bar.getChildCount(); i++) { View v = bar.getChildAt(i); if (v instanceof Ic) v.setLayoutParams(new LinearLayout.LayoutParams(dp(32), dp(30))); }
         bar.setVisibility(View.GONE);
-        root.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
+        root.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(30)));
 
         FrameLayout content = new FrameLayout(this);
         content.setBackgroundColor(Color.WHITE);
