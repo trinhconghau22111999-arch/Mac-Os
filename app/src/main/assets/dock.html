@@ -138,17 +138,25 @@ document.addEventListener('click',function(e){
 /* ===== Sắp xếp / xóa icon trên Dock =====
    Chuột: bấm giữ rồi kéo ngang; chuột phải = menu.  Cảm ứng: nhấn giữ rồi kéo ngang (nhả mà không kéo = menu).
    Thứ tự được gửi sang dịch vụ (DockApp.reorder) và lưu lại, khởi động lại vẫn giữ nguyên. */
+function extEls(){return Array.prototype.slice.call(apps.querySelectorAll('.dk[data-pk]'))}
 function pinnedEls(){return Array.prototype.filter.call(apps.querySelectorAll('.dk[data-id]'),function(d){return d.dataset.p!=='0'})}
 function showMenu(id){
+  if(id.indexOf('pk:')===0){
+    var pk=id.slice(3),ex=Array.prototype.filter.call(apps.querySelectorAll('.dk[data-pk]'),function(x){return x.dataset.pk===pk})[0]; if(!ex)return;
+    var rr=ex.getBoundingClientRect(); menuAt=Date.now();
+    try{DockApp.menuExt(pk,ex.getAttribute('aria-label')||pk,rr.left+rr.width/2)}catch(x){}
+    return;
+  }
   var el=apps.querySelector('.dk[data-id="'+id.replace(/"/g,'\\"')+'"]'); if(!el)return;
   var r=el.getBoundingClientRect(); menuAt=Date.now();
   try{DockApp.menu(id,el.getAttribute('aria-label')||id,r.left+r.width/2,el.dataset.p!=='0',el.classList.contains('run'))}catch(x){}
 }
 apps.addEventListener('pointerdown',function(e){
   lastPT=e.pointerType;
-  var d=e.target.closest('.dk[data-id]'); if(!d)return;
+  var d=e.target.closest('.dk[data-id],.dk[data-pk]'); if(!d)return;
   if(e.pointerType==='mouse'&&e.button!==0)return;
-  var id=d.dataset.id, canDrag=d.dataset.p!=='0'&&id!=='launchpad';
+  var isExt=!!d.dataset.pk&&!d.dataset.id;
+  var id=isExt?'pk:'+d.dataset.pk:d.dataset.id, canDrag=isExt?extEls().length>1:(d.dataset.p!=='0'&&id!=='launchpad');
   if(PD){clearTimeout(PD.tm)}
   var p=PD={el:d,id:id,pid:e.pointerId,x:e.clientX,y:e.clientY,t:Date.now(),armed:false,drag:false,mouse:e.pointerType==='mouse',canDrag:canDrag,tm:0,menuDone:false};
   if(!p.mouse){
@@ -169,12 +177,13 @@ document.addEventListener('pointermove',function(e){
   if(Math.abs(dx)>4)startDrag(p);
 },{passive:true});
 function startDrag(p){
-  var els=pinnedEls(); if(els.length<2||dragging){PD=null;return}
+  var ext=p.id.indexOf('pk:')===0; p.ext=ext;
+  var els=ext?extEls():pinnedEls(); if(els.length<2||dragging){PD=null;return}
   clearTimeout(p.tm); p.drag=true; dragging=true;
   p.els=els; p.from=els.indexOf(p.el);
   p.rects=els.map(function(x){var r=x.getBoundingClientRect();return{l:r.left,w:r.width}});
   p.step=p.rects.length>1?(p.rects[1].l-p.rects[0].l):(p.rects[0].w+10);
-  p.minIdx=els[0].dataset.id==='launchpad'?1:0;
+  p.minIdx=(!ext&&els[0].dataset.id==='launchpad')?1:0;
   p.to=p.from;
   p.el.classList.add('lift'); p.el.style.transition='none';
   els.forEach(function(x){if(x!==p.el)x.style.transition='transform .16s ease'});
@@ -204,8 +213,14 @@ function finishDrag(p){
     order.forEach(function(x){apps.insertBefore(x,anchor)});
     void apps.offsetWidth;
     p.els.forEach(function(x){x.style.transition=''});
-    var ids=order.map(function(x){return x.dataset.id});
-    if(p.to!==p.from){
+    var ids=order.map(function(x){return p.ext?x.dataset.pk:x.dataset.id});
+    if(p.to!==p.from&&p.ext){
+      var mx={},nx=[]; lastExt.forEach(function(a){mx[a.p]=a});
+      ids.forEach(function(k){if(mx[k])nx.push(mx[k])});
+      lastExt.forEach(function(a){if(ids.indexOf(a.p)<0)nx.push(a)});
+      lastExt=nx;
+      try{DockApp.reorderExt(JSON.stringify(ids))}catch(x){}
+    } else if(p.to!==p.from){
       var m={},nl=[]; lastList.forEach(function(a){m[a.id]=a});
       ids.forEach(function(id){if(m[id])nl.push(m[id])});
       lastList.forEach(function(a){if(ids.indexOf(a.id)<0)nl.push(a)});
@@ -230,9 +245,9 @@ document.addEventListener('pointercancel',endPtr);
 document.addEventListener('contextmenu',function(e){
   e.preventDefault();
   if(lastPT==='touch')return;
-  var d=e.target.closest('.dk[data-id]'); if(!d||Date.now()-menuAt<500)return;
+  var d=e.target.closest('.dk[data-id],.dk[data-pk]'); if(!d||Date.now()-menuAt<500)return;
   if(PD){clearTimeout(PD.tm);PD=null}
-  showMenu(d.dataset.id);
+  showMenu(d.dataset.id||('pk:'+d.dataset.pk));
 });
 </script>
 

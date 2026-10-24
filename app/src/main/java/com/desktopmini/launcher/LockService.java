@@ -1248,6 +1248,8 @@ public class LockService extends AccessibilityService {
         /** Chuột phải / nhấn giữ icon trên Dock: hiện menu (Mở, Thoát, Xóa khỏi Dock / Giữ trong Dock) phía trên Dock. */
         @JavascriptInterface public void menu(final String id, final String name, final float xCss, final boolean pinned, final boolean running) { h.post(new Runnable() { public void run() { showDockMenu(id, name, xCss, pinned, running); } }); }
         /** Người dùng kéo đổi chỗ icon: JSON mảng id theo thứ tự mới (các icon đã ghim). */
+        @JavascriptInterface public void menuExt(final String pk, final String name, final float xCss) { h.post(new Runnable() { public void run() { showExtMenu(pk, name, xCss); } }); }
+        @JavascriptInterface public void reorderExt(final String json) { h.post(new Runnable() { public void run() { extReorder(json); } }); }
         @JavascriptInterface public void reorder(final String json) { h.post(new Runnable() { public void run() { dockReorder(json); } }); }
         @JavascriptInterface public void grow(final boolean on) { h.post(new Runnable() { public void run() { growDock(on); } }); }
     }
@@ -1323,6 +1325,53 @@ public class LockService extends AccessibilityService {
         lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = y0;
         try { wm.addView(pv, lp); pop = pv; popId = "dock:" + id; } catch (Exception e) { pop = null; popId = ""; }
     }
+    /** Người dùng kéo đổi chỗ icon app ngoài / app phụ trên Dock: JSON mảng khóa theo thứ tự mới. */
+    private void extReorder(String json) {
+        try {
+            org.json.JSONArray a = new org.json.JSONArray(json);
+            java.util.LinkedList<String> n = new java.util.LinkedList<String>();
+            for (int i = 0; i < a.length(); i++) { String k = a.optString(i); if (extPk.contains(k) && !n.contains(k)) n.add(k); }
+            for (String k : extPk) if (!n.contains(k)) n.add(k);
+            extPk.clear(); extPk.addAll(n);
+        } catch (Throwable t) { }
+    }
+    /** "Đóng cửa sổ" của icon app ngoài: về Desktop rồi tắt app, gỡ icon khỏi Dock. Trình duyệt / Ổ mềm: chỉ tắt đúng màn hình đó. */
+    private void closeExt(final String key) {
+        dismissPop();
+        goHome();
+        h.postDelayed(new Runnable() { public void run() {
+            try {
+                String pk = ExtKey.pkgOf(key);
+                if (ExtKey.WEB_PKG.equals(pk) && key.indexOf('/') >= 0) {
+                    String cls = key.substring(key.lastIndexOf('.') + 1);
+                    sendBroadcast(new Intent("com.desktopmini.web.CLOSE").setPackage(pk).putExtra("cls", cls));
+                } else {
+                    ((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pk);
+                }
+            } catch (Throwable t) { }
+            extPk.remove(key); pushExt();
+            try { getSharedPreferences(PK, 0).edit().remove("extlaunched").apply(); } catch (Throwable t) { }
+        } }, 450);
+    }
+    private void showExtMenu(final String key, String name, float xCss) {
+        if (wm == null || dockLp == null || !dockShown) return;
+        dismissPop();
+        java.util.List<PI> L = new java.util.ArrayList<PI>();
+        if (name != null && name.length() > 0) L.add(pText(name));
+        L.add(pItem("Mở", new Runnable() { public void run() { openExternal(key); } }));
+        L.add(pItem("Đóng cửa sổ", new Runnable() { public void run() { closeExt(key); } }));
+        float d = getResources().getDisplayMetrics().density;
+        final PopView pv = new PopView(this, L, xCss * d - dp(115));
+        int y0 = topLp != null ? topLp.height : 0, wh = Math.max(dp(60), dockLp.y - y0);
+        pv.bottomAlign(wh);
+        Point sz = realSize();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(sz.x, wh,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT; lp.x = 0; lp.y = y0;
+        try { wm.addView(pv, lp); pop = pv; popId = "dock:" + key; } catch (Exception e) { pop = null; popId = ""; }
+    }
     /* ================= App ngoài trên Dock =================
      * App nào vừa lên trước (Zalo, Chrome...) thì icon thật của nó hiện ngay sau các icon Dock, có chấm bên dưới; bấm vào để mở lại. */
     private final java.util.LinkedList<String> extPk = new java.util.LinkedList<String>();
@@ -1346,9 +1395,9 @@ public class LockService extends AccessibilityService {
             if (homePk.contains(pk)) return;
             if (ExtKey.launchIntent(getPackageManager(), key) == null) return;
         } catch (Throwable t) { return; }
-        if (!extPk.isEmpty() && extPk.getFirst().equals(key)) return;
-        extPk.remove(key); extPk.addFirst(key);
-        while (extPk.size() > 4) extPk.removeLast();
+        if (extPk.contains(key)) return;   /* giữ nguyên chỗ icon đã có (người dùng có thể đã kéo sắp xếp) */
+        extPk.addLast(key);
+        while (extPk.size() > 6) extPk.removeFirst();
         pushExt();
     }
     private String extIconUrl(String p) {

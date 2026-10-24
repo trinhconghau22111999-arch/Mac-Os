@@ -31,6 +31,7 @@ public class OmemActivity extends Activity {
     private static final int REQ_PICK = 31, REQ_FILE = 32;
     private static final String[][] P = {{"anh", "Ảnh"}, {"video", "Video"}, {"tep", "Tệp"}};
 
+    private CloseRx closeRx;
     private GeckoView view;
     private GeckoSession session;
     private LinearLayout home, bar, chips;
@@ -55,6 +56,7 @@ public class OmemActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         GeckoCore.rt(this);
+        closeRx = CloseRx.reg(this);
         buildUi();
         handle(getIntent());
     }
@@ -321,5 +323,5 @@ public class OmemActivity extends Activity {
 
     @Override protected void onStart() { super.onStart(); if (session != null) { try { session.setActive(true); } catch (Throwable e) { } } }
     @Override protected void onStop() { super.onStop(); if (session != null && !Downloads.anyRunning()) { try { session.setActive(false); } catch (Throwable e) { } } }
-    @Override protected void onDestroy() { dropSession(); super.onDestroy(); }
+    @Override protected void onDestroy() { CloseRx.unreg(this, closeRx); dropSession(); super.onDestroy(); }
 }

@@ -63,8 +63,10 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
     private boolean safe;
     private SharedPreferences st;
 
+    private CloseRx closeRx;
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        closeRx = CloseRx.reg(this);
         st = getSharedPreferences("web_state", MODE_PRIVATE);
         /* Lần mở trước chưa tải xong trang nào mà app đã chết (lỗi mã gốc Gecko): lần 1 về trang chủ, từ lần 2 dùng chế độ nhẹ (SurfaceView). App phụ chết không kéo theo app chính. */
         int deaths = st.getInt("deaths", 0);
@@ -545,6 +547,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
     }
 
     @Override protected void onDestroy() {
+        CloseRx.unreg(this, closeRx);
         Downloads.unlisten(this);
         if (isFinishing()) st.edit().putBoolean("opening", false).apply();
         try { gv.releaseSession(); } catch (Throwable e) { }
