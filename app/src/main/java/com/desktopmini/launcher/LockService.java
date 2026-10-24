@@ -332,6 +332,22 @@ public class LockService extends AccessibilityService {
         } catch (Throwable t) { return false; }
         finally { if (root != null) { try { root.recycle(); } catch (Throwable t) { } } }
     }
+    /** Thanh trạng thái của SystemUI còn nằm trong màn hình (cao dưới 80dp, sát mép trên, gần hết chiều ngang) = app chưa toàn màn hình. */
+    private boolean systemStatusBarVisible(List<AccessibilityWindowInfo> ws, Point real) {
+        try {
+            for (AccessibilityWindowInfo w : ws) {
+                if (w.getType() == AccessibilityWindowInfo.TYPE_APPLICATION || w.getType() == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) continue;
+                Rect r = new Rect(); w.getBoundsInScreen(r);
+                if (r.top < -dp(2) || r.top > dp(2) || r.height() < dp(8) || r.height() > dp(80) || r.width() < real.x * 0.9f) continue;
+                android.view.accessibility.AccessibilityNodeInfo root = null;
+                try {
+                    root = w.getRoot();
+                    if (root != null && root.getPackageName() != null && root.getPackageName().toString().equals("com.android.systemui")) return true;
+                } finally { if (root != null) { try { root.recycle(); } catch (Throwable t) { } } }
+            }
+        } catch (Throwable t) { }
+        return false;
+    }
     private boolean externalFullscreenTop() {
         if (launcherFront || wm == null) return false;
         try {
@@ -342,7 +358,9 @@ public class LockService extends AccessibilityService {
                 if (w.getType() != AccessibilityWindowInfo.TYPE_APPLICATION || !(w.isActive() || w.isFocused())) continue;
                 Rect r = new Rect(); w.getBoundsInScreen(r);
                 if (!(r.top <= 0 && r.width() >= real.x - dp(2) && r.height() >= real.y - dp(2))) return false;
-                return !ownOrSystemWindow(w);
+                if (ownOrSystemWindow(w)) return false;
+                /* App thường cũng có khung cửa sổ phủ kín màn hình (phần trên là thanh trạng thái): chỉ coi là toàn màn hình khi thanh trạng thái của hệ thống đã ẩn */
+                return !systemStatusBarVisible(ws, real);
             }
         } catch (Throwable t) { }
         return false;
