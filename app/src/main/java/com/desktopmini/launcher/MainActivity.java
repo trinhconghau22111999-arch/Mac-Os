@@ -915,6 +915,12 @@ public class MainActivity extends Activity {
             web.postDelayed(new Runnable() { public void run() { runMenuClick(id); } }, i.getBooleanExtra("mbFront", false) ? 0 : 300);
             return;
         }
+        String of = i == null ? null : i.getStringExtra("openDownloaded");
+        if (of != null) {   /* Trình duyệt (app phụ) nhờ mở tệp vừa tải bằng app Tải xuống */
+            final String fp = of, fn = i.getStringExtra("openDownloadedName");
+            web.postDelayed(new Runnable() { public void run() { web.evaluateJavascript("window.nativeOpenDownloaded&&window.nativeOpenDownloaded(" + JSONObject.quote(fp) + "," + JSONObject.quote(fn == null ? "" : fn) + ")", null); } }, 250);
+            return;
+        }
         String oa = i == null ? null : i.getStringExtra("openApp");
         if (oa != null) web.evaluateJavascript("window.nativeOpenApp&&window.nativeOpenApp(" + JSONObject.quote(oa) + "," + i.getBooleanExtra("openToggle", false) + ")", null);
         else web.evaluateJavascript("window.nativeHome&&window.nativeHome()", null);

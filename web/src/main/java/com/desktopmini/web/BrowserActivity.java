@@ -512,7 +512,29 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         }
     }
 
+    /** Đường dẫn thật của tệp đã tải (Android 10+ lưu qua MediaStore nên phải tra từ Uri). */
+    private String pathOfDownload(Downloads.Item it) {
+        if (it.uri.startsWith("file:")) return it.uri.substring(5);
+        try {
+            android.database.Cursor c = getContentResolver().query(Uri.parse(it.uri), new String[]{"_data"}, null, null, null);
+            if (c != null) { try { if (c.moveToFirst() && c.getString(0) != null) return c.getString(0); } finally { c.close(); } }
+        } catch (Throwable e) { }
+        return new java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), it.name).getAbsolutePath();
+    }
+
+    /** "Mở": nhờ app Tải xuống của Desktop Mini mở tệp (như bấm tệp trong app đó). Không có Desktop Mini thì mở bằng app khác như cũ. */
     private void openDownloaded(Downloads.Item it) {
+        try {
+            Intent i = new Intent().setClassName("com.desktopmini.launcher", "com.desktopmini.launcher.MainActivity")
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                .putExtra("openDownloaded", pathOfDownload(it)).putExtra("openDownloadedName", it.name);
+            startActivity(i);
+            return;
+        } catch (Throwable e) { }
+        openDownloadedExternal(it);
+    }
+
+    private void openDownloadedExternal(Downloads.Item it) {
         try {
             Uri u = it.uri.startsWith("file:") ? androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".files", new java.io.File(it.uri.substring(5))) : Uri.parse(it.uri);
             String mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(android.webkit.MimeTypeMap.getFileExtensionFromUrl(it.name.replace(" ", "_")));

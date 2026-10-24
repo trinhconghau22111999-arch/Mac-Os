@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <queries><package android:name="com.desktopmini.launcher" /></queries>
     <!-- App phụ của Desktop Mini: không có biểu tượng riêng trong danh sách app; Desktop Mini mở "Trình duyệt" và "Ổ mềm" bằng intent tường minh -->
     <application android:label="Trình duyệt và Ổ mềm" android:allowBackup="false" android:largeHeap="true"
         android:extractNativeLibs="true" android:theme="@android:style/Theme.Material.Light.NoActionBar">

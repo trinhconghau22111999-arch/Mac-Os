@@ -2674,6 +2674,7 @@ function buildRealFiles(b,w,arg,mode){
     if(m&&alt&&alt.id&&A.openDownload&&A.openDownload(alt.id,alt.t))m='';
     if(m)notify({app:'Tệp',title:'Không mở được tệp',body:nm+': '+m,icon:'files'});
   }
+  window.__dlOpenPath=openPath;   /* để Trình duyệt (app phụ) nhờ app Tải xuống mở tệp vừa tải */
   function renameBox(n,full,refresh){
     const o=document.createElement('div'); o.className='bpk';
     o.innerHTML='<div class="bps"><b>Đổi tên</b><form style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><input type="text" autocomplete="off" aria-label="Tên mới" style="border:0;border-radius:8px;padding:8px 10px;background:var(--field);color:inherit;outline:0"><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn bpc">Huỷ</button><button type="submit" class="btn">Lưu</button></div></form></div>';
@@ -4703,6 +4704,19 @@ if(window.AndroidLauncher){(function(){
     try{const mo=new MutationObserver(pushHide);mo.observe(lock,{attributes:true,attributeFilter:['hidden']});mo.observe(off,{attributes:true,attributeFilter:['hidden']})}catch(e){}
     pushName();pushHide();pushGeom();window.addEventListener('resize',pushGeom);
   })();
+  /* Trình duyệt (app phụ) bấm "Mở" ở trang tải xuống: mở app Tải xuống rồi mở tệp bằng chính cách của app đó (zip thì giải nén) */
+  window.nativeOpenDownloaded=function(full,nm){
+    try{
+      overlaysOpen(); openApp('downloads');
+      const name=nm||String(full||'').split('/').pop();
+      let tries=0;
+      (function go(){
+        if(window.__dlOpenPath&&wins.downloads){window.__dlOpenPath(full,name);return}
+        if(++tries<20)setTimeout(go,150);
+        else{const A=window.AndroidLauncher; const m=A&&A.openFileMsg?A.openFileMsg(full):'Không mở được tệp'; if(m)notify({app:'Tệp',title:'Không mở được tệp',body:name+': '+m,icon:'files'})}
+      })();
+    }catch(e){}
+  };
   window.nativeOpenApp=function(id,toggle){
     try{
       /* Bấm icon trên Dock nổi khi app đó đang mở ở trên cùng: thu xuống như bấm nút − */
