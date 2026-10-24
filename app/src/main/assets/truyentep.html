@@ -698,7 +698,7 @@
     var s = imgState.start; if (!s) return;
     pcx.clearRect(0, 0, pv.width, pv.height); pcx.save();
     if (t === 'crop') { pcx.strokeStyle = '#00e5ff'; pcx.lineWidth = lw(400, 2); pcx.setLineDash([8, 6]); pcx.strokeRect(s.x, s.y, p.x - s.x, p.y - s.y); }
-    else { pcx.strokeStyle = '#ffd400'; pcx.lineWidth = lw(150, 4); pcx.fillStyle = 'rgba(255,212,0,0.18)'; pcx.fillRect(s.x, s.y, p.x - s.x, p.y - s.y); pcx.strokeRect(s.x, s.y, p.x - s.x, p.y - s.y); }
+    else { pcx.strokeStyle = '#ffd400'; pcx.lineWidth = lw(150, 4); pcx.strokeRect(s.x, s.y, p.x - s.x, p.y - s.y); }
     pcx.restore();
   });
   function endPointer(e) {
@@ -716,8 +716,8 @@
       c.getContext('2d').drawImage(cv, x, y, w, h, 0, 0, c.width, c.height);
       cv.width = c.width; cv.height = c.height; cx.drawImage(c, 0, 0); syncPrev();
     } else {
-      cx.save(); cx.strokeStyle = '#ffd400'; cx.lineWidth = lw(150, 4); cx.fillStyle = 'rgba(255,212,0,0.18)';
-      cx.fillRect(x, y, w, h); cx.strokeRect(x, y, w, h); cx.restore();
+      cx.save(); cx.strokeStyle = '#ffd400'; cx.lineWidth = lw(150, 4);
+      cx.strokeRect(x, y, w, h); cx.restore();
     }
     setTool(null); saveEdited();
   }
