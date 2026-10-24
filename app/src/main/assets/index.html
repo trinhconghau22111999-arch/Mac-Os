@@ -709,6 +709,10 @@ a.btn.pri{color:#fff}
 
 /* Ảnh */
 .ph{display:grid;grid-template-columns:170px minmax(0,1fr);height:100%;position:relative}
+.ph .phsb{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;width:max-content;max-width:calc(100% - 16px);padding:8px 10px;border-radius:18px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 10px 34px rgba(0,0,0,.4)}
+.ph .phsb[hidden],.ph .phsb .btn[hidden]{display:none}
+.ph .phsb .phn{font-size:13px;font-weight:600;padding:0 6px;white-space:nowrap}
+.ph .phsb .btn{min-height:40px;padding:0 14px}
 .pgs{flex:1;min-height:0;overflow:auto;padding:6px}
 .pgd{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:3px;align-content:start}
 .pgd .pt{position:relative;aspect-ratio:1;border:0;padding:0;background:var(--sel);overflow:hidden;border-radius:6px;cursor:pointer;display:block}
@@ -931,6 +935,13 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .rnote b{color:var(--fg);font-size:15px}.rnote .ir{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .rf{display:grid;grid-template-columns:150px minmax(0,1fr);height:100%}
 .rf .main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.rf .main{position:relative}
+.rf .rsb{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;width:max-content;max-width:calc(100% - 16px);padding:8px 10px;border-radius:18px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 10px 34px rgba(0,0,0,.4)}
+.rf .rsb[hidden],.rf .rsb .btn[hidden],.rf .rsb .rsn:empty{display:none}
+.rf .rsb .rsn{font-size:13px;font-weight:600;padding:0 6px;white-space:nowrap}
+.rf .rsb .btn{min-height:40px;padding:0 14px}
+.rf .rsb .rdel{color:#ff453a}
+.rf.hsb .rfl{padding-bottom:74px}
 /* Tải xuống: danh sách một cột chiếm cả cửa sổ, chữ và biểu tượng to cho dễ nhìn */
 .rf.dn{grid-template-columns:minmax(0,1fr)}
 .rf.dn .rfl{padding:6px 12px}
@@ -2556,9 +2567,17 @@ function buildRealFiles(b,w,arg,mode){
   };
   const home=files?'@home':R.down;
   let path=(arg&&arg.path)||home, hist=[path], pos=0, M={}, io=null;
-  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><strong class="t rpt"></strong><span class="grow"></span><button class="btn rcp" hidden>Chép</button><button class="btn rct" hidden>Cắt</button><button class="btn rps" hidden>Dán</button><button class="btn rsh" hidden>Chia sẻ</button><button class="btn rcn" hidden>Bỏ chọn</button><button class="btn rdel" hidden>Xoá</button></div><div class="rfl"></div><div class="rft"></div></div></div>';
-  const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b), rcn=$('.rcn',b), rdel=$('.rdel',b), rcp=$('.rcp',b), rct=$('.rct',b), rps=$('.rps',b), rsh=$('.rsh',b);
+  b.innerHTML='<div class="rf"><nav class="side"></nav><div class="main"><div class="bar"><button class="ib rbk" aria-label="Quay lại">‹</button><strong class="t rpt"></strong><span class="grow"></span></div><div class="rfl"></div><div class="rft"></div><div class="rsb" hidden><span class="rsn"></span><button class="btn rsa">Chọn tất cả</button><button class="btn rcp" hidden>Chép</button><button class="btn rct" hidden>Cắt</button><button class="btn rps" hidden>Dán</button><button class="btn rsh" hidden>Chia sẻ</button><button class="btn rcn" hidden>Bỏ chọn</button><button class="btn rdel" hidden>Xoá</button></div></div></div>';
+  const side=$('.side',b), list=$('.rfl',b), pt=$('.rpt',b), ft=$('.rft',b), rcn=$('.rcn',b), rdel=$('.rdel',b), rcp=$('.rcp',b), rct=$('.rct',b), rps=$('.rps',b), rsh=$('.rsh',b), rsb=$('.rsb',b), rsn=$('.rsn',b), rsa=$('.rsa',b);
   const SEL=new Set(); let MK=null;
+  /* Hộp thoại thao tác nổi (thay cho nút ở hàng tiêu đề đã ẩn): hiện khi đã chọn mục, hoặc khi có mục đã Chép/Cắt chờ Dán */
+  function sbUpdate(){
+    const on=SEL.size>0, paste=!rps.hidden, show=on||paste;
+    rsb.hidden=!show; $('.rf',b).classList.toggle('hsb',show);
+    rsn.textContent=on?'Đã chọn '+SEL.size:(paste?'Đã '+(FCLIP.mode==='cut'?'cắt ':'chép ')+FCLIP.paths.length+' mục':'');
+    rsa.hidden=!on;
+  }
+  rsa.addEventListener('click',()=>{if(w._selectAll)w._selectAll()});
   if(!files){side.style.display='none';$('.rf',b).classList.add('dn')}   /* Tải xuống: chỉ 1 cột danh sách, không chừa nửa phải trống */
   const secPath=k=>k==='img'||k==='vid'||k==='aud'?'@'+k:(k==='root'?R.root:R.down);
   const where=p=>p==='@img'?'img':p==='@vid'?'vid':p==='@aud'?'aud':p==='@home'?'':(R.down&&(p===R.down||p.indexOf(R.down+'/')===0))?'down':'root';
@@ -2575,7 +2594,7 @@ function buildRealFiles(b,w,arg,mode){
   const fmtDur=ms=>{const t=Math.round((ms||0)/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return (h?h+':'+pad(m):m)+':'+pad(s)};
   function reset(){list.onscroll=null;list.__all=null;if(io){io.disconnect();io=null}}
   function render(){
-    reset(); SEL.clear(); MK=null; pt.textContent=name(path); rcn.hidden=true; rdel.hidden=true; rcp.hidden=rct.hidden=rsh.hidden=true; rps.hidden=!(FCLIP.paths.length&&path[0]!=='@');
+    reset(); SEL.clear(); MK=null; pt.textContent=name(path); rcn.hidden=true; rdel.hidden=true; rcp.hidden=rct.hidden=rsh.hidden=true; rps.hidden=!(FCLIP.paths.length&&path[0]!=='@'); sbUpdate();
     $$('.si',side).forEach(x=>x.setAttribute('aria-current',String(where(path)===x.dataset.k)));
     $('.rbk',b).disabled=pos<=0;
     list.__dz=path[0]==='@'?null:path;
@@ -2877,6 +2896,7 @@ function buildRealFiles(b,w,arg,mode){
     rcp.hidden=rct.hidden=!real;
     rsh.hidden=!(real&&SEL.size===1&&A.shareFile);
     rps.hidden=!(FCLIP.paths.length&&!MK&&path[0]!=='@');
+    sbUpdate();
   }
   const setClip=mode=>{ if(!SEL.size||MK)return; FCLIP.mode=mode; FCLIP.paths=[...SEL]; selUpdate(); notify({app:'Tệp',title:(mode==='cut'?'Đã cắt ':'Đã chép ')+FCLIP.paths.length+' mục',body:'Mở thư mục đích rồi bấm Dán',icon:'files'}) };
   rcp.addEventListener('click',()=>setClip('copy'));

@@ -9,7 +9,7 @@ function scene(i){
 }
 function buildPhotos(b,w,arg){
   let fav=jget('dm-pfav',[]), tab='all', view=-1;
-  b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><button class="btn phsc" type="button" hidden>Hủy</button><button class="btn phsd" type="button" hidden style="background:#ff3b30;color:#fff">Xóa</button><span class="cn phc"></span></div><div class="pgs"><div class="pgd"></div></div></div><div class="pv" hidden></div></div>';
+  b.innerHTML='<div class="ph"><nav class="side"><h4>Thư viện</h4></nav><div class="main"><div class="bar"><strong class="t pht"></strong><span class="grow"></span><span class="cn phc"></span></div><div class="pgs"><div class="pgd"></div></div></div><div class="pv" hidden></div><div class="phsb" hidden><span class="phn"></span><button class="btn phsa" type="button">Chọn tất cả</button><button class="btn phsc" type="button">Hủy</button><button class="btn phsd" type="button" style="background:#ff3b30;color:#fff">Xóa</button></div></div>';
   const side=$('.side',b), pgs=$('.pgs',b), pgd=$('.pgd',b), pv=$('.pv',b), pht=$('.pht',b), phc=$('.phc',b);
   let pio=null, ptq=[], ptb=false, pgShown=0;
   const SEL=new Set(); let selLp=0, selSkip=false;   /* chọn nhiều ảnh: nhấn giữ 1 ảnh để vào chế độ chọn */
@@ -33,7 +33,7 @@ function buildPhotos(b,w,arg){
   function renderGrid(){
     $$('.si',side).forEach(s=>s.setAttribute('aria-current',String(s.dataset.t===tab)));
     const l=ids(); pht.textContent=TABN[tab]||'Tất cả ảnh'; phc.textContent=SEL.size?('Đã chọn '+SEL.size):(l.length+' ảnh');
-    $('.phsc',b).hidden=!SEL.size; $('.phsd',b).hidden=!SEL.size; $('.phsd',b).textContent='Xóa ('+SEL.size+')';
+    selBox();
     const st=pgs.scrollTop;
     if(pio){pio.disconnect();pio=null} ptq.length=0; ptb=false; pgs.onscroll=null;
     if(!l.length){pgd.innerHTML='<div class="none">'+(TABE[tab]||TABE.all)+'</div>';return}
@@ -61,9 +61,17 @@ function buildPhotos(b,w,arg){
   const selToggle=(x,i)=>{if(SEL.has(i))SEL.delete(i);else SEL.add(i);x.classList.toggle('sel',SEL.has(i));selBar()};
   function selBar(){
     const n=SEL.size; phc.textContent=n?('Đã chọn '+n):(ids().length+' ảnh');
-    $('.phsc',b).hidden=!n; $('.phsd',b).hidden=!n; $('.phsd',b).textContent='Xóa ('+n+')';
+    selBox();
     pgd.classList.toggle('selmode',n>0);
   }
+  /* Hộp thoại thao tác nổi khi đã chọn ảnh (hàng tiêu đề trên cùng đã bị ẩn nên nút cũ không còn thấy) */
+  function selBox(){
+    const n=SEL.size, bx=$('.phsb',b);
+    bx.hidden=!n; $('.phn',b).textContent=n?('Đã chọn '+n):''; $('.phsd',b).textContent='Xóa ('+n+')';
+    $('.phsa',b).hidden=n>=ids().length;
+    $('.pgs',b).style.paddingBottom=n?'74px':'';
+  }
+  $('.phsa',b).addEventListener('click',()=>{ids().forEach(i=>SEL.add(i));$$('.pt',pgd).forEach(x=>x.classList.toggle('sel',SEL.has(+x.dataset.i)));selBar()});
   function selClear(){SEL.clear();$$('.pt.sel',pgd).forEach(x=>x.classList.remove('sel'));selBar()}
   pgd.addEventListener('pointerdown',e=>{
     const x=e.target.closest('.pt'); if(!x)return; selSkip=false;
