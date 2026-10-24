@@ -98,8 +98,7 @@ public class OmemActivity extends Activity {
         bar.addView(icBack); bar.addView(icFwd);
         bar.addView(Ic.make(this, Ic.RELOAD, new View.OnClickListener() { public void onClick(View v) { if (session != null) session.reload(); } }));
         bar.setVisibility(View.GONE);
-        /* Đã bỏ hàng X / Ảnh / Video / Tệp phía trên: bar chỉ còn là đối tượng ẩn (không gắn vào giao diện) để các hàm cũ không lỗi.
-           Chọn Ảnh / Video / Tệp và Tải lên: bấm Back khi đã về trang đầu để ra màn hình chọn hồ sơ. */
+        root.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
 
         FrameLayout content = new FrameLayout(this);
         content.setBackgroundColor(Color.WHITE);
@@ -315,7 +314,7 @@ public class OmemActivity extends Activity {
 
     @Override public void onBackPressed() {
         if (session != null && backOk) { session.goBack(); return; }
-        if (session != null) { dropSession(); showHome(); return; }   /* hết lịch sử: ra màn hình chọn Ảnh / Video / Tệp */
+        if (session != null) { dropSession(); finish(); return; }
         finish();
     }
 
