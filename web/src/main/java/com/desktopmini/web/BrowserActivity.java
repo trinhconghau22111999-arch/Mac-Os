@@ -92,9 +92,26 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
             else if (it.getStringExtra("url") != null) u = it.getStringExtra("url");
         }
         if (u != null && (u.startsWith("http://") || u.startsWith("https://"))) return u;
-        String last = st.getString("last", null);
-        if (last != null && (last.startsWith("http://") || last.startsWith("https://")) && GeckoCore.restorable(last)) return last;
+        /* Mở lại trình duyệt: không giữ thẻ cũ, chỉ mở 1 thẻ mới là dấu trang gần nhất (dấu trang mới thêm nằm đầu danh sách). Không có dấu trang thì về trang chủ. */
+        if (st.getInt("deaths", 0) == 0) {
+            String bm = latestBookmark();
+            if (bm != null) return bm;
+        }
         return GeckoCore.HOME;
+    }
+
+    /** Địa chỉ dấu trang được thêm gần nhất, hoặc null nếu chưa có / không dùng được. */
+    private String latestBookmark() {
+        try {
+            JSONArray b = getList("bm");
+            for (int i = 0; i < b.length(); i++) {
+                JSONObject o = b.optJSONObject(i);
+                if (o == null) continue;
+                String u = o.optString("u");
+                if ((u.startsWith("http://") || u.startsWith("https://")) && GeckoCore.restorable(u)) return u;
+            }
+        } catch (Throwable e) { }
+        return null;
     }
 
     @Override protected void onNewIntent(Intent it) {
@@ -245,7 +262,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
                 if (success) {
                     String u = t.url;
                     if (u != null && (u.startsWith("http://") || u.startsWith("https://"))) {
-                        st.edit().putString("last", u).putInt("deaths", 0).putBoolean("opening", false).apply();   /* nhớ trang cuối để lần sau mở lại đúng trang này */
+                        st.edit().putInt("deaths", 0).putBoolean("opening", false).remove("last").apply();   /* không nhớ thẻ/trang cũ: lần sau mở lại là dấu trang gần nhất */
                         recordHistory(t);
                     }
                 }
