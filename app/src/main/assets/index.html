@@ -324,6 +324,8 @@ ul,ol{margin:0;padding:0;list-style:none}
 .win.snapped{border-radius:0}
 .tb{position:absolute;inset:0 0 auto 0;height:52px;z-index:2;touch-action:none}
 .tls{position:absolute;left:18px;top:19px;z-index:10;display:flex;gap:8px}
+.win .tls{display:none!important}
+.nobar{display:none!important}
 .tl{width:13px;height:13px;border-radius:50%;display:grid;place-items:center;font-size:10px;line-height:1;font-weight:800;color:rgba(0,0,0,.6);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.25)}
 .tl.c{background:#ff5f57}.tl.m{background:#febc2e}.tl.z{background:#28c840}
 .tls:hover .tl{color:rgba(0,0,0,.55)}
@@ -1924,11 +1926,29 @@ const DOCK_OV=8; /* cửa sổ chui xuống dưới Dock 8px nên không còn h�
 /* Dock cao 48dp cố định (số đo thật trên máy, cả ngang lẫn dọc); cửa sổ chui xuống dưới Dock 4dp nên không hở */
 /* Đáy cửa sổ = mép trên Dock thật (+4px chui xuống dưới). Vùng nhìn của trang ngắn hơn màn hình thật nên tính theo toạ độ màn hình do Android báo, không tính theo innerHeight. */
 const dockRes=()=>{try{const A=window.AndroidLauncher,t=A&&A.dockTopCss?+A.dockTopCss():0; if(t>0)return Math.max(0,Math.round((innerHeight-(t+4))*10)/10)}catch(e){} return 44};
+/* Bỏ hàng tiêu đề trên cùng của mọi cửa sổ app con (3 nút x − + và thanh tên/nút của app): nội dung dồn lên sát mép trên.
+   Chỉ ẩn thanh nằm sát đỉnh và gần full chiều ngang; thanh nào hiện ra muộn (app nạp lười) cũng được xử lý. Máy tính (.calc) giữ nguyên vì thanh của nó là màn hình hiển thị. */
+function stripTop(w){
+  const body=w.querySelector('.body'); if(!body)return;
+  let t=0;
+  const run=()=>{t=0;
+    const br=body.getBoundingClientRect(); if(!br.width)return;
+    body.querySelectorAll('.bar,.pvh').forEach(el=>{
+      if(el.dataset.nb||el.closest('.calc'))return;
+      const r=el.getBoundingClientRect(); if(!r.width||!r.height)return;
+      el.dataset.nb='1';
+      if(r.top-br.top<=6&&r.width>=br.width*0.6)el.classList.add('nobar');
+    });
+  };
+  try{new MutationObserver(()=>{if(!t)t=setTimeout(run,150)}).observe(body,{childList:true,subtree:true})}catch(e){}
+  setTimeout(run,0);
+}
 function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
   const w=document.createElement('section');
   w.className='win'+(a.dark?' dark-win':''); w.dataset.app=id; w.setAttribute('aria-label',a.name);
   w.innerHTML='<div class="tls"><button class="tl c" aria-label="Đóng">×</button><button class="tl m" aria-label="Thu nhỏ">−</button><button class="tl z" aria-label="Phóng to">+</button></div><div class="body"></div><i class="rz" data-d="r"></i><i class="rz" data-d="b"></i><i class="rz" data-d="br"></i><i class="rz" data-d="l"></i>';
+  stripTop(w);
   const wideC=id==='calc'&&sr.width>sr.height*1.25, bw=Math.min(wideC?Math.max(a.w,460):a.w,sr.width-24), n=count++%5, fillH=sr.height-40-dockRes(), fill=a.h>=fillH, bh=fill?fillH:a.h;
   w.style.width=bw+'px'; w.style.height=bh+'px';
   w.style.left=Math.max(12,Math.min(30+n*32,sr.width-bw-12))+'px';
