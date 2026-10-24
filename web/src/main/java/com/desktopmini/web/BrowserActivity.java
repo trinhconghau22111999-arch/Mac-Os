@@ -228,8 +228,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
     }
 
     /* ---------------- Thẻ (tab) ---------------- */
-    private void newTab(String url, boolean select) {
-        final Tab t = new Tab(); t.url = url == null ? "" : url;
+    private void makeSession(final Tab t) {
         final GeckoSession se = new GeckoSession();
         t.s = se;
         se.setContentDelegate(new GeckoSession.ContentDelegate() {
@@ -264,10 +263,31 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
             }
         });
         se.open(GeckoCore.rt(this));
+    }
+
+    private void newTab(String url, boolean select) {
+        final Tab t = new Tab(); t.url = url == null ? "" : url;
+        makeSession(t);
         tabs.add(t);
         if (select) selectTab(tabs.size() - 1);
-        if (t.url.length() > 0) se.loadUri(t.url);
+        if (t.url.length() > 0 && t.s != null) t.s.loadUri(t.url);
         refresh();
+    }
+
+    /** Thiếu RAM: đóng phiên Gecko của các thẻ nền (giữ lại địa chỉ + tiêu đề), chọn lại thẻ nào thì nạp lại đúng trang đó. */
+    private void trimTabs() {
+        for (int i = 0; i < tabs.size(); i++) {
+            if (i == cur) continue;
+            Tab t = tabs.get(i);
+            if (t.s == null) continue;
+            try { t.s.close(); } catch (Throwable e) { }
+            t.s = null; t.prog = 0; t.back = false; t.fwd = false;
+        }
+        refresh();
+    }
+    @Override public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (level == 10 || level == 15 || level >= 40) trimTabs();
     }
 
     private void loc(Tab t, String url) {
@@ -279,8 +299,11 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         if (i < 0 || i >= tabs.size()) return;
         cur = i;
         Tab t = tabs.get(i);
+        boolean re = t.s == null;
+        if (re) makeSession(t);   /* thẻ đã được giải phóng do thiếu RAM: dựng lại phiên */
         try { gv.releaseSession(); } catch (Throwable e) { }
         try { gv.setSession(t.s); } catch (Throwable e) { toast("Không chuyển được thẻ: " + e); }
+        if (re && t.url != null && t.url.length() > 0) t.s.loadUri(t.url);
         refresh();
     }
 
@@ -551,7 +574,7 @@ public class BrowserActivity extends Activity implements Downloads.Listener {
         Downloads.unlisten(this);
         if (isFinishing()) st.edit().putBoolean("opening", false).apply();
         try { gv.releaseSession(); } catch (Throwable e) { }
-        for (Tab t : tabs) { try { t.s.close(); } catch (Throwable e) { } }
+        for (Tab t : tabs) { try { if (t.s != null) t.s.close(); } catch (Throwable e) { } }
         tabs.clear();
         super.onDestroy();
     }

@@ -1940,8 +1940,16 @@ function stripTop(w){
       if(r.top-br.top<=6&&r.width>=br.width*0.6)el.classList.add('nobar');
     });
   };
-  try{new MutationObserver(()=>{if(!t)t=setTimeout(run,150)}).observe(body,{childList:true,subtree:true})}catch(e){}
-  setTimeout(run,0);
+  /* Theo dõi nội dung chỉ trong lúc cửa sổ đang dựng/đổi trang; yên 8 giây thì ngắt (đỡ tốn máy), chạm vào cửa sổ thì theo dõi lại */
+  let mo=null,idle=0;
+  const arm=()=>{clearTimeout(idle);idle=setTimeout(()=>{if(mo){mo.disconnect();mo=null}},8000)};
+  const on=()=>{
+    if(mo){arm();return}
+    try{mo=new MutationObserver(()=>{arm();if(!t)t=setTimeout(run,150)});mo.observe(body,{childList:true,subtree:true})}catch(e){}
+    arm();
+  };
+  body.addEventListener('pointerdown',on,{passive:true});
+  on(); setTimeout(run,0);
 }
 function createWin(id,arg){
   const a=APPS[id], sr=stage.getBoundingClientRect();
@@ -1972,8 +1980,14 @@ function closeWin(w){
 }
 function minWin(w){
   const id=w.dataset.app; w._leaving=true; w.classList.remove('focus'); focusTop();
-  flyOut(w,id,()=>{w.classList.add('min');w._leaving=false;bus.emit('wins')});
+  flyOut(w,id,()=>{w.classList.add('min');w._leaving=false;w._minAt=Date.now();bus.emit('wins')});
 }
+/* Cửa sổ thu nhỏ quá 10 phút thì tự đóng để nhả RAM, chỉ với app không giữ dữ liệu đang soạn/ghi (Ảnh, Tệp, Cài đặt, Thùng rác); mở lại là dựng mới */
+const FREEABLE=['photos','files','settings','trash'];
+setInterval(()=>{
+  const now=Date.now();
+  Object.keys(wins).forEach(id=>{const w=wins[id]; if(w&&w.classList.contains('min')&&w._minAt&&!w._leaving&&now-w._minAt>600000&&FREEABLE.indexOf(id)>=0)closeWin(w)});
+},60000);
 /* Cửa sổ phóng to / chia đôi kết thúc đúng mép trên của Dock (Dock cao base+18px và sát đáy màn hình), không chừa khe hở */
 function fitMax(w){
   const sr=stage.getBoundingClientRect();

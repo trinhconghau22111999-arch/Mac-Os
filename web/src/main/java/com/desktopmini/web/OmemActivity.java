@@ -32,6 +32,8 @@ public class OmemActivity extends Activity {
     private static final String[][] P = {{"anh", "Ảnh"}, {"video", "Video"}, {"tep", "Tệp"}};
 
     private CloseRx closeRx;
+    private boolean visible;
+    private String restoreP = "", restoreUrl = "";
     private GeckoView view;
     private GeckoSession session;
     private LinearLayout home, bar, chips;
@@ -321,7 +323,15 @@ public class OmemActivity extends Activity {
         finish();
     }
 
-    @Override protected void onStart() { super.onStart(); if (session != null) { try { session.setActive(true); } catch (Throwable e) { } } }
-    @Override protected void onStop() { super.onStop(); if (session != null && !Downloads.anyRunning()) { try { session.setActive(false); } catch (Throwable e) { } } }
+    @Override protected void onStart() { super.onStart(); visible = true; if (session == null && restoreP.length() > 0) { String rp = restoreP, ru = restoreUrl; restoreP = ""; restoreUrl = ""; open(rp, false); if (session != null && ru.length() > 0) { url = ru; session.loadUri(ru); } } if (session != null) { try { session.setActive(true); } catch (Throwable e) { } } }
+    @Override protected void onStop() { super.onStop(); visible = false; if (session != null && !Downloads.anyRunning()) { try { session.setActive(false); } catch (Throwable e) { } } }
+    /** Thiếu RAM trong lúc Ổ mềm nằm nền (và không có tệp đang tải): đóng phiên Gecko, mở lại thì nạp lại đúng trang (đăng nhập vẫn còn vì mỗi hồ sơ có kho cookie riêng). */
+    @Override public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (!visible && session != null && valid(profile) && level >= 40 && !Downloads.anyRunning()) {
+            restoreP = profile; restoreUrl = url == null ? "" : url;
+            dropSession(); profile = "";
+        }
+    }
     @Override protected void onDestroy() { CloseRx.unreg(this, closeRx); dropSession(); super.onDestroy(); }
 }
