@@ -944,6 +944,13 @@ html.lite .lp{background:rgba(14,18,34,.88)}
 .rf{display:grid;grid-template-columns:190px minmax(0,1fr);height:100%}
 .rf .main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .rf .main{position:relative}
+.app.tr{position:relative}
+.app.tr .trh{padding:16px 20px 8px;flex:0 0 auto}
+.app.tr .trh .t{font-size:22px;font-weight:700;color:var(--fg)}
+.app.tr .fl{padding-bottom:74px}
+.app.tr .tsb{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;width:max-content;max-width:calc(100% - 16px);padding:8px 10px;border-radius:18px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 10px 34px rgba(0,0,0,.4)}
+.app.tr .tsb .btn{min-height:40px;padding:0 14px}
+.app.tr .tsb [hidden]{display:none}
 .rf .rsb{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;width:max-content;max-width:calc(100% - 16px);padding:8px 10px;border-radius:18px;background:var(--glass);color:var(--fg);backdrop-filter:blur(var(--bl)) saturate(1.9);-webkit-backdrop-filter:blur(var(--bl)) saturate(1.9);box-shadow:0 10px 34px rgba(0,0,0,.4)}
 .rf .rsb[hidden],.rf .rsb .btn[hidden],.rf .rsb .rsn:empty{display:none}
 .rf .rsb .rsn{font-size:13px;font-weight:600;padding:0 6px;white-space:nowrap}
@@ -2448,8 +2455,8 @@ function confirmBox(title,sub,okText,fn){
   $('.ok',o).addEventListener('click',()=>{o.remove();fn()});
 }
 function buildTrash(b,w){
-  b.innerHTML='<div class="app"><div class="bar"><strong class="t rtt">Thùng rác</strong><span class="grow"></span><button class="btn rs">Khôi phục</button><button class="btn rd" style="color:#e53935">Xóa vĩnh viễn</button><button class="btn em">Dọn sạch</button></div><div class="fl list"></div><div class="rtn" style="padding:6px 14px;font-size:12px;opacity:.65">Mục trong Thùng rác tự xóa hẳn sau 7 ngày.</div></div>';
-  const fl=$('.fl',b), rs=$('.rs',b), rd=$('.rd',b), em=$('.em',b), tt=$('.rtt',b);
+  b.innerHTML='<div class="app tr"><div class="trh"><strong class="t rtt">Thùng rác</strong></div><div class="fl list"></div><div class="rtn" style="padding:6px 14px;font-size:12px;opacity:.65">Mục trong Thùng rác tự xóa hẳn sau 7 ngày.</div><div class="tsb"><button class="btn tsa">Chọn tất cả</button><button class="btn rs" hidden>Khôi phục</button><button class="btn rd" hidden style="color:#ff453a">Xóa vĩnh viễn</button><button class="btn em" style="color:#ff453a">Dọn sạch</button></div></div>';
+  const fl=$('.fl',b), rs=$('.rs',b), rd=$('.rd',b), em=$('.em',b), tt=$('.rtt',b), tsa=$('.tsa',b);
   const SELT=new Set();   /* khóa: 'v:<chỉ số>' (mục ảo) hoặc 'n:<id>' (tệp thật) */
   let ITEMS=[];
   const left=t=>{const d=Math.max(0,Math.ceil((TRASH_MS-(Date.now()-t))/864e5)); return 'còn '+d+' ngày'};
@@ -2466,6 +2473,7 @@ function buildTrash(b,w){
     fl.innerHTML=ITEMS.length?'<div class="chd"><span>Tên</span><span class="dt">Còn lại</span><span class="sz">Kích thước</span></div><div class="rows">'+ITEMS.map(it=>'<div class="row" data-k="'+esc(it.k)+'" tabindex="0" aria-selected="'+SELT.has(it.k)+'">'+it.icon+'<span class="nm">'+esc(it.name)+'</span><span class="dt">'+left(it.t)+'</span><span class="sz">'+esc(it.size)+'</span></div>').join('')+'</div>':'<div class="rnote"><b>Thùng rác trống</b></div>';
     const n=SELT.size;
     rs.disabled=!n; rd.disabled=!n; em.disabled=!ITEMS.length;
+    rs.hidden=!n; rd.hidden=!n; tsa.hidden=!ITEMS.length||n===ITEMS.length;
     rs.textContent=n?'Khôi phục ('+n+')':'Khôi phục'; rd.textContent=n?'Xóa vĩnh viễn ('+n+')':'Xóa vĩnh viễn';
     tt.textContent=n?'Đã chọn '+n:'Thùng rác';
     bus.emit('trash');
@@ -2496,6 +2504,7 @@ function buildTrash(b,w){
       SELT.clear(); render();
     });
   }
+  tsa.addEventListener('click',()=>{collect();ITEMS.forEach(i=>SELT.add(i.k));render()});
   rs.addEventListener('click',restoreSel);
   rd.addEventListener('click',purgeSel);
   em.addEventListener('click',()=>{ if(!ITEMS.length)return; confirmBox('Dọn sạch Thùng rác?','Toàn bộ '+ITEMS.length+' mục sẽ bị xóa vĩnh viễn, không hoàn tác được.','Dọn sạch',()=>{emptyTrash();SELT.clear();render()}) });
